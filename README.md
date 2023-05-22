@@ -1,2 +1,5 @@
-# pmmp-webserver
-A simple HTTP/1.1 webserver that runs on a PMMP server
+# PMMP WebServer
+A Verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
+
+
+

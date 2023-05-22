@@ -1,0 +1,16 @@
+{
+  "name": "hebbinkpro/pmmp-webserver",
+  "require": {
+    "pmmp/pocketmine-mp": "^5.0.0",
+    "php": "^8.1"
+  },
+  "autoload": {
+    "Hebbinkpro\\WebServer\\": "src/Hebbinkpro/WebServer"
+  },
+  "extra": {
+    "virion": {
+      "spec": "3.0",
+      "namespace-root": "Hebbinkpro\\WebServer"
+    }
+  }
+}
