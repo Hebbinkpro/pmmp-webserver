@@ -1,11 +1,14 @@
 {
   "name": "hebbinkpro/pmmp-webserver",
+  "description": "A HTTP/1.1 webserver Virion for PocketMine plugins",
+  "license": "MIT",
   "require": {
-    "pmmp/pocketmine-mp": "^5.0.0",
-    "php": "^8.1"
+    "pmmp/pocketmine-mp": "^5.0.0"
   },
   "autoload": {
-    "Hebbinkpro\\WebServer\\": "src/Hebbinkpro/WebServer"
+    "psr-4": {
+      "Hebbinkpro\\WebServer\\": "src/Hebbinkpro/WebServer"
+    }
   },
   "extra": {
     "virion": {
