@@ -4,8 +4,13 @@ namespace Hebbinkpro\WebServer\http;
 
 class HttpVersion
 {
-    public function __construct(private readonly int $major, private readonly int $minor)
+    private readonly int $major;
+    private readonly int $minor;
+
+    public function __construct(int $major, int $minor)
     {
+        $this->major = $major;
+        $this->minor = $minor;
     }
 
     /**

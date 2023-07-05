@@ -6,8 +6,13 @@ class HttpStatus
 {
     private static array $STATUS_CODES = [];
 
-    public function __construct(private readonly int $code, private readonly string $message)
+    private readonly int $code;
+    private readonly string $message;
+
+    public function __construct(int $code, string $message)
     {
+        $this->code = $code;
+        $this->message = $message;
     }
 
     public static function get(int $code): HttpStatus
