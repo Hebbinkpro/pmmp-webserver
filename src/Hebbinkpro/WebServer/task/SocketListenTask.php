@@ -12,11 +12,10 @@ class SocketListenTask extends Task implements SocketListener
 {
     private Plugin $plugin;
     private WebServer $server;
+    private ClientSocketListenerTask $clientListener;
 
     /** @var resource */
     private mixed $socket;
-    /** @var WebClient[] */
-    private array $clients;
 
     public function __construct(Plugin $plugin, WebServer $server, $socket)
     {
@@ -25,7 +24,9 @@ class SocketListenTask extends Task implements SocketListener
         $this->server = $server;
 
         $this->socket = $socket;
-        $this->clients = [];
+
+        $this->clientListener = new ClientSocketListenerTask();
+        $this->plugin->getScheduler()->scheduleRepeatingTask($this->clientListener, 1);
     }
 
     public function onRun(): void
@@ -48,16 +49,16 @@ class SocketListenTask extends Task implements SocketListener
             $client = new WebClient($this->server, $clientInfo[0], intval($clientInfo[1]), $socket);
 
             // add the client to the list
-            $this->clients[] = $client;
+            $this->clientListener->addClient($client);
 
             // create a task for the client
-            stream_set_blocking($client->getSocket(), true);
-            $this->plugin->getServer()->getAsyncPool()->submitTask(new AsyncClientSocketListenTask($client, $client->getSocket()));
+            stream_set_blocking($client->getSocket(), false);
         }
     }
 
     public function close(): void
     {
+        $this->clientListener->close();
         $this->getHandler()->cancel();
     }
 
@@ -66,6 +67,6 @@ class SocketListenTask extends Task implements SocketListener
      */
     public function getClients(): array
     {
-        return $this->clients;
+        return $this->clientListener->getClients();
     }
 }

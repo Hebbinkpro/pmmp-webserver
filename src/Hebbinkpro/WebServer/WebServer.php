@@ -116,15 +116,10 @@ class WebServer
 
         $this->plugin->getLogger()->info("Stopping the web server...");
 
-        // close all clients
-        foreach ($this->listener->getClients() as $client) {
-            $client->close();
-        }
+        // close the listener
+        $this->listener->close();
 
         // shutdown the socket
         stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
-
-        // close the listener
-        $this->listener->close();
     }
 }
