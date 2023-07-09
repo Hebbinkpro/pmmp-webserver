@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\SerializableClosure\Support;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support;
 
 defined('T_NAME_QUALIFIED') || define('T_NAME_QUALIFIED', -4);
 defined('T_NAME_FULLY_QUALIFIED') || define('T_NAME_FULLY_QUALIFIED', -5);
@@ -9,6 +9,10 @@ defined('T_NULLSAFE_OBJECT_OPERATOR') || define('T_NULLSAFE_OBJECT_OPERATOR', -7
 
 use Closure;
 use ReflectionFunction;
+use constHebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\T_FN;
+use constHebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\T_NAME_FULLY_QUALIFIED;
+use constHebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\T_NAME_QUALIFIED;
+use constHebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\T_NULLSAFE_OBJECT_OPERATOR;
 
 class ReflectionClosure extends ReflectionFunction
 {

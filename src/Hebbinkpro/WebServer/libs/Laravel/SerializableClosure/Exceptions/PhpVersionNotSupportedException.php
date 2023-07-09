@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\SerializableClosure\Exceptions;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions;
 
 use Exception;
 

@@ -1,8 +1,8 @@
 <?php
 
-namespace Laravel\SerializableClosure\Signers;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Signers;
 
-use Laravel\SerializableClosure\Contracts\Signer;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Signer;
 
 class Hmac implements Signer
 {

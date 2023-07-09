@@ -6,9 +6,9 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\http\HttpUrl;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
 use Hebbinkpro\WebServer\WebClient;
-use Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
-use Laravel\SerializableClosure\SerializableClosure;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 

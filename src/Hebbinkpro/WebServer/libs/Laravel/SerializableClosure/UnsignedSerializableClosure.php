@@ -1,16 +1,16 @@
 <?php
 
-namespace Laravel\SerializableClosure;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure;
 
 use Closure;
-use Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 class UnsignedSerializableClosure
 {
     /**
      * The closure's serializable.
      *
-     * @var \Laravel\SerializableClosure\Contracts\Serializable
+     * @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable
      */
     protected $serializable;
 
@@ -26,7 +26,7 @@ class UnsignedSerializableClosure
             throw new PhpVersionNotSupportedException();
         }
 
-        $this->serializable = new Serializers\Native($closure);
+        $this->serializable = new \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native($closure);
     }
 
     /**

@@ -1,19 +1,19 @@
 <?php
 
-namespace Laravel\SerializableClosure;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure;
 
 use Closure;
-use Laravel\SerializableClosure\Exceptions\InvalidSignatureException;
-use Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
-use Laravel\SerializableClosure\Serializers\Signed;
-use Laravel\SerializableClosure\Signers\Hmac;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\InvalidSignatureException;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Signed;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Signers\Hmac;
 
 class SerializableClosure
 {
     /**
      * The closure's serializable.
      *
-     * @var \Laravel\SerializableClosure\Contracts\Serializable
+     * @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable
      */
     protected $serializable;
 
@@ -29,9 +29,9 @@ class SerializableClosure
             throw new PhpVersionNotSupportedException();
         }
 
-        $this->serializable = Serializers\Signed::$signer
-            ? new Serializers\Signed($closure)
-            : new Serializers\Native($closure);
+        $this->serializable = \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Signed::$signer
+            ? new \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Signed($closure)
+            : new \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native($closure);
     }
 
     /**
@@ -66,7 +66,7 @@ class SerializableClosure
      * Create a new unsigned serializable closure instance.
      *
      * @param  Closure  $closure
-     * @return \Laravel\SerializableClosure\UnsignedSerializableClosure
+     * @return \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\UnsignedSerializableClosure
      */
     public static function unsigned(Closure $closure)
     {
@@ -81,7 +81,7 @@ class SerializableClosure
      */
     public static function setSecretKey($secret)
     {
-        Serializers\Signed::$signer = $secret
+        \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Signed::$signer = $secret
             ? new Hmac($secret)
             : null;
     }
@@ -94,7 +94,7 @@ class SerializableClosure
      */
     public static function transformUseVariablesUsing($transformer)
     {
-        Serializers\Native::$transformUseVariables = $transformer;
+        \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native::$transformUseVariables = $transformer;
     }
 
     /**
@@ -105,7 +105,7 @@ class SerializableClosure
      */
     public static function resolveUseVariablesUsing($resolver)
     {
-        Serializers\Native::$resolveUseVariables = $resolver;
+        \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native::$resolveUseVariables = $resolver;
     }
 
     /**
@@ -126,7 +126,7 @@ class SerializableClosure
      * @param  array  $data
      * @return void
      *
-     * @throws \Laravel\SerializableClosure\Exceptions\InvalidSignatureException
+     * @throws \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\InvalidSignatureException
      */
     public function __unserialize($data)
     {

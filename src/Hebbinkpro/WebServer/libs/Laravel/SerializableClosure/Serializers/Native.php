@@ -1,16 +1,16 @@
 <?php
 
-namespace Laravel\SerializableClosure\Serializers;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers;
 
 use Closure;
 use DateTimeInterface;
-use Laravel\SerializableClosure\Contracts\Serializable;
-use Laravel\SerializableClosure\SerializableClosure;
-use Laravel\SerializableClosure\Support\ClosureScope;
-use Laravel\SerializableClosure\Support\ClosureStream;
-use Laravel\SerializableClosure\Support\ReflectionClosure;
-use Laravel\SerializableClosure\Support\SelfReference;
-use Laravel\SerializableClosure\UnsignedSerializableClosure;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ClosureScope;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ClosureStream;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ReflectionClosure;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\SelfReference;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\UnsignedSerializableClosure;
 use ReflectionObject;
 use UnitEnum;
 
@@ -40,7 +40,7 @@ class Native implements Serializable
     /**
      * The closure's reflection.
      *
-     * @var \Laravel\SerializableClosure\Support\ReflectionClosure|null
+     * @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ReflectionClosure|null
      */
     protected $reflector;
 
@@ -61,7 +61,7 @@ class Native implements Serializable
     /**
      * The closure's scope.
      *
-     * @var \Laravel\SerializableClosure\Support\ClosureScope|null
+     * @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ClosureScope|null
      */
     protected $scope;
 
@@ -207,7 +207,7 @@ class Native implements Serializable
      * Ensures the given closures are serializable.
      *
      * @param  mixed  $data
-     * @param  \Laravel\SerializableClosure\Support\ClosureScope  $storage
+     * @param  \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ClosureScope  $storage
      * @return void
      */
     public static function wrapClosures(&$data, $storage)
@@ -293,7 +293,7 @@ class Native implements Serializable
     /**
      * Gets the closure's reflector.
      *
-     * @return \Laravel\SerializableClosure\Support\ReflectionClosure
+     * @return \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support\ReflectionClosure
      */
     public function getReflector()
     {

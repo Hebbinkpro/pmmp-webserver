@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\SerializableClosure\Support;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Support;
 
 class SelfReference
 {

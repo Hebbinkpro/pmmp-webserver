@@ -7,6 +7,4 @@ projects:
     path: ""
     model: virion
     type: library
-    lint:
-      phpstan: false
 ...

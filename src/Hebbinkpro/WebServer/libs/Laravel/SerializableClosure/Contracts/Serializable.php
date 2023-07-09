@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\SerializableClosure\Contracts;
+namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts;
 
 interface Serializable
 {
