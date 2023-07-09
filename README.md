@@ -177,3 +177,5 @@ The query of a path is everything behind the `?` in a path, so `/?foo=bar`. Ther
 A single query is represented as `<name>=<value>`.<br>
 To request all queries you can use `HttpUrl->getQuery()`, or to request only a single value you can use `HttpRequest->getQueryParam($name)`.
 
+## Credits
+- This virion makes use of [Laravel\SerializableClosure](https://github.com/laravel/serializable-closure) for sharing the action functions given in the `Router` on the main thread with the http server thread.
