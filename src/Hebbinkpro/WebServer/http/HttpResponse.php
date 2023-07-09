@@ -53,6 +53,18 @@ class HttpResponse
     }
 
     /**
+     * Send data as html
+     * @param string $data
+     * @param string $contentType content type of the data
+     * @return void
+     */
+    public function send(string $data, string $contentType = "text/html"): void
+    {
+        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, $contentType);
+        $this->body = $data;
+    }
+
+    /**
      * @return HttpStatus
      */
     public function getStatus(): HttpStatus
@@ -199,18 +211,6 @@ class HttpResponse
 
         // send the constructed data to the client
         $this->client->send($data);
-    }
-
-    /**
-     * Send data as html
-     * @param string $data
-     * @param string $contentType content type of the data
-     * @return void
-     */
-    public function send(string $data, string $contentType = "text/html"): void
-    {
-        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, $contentType);
-        $this->body = $data;
     }
 
     /**

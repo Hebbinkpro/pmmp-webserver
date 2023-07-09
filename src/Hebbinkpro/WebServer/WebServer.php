@@ -4,35 +4,47 @@ namespace Hebbinkpro\WebServer;
 
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\route\Router;
-use Hebbinkpro\WebServer\task\SocketListener;
-use Hebbinkpro\WebServer\task\SocketListenTask;
+use pmmp\thread\ThreadSafe;
 use pocketmine\plugin\PluginBase;
+use pocketmine\thread\log\ThreadSafeLogger;
+use pocketmine\thread\ThreadSafeClassLoader;
 
-class WebServer
+class WebServer extends ThreadSafe
 {
-    private PluginBase $plugin;
+    private static ThreadSafeClassLoader $classLoader;
+    private static PluginBase $plugin;
+
     private string $address;
     private int $port;
 
-    private mixed $socket;
-
     private Router $router;
-    private SocketListener $listener;
 
-    private bool $started;
+    private ?HttpServer $httpServer = null;
 
-    public function __construct(PluginBase $plugin, string $address = "127.0.0.1", int $port = 3000)
+    public function __construct(string $address = "127.0.0.1", int $port = 3000, Router $router = null)
     {
-        $this->plugin = $plugin;
         $this->address = $address;
         $this->port = $port;
 
         // register all status codes
         HttpStatus::registerAll();
 
-        $this->router = new Router($this);
+        if ($router == null) $this->router = new Router();
+        else $this->router = $router;
 
-        $this->started = false;
+    }
+
+    public static function register(PluginBase $plugin)
+    {
+        // store the plugin instance
+        self::$plugin = $plugin;
+
+        // get the PMMP classloader to use in the threads
+        self::$classLoader = $plugin->getServer()->getLoader();
+        // register the dependency to the classloader
+        self::$classLoader->addPath("Laravel\\SerializableClosure", __DIR__ . "\\..\\..\\..\\vendor\\laravel\\serializable-closure\\src");
+        // register this virion to the classloader
+        self::$classLoader->addPath("Hebbinkpro\\WebServer", __DIR__);
     }
 
     /**
@@ -60,39 +72,20 @@ class WebServer
     }
 
     /**
-     * @return PluginBase
-     */
-    public function getPlugin(): PluginBase
-    {
-        return $this->plugin;
-    }
-
-    /**
      * Start the webserver
-     * @param int $listenerPeriod the amount of ticks after which the web server is checking for new connections
      * @return void
      */
-    public function start(int $listenerPeriod = 1): void
+    public function start(): void
     {
-        if ($this->started) {
-            $this->plugin->getLogger()->warning("Could not start the webserver, it is already started.");
+        if ($this->httpServer !== null) {
+            self::$plugin->getLogger()->warning("Could not start the webserver, it is already started.");
             return;
         }
-        $this->started = true;
 
-        $errorCode = 0;
-        $error = "";
-        $socket = stream_socket_server("tcp://$this->address:$this->port", $errorCode, $error);
-        if (!$socket) {
-            $this->plugin->getLogger()->error("Something went wrong while creating the web server socket: $errorCode" . PHP_EOL . $error);
-            return;
-        }
-        $this->socket = $socket;
+        $this->httpServer = new HttpServer($this, self::$classLoader);
+        $this->httpServer->start();
 
-        $this->plugin->getLogger()->info("The web server is running at: http://$this->address:$this->port/");
-
-        $this->listener = new SocketListenTask($this->plugin, $this, $this->socket);
-        $this->plugin->getScheduler()->scheduleRepeatingTask($this->listener, $listenerPeriod);
+        self::$plugin->getLogger()->notice("The web server is running at: http://$this->address:$this->port/");
     }
 
     /**
@@ -100,7 +93,7 @@ class WebServer
      */
     public function isStarted(): bool
     {
-        return $this->started;
+        return $this->httpServer !== null;
     }
 
     /**
@@ -109,17 +102,15 @@ class WebServer
      */
     public function close(): void
     {
-        if (!$this->started) {
-            $this->plugin->getLogger()->warning("Could not stop the web server, it is not running.");
+        if ($this->httpServer === null) {
+            self::$plugin->getLogger()->warning("Could not stop the web server, it is not running.");
             return;
         }
 
-        $this->plugin->getLogger()->info("Stopping the web server...");
+        self::$plugin->getLogger()->info("Stopping the web server...");
+        // join the http server thread
+        $this->httpServer->join();
+        self::$plugin->getLogger()->notice("The web server has been stopped.");
 
-        // close the listener
-        $this->listener->close();
-
-        // shutdown the socket
-        stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
     }
 }

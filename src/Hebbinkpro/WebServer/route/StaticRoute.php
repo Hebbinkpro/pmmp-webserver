@@ -24,15 +24,21 @@ class StaticRoute extends Route
         $this->folder = $folder;
 
         // add '/*' at the end of the path string to make all paths after the / are valid
+        $path = $path . "/*";
+
         // construct the parent with a get method, the new path and the action
-        parent::__construct(HttpMethod::GET, $path . "/*", function (HttpRequest $req, HttpResponse $res) {
-            $path = HttpUrl::getSubPath($req->getURL()->getPath(), $this->getPath());
+        parent::__construct(HttpMethod::GET, $path, null);
+        $this->setAction(function (HttpRequest $req, HttpResponse $res, mixed ...$params) {
+            $folder = $params[0];
+            $routePath = $params[1];
+
+            $path = HttpUrl::getSubPath($req->getURL()->getPath(), $routePath);
 
             // get the url path without the /*
-            $urlPath = str_replace("/*", "", implode("/", $this->getPath()));
+            $urlPath = str_replace("/*", "", implode("/", $routePath));
 
             // get the path of the requested file, the urlPath is replaced with the folder path
-            $file = $this->folder . "/" . implode("/", $path);
+            $file = $folder . "/" . implode("/", $path);
 
             // check if the file exists
             if (!is_file($file)) {
@@ -46,7 +52,7 @@ class StaticRoute extends Route
             // file does exist, send the file
             $res->sendFile($file);
             $res->end();
-        });
+        }, $folder, $this->getPath());
     }
 
     /**

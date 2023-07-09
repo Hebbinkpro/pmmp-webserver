@@ -7,22 +7,43 @@ use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\http\HttpUrl;
 use Hebbinkpro\WebServer\WebClient;
+use Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
+use Laravel\SerializableClosure\SerializableClosure;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class Route
+class Route extends ThreadSafe
 {
     private string $method;
-    private array $path;
-    /** @var callable|null */
-    private mixed $action;
+    private ThreadSafeArray $path;
+    private ?string $action;
+    private string $params;
 
-    public function __construct(string $method, string $path, ?callable $action)
+    /**
+     * @throws PhpVersionNotSupportedException
+     */
+    public function __construct(string $method, string $path, ?callable $action, mixed ...$params)
     {
         $this->method = $method;
         // construct an urlPath from the given path
-        $this->path = HttpUrl::parsePath($path);
-        $this->action = $action;
+        $this->path = ThreadSafeArray::fromArray(HttpUrl::parsePath($path));
+
+        $this->setAction($action, ...$params);
     }
 
+    /**
+     * @throws PhpVersionNotSupportedException
+     */
+    protected function setAction(?callable $action, mixed ...$params) {
+        if (!is_null($action)) {
+            $serializable = new SerializableClosure($action);
+            $this->action = serialize($serializable);
+        } else {
+            $this->action = null;
+        }
+
+        $this->params = serialize($params);
+    }
 
     /**
      * @return string
@@ -37,7 +58,11 @@ class Route
      */
     public function getPath(): array
     {
-        return $this->path;
+        $array = [];
+        foreach ($this->path as $key=>$value) {
+            $array[$key] = $value;
+        }
+        return $array;
     }
 
     /**
@@ -45,13 +70,16 @@ class Route
      * @param WebClient $client
      * @param HttpRequest $req
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function handleRequest(WebClient $client, HttpRequest $req): void
     {
         $res = new HttpResponse($client);
+        /** @var SerializableClosure $action */
+        $action = unserialize($this->action);
 
         // if action is not null, execute the action
-        if ($this->action !== null) call_user_func($this->action, $req, $res);
+        if (!is_null($this->action)) call_user_func($action->getClosure(), $req, $res, ...(unserialize($this->params)));
 
         // end the response if it was not already done
         if (!$res->isEnded()) $res->end();

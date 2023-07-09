@@ -48,7 +48,6 @@ class WebClient
 
     public function close(): void
     {
-        $this->server->getPlugin()->getLogger()->debug("Closing client: " . $this->address . ":" . $this->port);
         stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
     }
 

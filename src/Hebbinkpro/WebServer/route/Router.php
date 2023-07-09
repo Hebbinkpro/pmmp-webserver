@@ -7,18 +7,16 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\WebClient;
-use Hebbinkpro\WebServer\WebServer;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class Router
+class Router extends ThreadSafe
 {
-    private WebServer $server;
-    /** @var Route[] */
-    private array $routes;
+    private ThreadSafeArray $routes;
 
-    public function __construct(WebServer $server)
+    public function __construct()
     {
-        $this->server = $server;
-        $this->routes = [];
+        $this->routes = new ThreadSafeArray();
     }
 
     /**
@@ -71,11 +69,12 @@ class Router
      * Add a GET route to the router
      * @param string $path
      * @param callable $action
+     * @param mixed ...$params
      * @return void
      */
-    public function get(string $path, callable $action): void
+    public function get(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::GET, $path, $action));
+        $this->addRoute(new Route(HttpMethod::GET, $path, $action, ...$params));
     }
 
     /**
@@ -92,55 +91,60 @@ class Router
      * Add a POST route to the router
      * @param string $path
      * @param callable $action
+     * @param mixed $params
      * @return void
      */
-    public function post(string $path, callable $action): void
+    public function post(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::POST, $path, $action));
+        $this->addRoute(new Route(HttpMethod::POST, $path, $action, ...$params));
     }
 
     /**
      * Add a HEAD route to the router
      * @param string $path
      * @param callable $action
+     * @param mixed $params
      * @return void
      */
-    public function head(string $path, callable $action): void
+    public function head(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::HEAD, $path, $action));
+        $this->addRoute(new Route(HttpMethod::HEAD, $path, $action, ...$params));
     }
 
     /**
      * Add a PUT route to the router
      * @param string $path
      * @param callable $action
+     * @param mixed $params
      * @return void
      */
-    public function put(string $path, callable $action): void
+    public function put(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::PUT, $path, $action));
+        $this->addRoute(new Route(HttpMethod::PUT, $path, $action, ...$params));
     }
 
     /**
      * Add a DELETE route to the router
      * @param string $path
      * @param callable $action
+     * @param mixed $params
      * @return void
      */
-    public function delete(string $path, callable $action): void
+    public function delete(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::DELETE, $path, $action));
+        $this->addRoute(new Route(HttpMethod::DELETE, $path, $action, ...$params));
     }
 
     /**
      * Add a route to the router that listens to all methods
      * @param string $path
      * @param callable $action
+     * @param mixed $params
      * @return void
      */
-    public function use(string $path, callable $action): void
+    public function use(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::ALL, $path, $action));
+        $this->addRoute(new Route(HttpMethod::ALL, $path, $action, ...$params));
     }
 
     /**
@@ -159,14 +163,11 @@ class Router
      * @param string $path
      * @param string $folder
      * @return void
+     * @throws Exception
      */
     public function getStatic(string $path, string $folder): void
     {
-        try {
-            $this->addRoute(new StaticRoute($path, $folder));
-        } catch (Exception $e) {
-            // log the error
-            $this->server->getPlugin()->getLogger()->warning("Could not create static route: '$path'. Folder '$folder' does not exist");
-        }
+        $this->addRoute(new StaticRoute($path, $folder));
+
     }
 }

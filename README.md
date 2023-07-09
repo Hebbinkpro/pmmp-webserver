@@ -10,7 +10,7 @@ A Verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
 
 ## How to use
 ### Creating a web server
-For creating a web server you have to create a new instance of `WebServer` and start the server.
+For creating a web server you have to register the WebServer and create a new instance of `WebServer` to start the server.
 ```php
 <?php
 
@@ -20,6 +20,9 @@ class YourPlugin extends \pocketmine\plugin\PluginBase {
     
     protected function onEnable() : void{
         // ...
+        
+        // register the WebServer
+        WebServer::register($this);
     
         // This is the address the web server will be listening on, localhost (127.0.0.1) will most of the time work.
         $address = "127.0.0.1";
@@ -86,6 +89,26 @@ use Hebbinkpro\WebServer\http\HttpResponse;
     // now we construct  the Route with our given method, path and action.
     $route = new Route($method, $path, $action);
 ```
+
+##### Route Action
+The route action is the task that is performed when a new request is sent to the correct path. The syntax for an action is
+```php
+function (HttpRequest $request, HttpResponse $response, mixed ...$params) {
+    // your code
+}
+```
+- `$request` is the incoming request
+- `$response` is the response that will be returned to the client
+- `...$params` is an array with all given parameters. 
+The parameters are given at the end of a new `Route`.
+```php
+    $route = new \Hebbinkpro\WebServer\route\Route($method, $path, $action, ...$params);
+```
+You can add as many params as you want, if you only want 1 param, you can use `new Route($method, $path, $action, $param1)`, 
+but if you want more than 1 you can just add them behind the first param. `new Route($method, $path, $action, $param1, $param2, $param3)`.
+Adding no parameters is also an option, `new Route($method, $path, $action)`.<br>
+To use the `...$params` variable in the action, you can use it as an array, so `$params[0]` will return the first parameter, and `$params[1]` will give you the second, ect.<br>
+**_Do not put any reference to`$this` or the PocketMine Thread INSIDE the action function. Actions have to be `ThreadSafe`, so only things that DO NOT depend on the PocketMine thread will work._**
 
 #### Router methods to create HTTP request routes
 For the most common methods there are functions inside the `Router` instance. 
@@ -154,15 +177,3 @@ The query of a path is everything behind the `?` in a path, so `/?foo=bar`. Ther
 A single query is represented as `<name>=<value>`.<br>
 To request all queries you can use `HttpUrl->getQuery()`, or to request only a single value you can use `HttpRequest->getQueryParam($name)`.
 
-## How does it work
-### The server and client connections
-- When you start the `WebServer`, a tcp server socket will be created on the given address and port.
-- When the socket is created, a newly created `SocketListenTask` will run every tick and check if the socket server has new incoming clients.
-- When there is a new client found, a new instance of `WebClient` will be generated, containing all info about the client.
-- The `WebClient` will be added to the list of clients in `ClientSocketListenerTask`.
-- the `ClientSocketListenerTask` also runs every tick and checks if any of the clients have sent requests.
-- When a client send a request, the request will be handled by the `Router` of the `WebServer`
-### The Router
-- When a request has to be handled by a router, `Router->handleRequest(WebClient, HttpRequest)` is called.
-- The `Router` will check all of it's existing routes. When no (valid) `Route` is found, the `Router` returns an `404 Not Found` error to the client.
-- When a valid `Route` is found, the route will be executed and the action of the `Route` will be executed.
