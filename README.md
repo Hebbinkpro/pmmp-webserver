@@ -5,7 +5,7 @@ A Verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
 - This virion is used in my Dynmap like plugin, `PocketMap`. You can find the plugin [here](https://github.com/Hebbinkpro/PocketMap)
 
 ## How to install
-- Download the latest phar build from poggit [here](https://poggit.pmmp.io/ci/Hebbinkpro/pmmp-webserver/~)
+- Download the latest phar build from [Poggit CI](https://poggit.pmmp.io/ci/Hebbinkpro/pmmp-webserver)
 - or install it directly using composer: `composer require hebbinkpro/pmmp-webserver`
 
 ## How to use
