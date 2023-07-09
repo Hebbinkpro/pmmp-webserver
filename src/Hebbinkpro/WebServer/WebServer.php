@@ -42,7 +42,7 @@ class WebServer extends ThreadSafe
         // get the PMMP classloader to use in the threads
         self::$classLoader = $plugin->getServer()->getLoader();
         // register the dependency to the classloader
-        self::$classLoader->addPath("Laravel\\SerializableClosure", __DIR__ . "\\..\\..\\..\\vendor\\laravel\\serializable-closure\\src");
+        self::$classLoader->addPath("Laravel\\SerializableClosure", __DIR__ . "\\..\\..\\Laravel\\SerializableClosure");
         // register this virion to the classloader
         self::$classLoader->addPath("Hebbinkpro\\WebServer", __DIR__);
     }
