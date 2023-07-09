@@ -61,6 +61,8 @@ class HttpServer extends Thread
 
             usleep(100);
         }
+
+        $this->closeConnections();
     }
 
     /**
@@ -109,7 +111,7 @@ class HttpServer extends Thread
                 // get the request from the data
                 $req = HttpRequest::fromString($data);
                 // invalid (non http) request
-                if ($req === null) return;
+                if ($req === null) continue;
 
                 // handle the request
                 $client->handleRequest($req);
@@ -131,7 +133,6 @@ class HttpServer extends Thread
      */
     private function serveNewConnections(): void
     {
-
         try {
             for ($i = 0; $i < 100 && $incomingSocket = stream_socket_accept(self::$socket, 0); $i++) {
 
