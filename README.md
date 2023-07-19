@@ -25,7 +25,7 @@ class YourPlugin extends \pocketmine\plugin\PluginBase {
         WebServer::register($this);
     
         // This is the address the web server will be listening on, localhost (127.0.0.1) will most of the time work.
-        $address = "127.0.0.1";
+        $address = "0.0.0.0";
         // The port the server is listening on
         $port = 3000;
         // Create a new server on the address and port

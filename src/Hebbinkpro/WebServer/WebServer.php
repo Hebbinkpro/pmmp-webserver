@@ -21,7 +21,7 @@ class WebServer extends ThreadSafe
 
     private ?HttpServer $httpServer = null;
 
-    public function __construct(string $address = "127.0.0.1", int $port = 3000, Router $router = null)
+    public function __construct(string $address = "0.0.0.0", int $port = 3000, Router $router = null)
     {
         $this->address = $address;
         $this->port = $port;
