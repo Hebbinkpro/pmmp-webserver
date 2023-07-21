@@ -3,6 +3,7 @@
 namespace Hebbinkpro\WebServer;
 
 use Exception;
+use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use pocketmine\thread\Thread;
@@ -34,7 +35,7 @@ class HttpServer extends Thread
     }
 
     /**
-     * @throws Exception
+     * @throws SocketNotCreatedException
      */
     protected function onRun(): void
     {
@@ -51,7 +52,7 @@ class HttpServer extends Thread
 
         // if there is no socket created, throw the exception with the error.
         if (!self::$socket) {
-            throw new Exception($eMsg);
+            throw new SocketNotCreatedException($eMsg);
         }
 
         // start the loop to listen for new clients

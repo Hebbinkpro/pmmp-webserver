@@ -3,23 +3,26 @@
 namespace Hebbinkpro\WebServer\route;
 
 use Exception;
+use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\http\HttpUrl;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 class StaticRoute extends Route
 {
     private string $folder;
 
     /**
-     * @throws Exception
+     * @throws PhpVersionNotSupportedException
+     * @throws FolderNotFoundException
      */
     public function __construct(string $path, string $folder)
     {
         // check if the folder exists
-        if (!is_dir($folder)) throw new Exception("Given folder does not exist");
+        if (!is_dir($folder)) throw new FolderNotFoundException($folder);
 
         $this->folder = $folder;
 

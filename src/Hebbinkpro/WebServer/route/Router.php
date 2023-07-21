@@ -2,7 +2,9 @@
 
 namespace Hebbinkpro\WebServer\route;
 
-use Exception;
+use Hebbinkpro\WebServer\exception\FileNotFoundException;
+use Hebbinkpro\WebServer\exception\FolderNotFoundException;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\HttpResponse;
@@ -24,6 +26,7 @@ class Router extends ThreadSafe
      * @param WebClient $client
      * @param HttpRequest $request
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function handleRequest(WebClient $client, HttpRequest $request): void
     {
@@ -71,10 +74,24 @@ class Router extends ThreadSafe
      * @param callable $action
      * @param mixed ...$params
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function get(string $path, callable $action, mixed ...$params): void
     {
         $this->addRoute(new Route(HttpMethod::GET, $path, $action, ...$params));
+    }
+
+    /**
+     * Add a GET route to the router that will respond with a file
+     * @param string $path
+     * @param string $file the path of the file
+     * @param string|null $default default value used when the file does not exist
+     * @return void
+     * @throws FileNotFoundException if the file does not exist and the default value is null
+     * @throws PhpVersionNotSupportedException
+     */
+    public function getFile(string $path, string $file, ?string $default = null): void {
+        $this->addRoute(new FileRoute($path, $file, $default));
     }
 
     /**
@@ -93,6 +110,7 @@ class Router extends ThreadSafe
      * @param callable $action
      * @param mixed $params
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function post(string $path, callable $action, mixed ...$params): void
     {
@@ -105,6 +123,7 @@ class Router extends ThreadSafe
      * @param callable $action
      * @param mixed $params
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function head(string $path, callable $action, mixed ...$params): void
     {
@@ -117,6 +136,7 @@ class Router extends ThreadSafe
      * @param callable $action
      * @param mixed $params
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function put(string $path, callable $action, mixed ...$params): void
     {
@@ -129,6 +149,7 @@ class Router extends ThreadSafe
      * @param callable $action
      * @param mixed $params
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function delete(string $path, callable $action, mixed ...$params): void
     {
@@ -141,6 +162,7 @@ class Router extends ThreadSafe
      * @param callable $action
      * @param mixed $params
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function use(string $path, callable $action, mixed ...$params): void
     {
@@ -152,6 +174,7 @@ class Router extends ThreadSafe
      * @param string $path
      * @param Router $router
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function route(string $path, Router $router): void
     {
@@ -163,7 +186,8 @@ class Router extends ThreadSafe
      * @param string $path
      * @param string $folder
      * @return void
-     * @throws Exception
+     * @throws PhpVersionNotSupportedException
+     * @throws FolderNotFoundException when the given folder does not exist
      */
     public function getStatic(string $path, string $folder): void
     {

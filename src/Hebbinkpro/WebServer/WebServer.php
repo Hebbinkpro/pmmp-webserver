@@ -2,6 +2,7 @@
 
 namespace Hebbinkpro\WebServer;
 
+use Hebbinkpro\WebServer\exception\WebServerAlreadyStartedException;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\route\Router;
 use pmmp\thread\ThreadSafe;
@@ -74,13 +75,11 @@ class WebServer extends ThreadSafe
     /**
      * Start the webserver
      * @return void
+     * @throws WebServerAlreadyStartedException
      */
     public function start(): void
     {
-        if ($this->httpServer !== null) {
-            self::$plugin->getLogger()->warning("Could not start the webserver, it is already started.");
-            return;
-        }
+        if ($this->httpServer !== null) throw new WebServerAlreadyStartedException();
 
         $this->httpServer = new HttpServer($this, self::$classLoader);
         $this->httpServer->start();

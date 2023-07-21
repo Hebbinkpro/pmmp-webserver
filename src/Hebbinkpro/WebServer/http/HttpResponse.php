@@ -4,6 +4,7 @@ namespace Hebbinkpro\WebServer\http;
 
 use DateTime;
 use DateTimeInterface;
+use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\header\HttpHeaderNames;
 use Hebbinkpro\WebServer\http\header\HttpHeaders;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
@@ -111,11 +112,15 @@ class HttpResponse
      * - HTML: text/html
      * - JSON: application/json
      * - etc...
-     * @param string $fileName
+     * @param string $fileName name of the file to send
+     * @param string|null $default default value when the file does not exist
      * @return void
+     * @throws FileNotFoundException when the file does not exist and the default value is null
      */
-    public function sendFile(string $fileName): void
+    public function sendFile(string $fileName, ?string $default = null): void
     {
+        if (!file_exists($fileName) && $default === null) throw new FileNotFoundException($fileName);
+
         $parts = explode(".", $fileName) ?? [];
         $fileExtension = end($parts);
 
@@ -157,7 +162,8 @@ class HttpResponse
         }
 
         $this->headers->set(HttpHeaderNames::CONTENT_TYPE, $contentType);
-        $this->body = file_get_contents($fileName);
+
+        $this->body = file_exists($fileName) ? file_get_contents($fileName) : $default;
     }
 
     /**
