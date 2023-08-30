@@ -36,9 +36,9 @@ class HttpHeaders
         $this->headers[$header] = $value;
     }
 
-    public function get(string $header): string
+    public function get(string $header): ?string
     {
-        return $this->headers[$header];
+        return $this->headers[$header] ?? null;
     }
 
     public function exists(string $header): string

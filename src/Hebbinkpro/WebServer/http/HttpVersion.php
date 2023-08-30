@@ -22,8 +22,11 @@ class HttpVersion
         return HttpVersion::fromString("HTTP/1.1");
     }
 
-    public static function fromString(string $version): HttpVersion
+    public static function fromString(string $version): ?HttpVersion
     {
+        // invalid http request
+        if (!str_contains($version, "HTTP/")) return null;
+
         $version = str_replace("HTTP/", "", $version);
         $parts = explode(".", $version);
         $major = intval($parts[0]);

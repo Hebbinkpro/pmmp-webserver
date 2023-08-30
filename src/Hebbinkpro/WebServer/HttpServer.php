@@ -110,9 +110,7 @@ class HttpServer extends Thread
             if (($data = fread($socket, 8192)) !== false) {
                 // publish the data to the main thread to handle it
                 // get the request from the data
-                $req = HttpRequest::fromString($data);
-                // invalid (non http) request
-                if ($req === null) continue;
+                if (($req = HttpRequest::fromString($data)) === null) continue;
 
                 // handle the request
                 $client->handleRequest($req);

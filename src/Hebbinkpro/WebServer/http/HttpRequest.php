@@ -28,17 +28,19 @@ class HttpRequest
 
     public static function fromString(string $data): ?HttpRequest
     {
-
         $parts = explode(PHP_EOL, $data);
         if (empty($parts)) return null;
 
         $httpData = explode(" ", array_shift($parts));
         if (count($httpData) < 3) return null;
 
-        $method = $httpData[0];
+        $method = strtoupper($httpData[0]);
         $path = $httpData[1];
         $httpVersion = HttpVersion::fromString($httpData[2]);
         $body = "";
+
+        // validate the request head
+        if (!HttpMethod::exists($method) || !str_contains($path, "/") || $httpVersion === null) return null;
 
         // search for the first empty line, this is the separator between the headers and body
         $endHeadersIndex = array_key_last($parts);
@@ -51,7 +53,9 @@ class HttpRequest
         }
 
         $headers = HttpHeaders::fromString(implode(PHP_EOL, array_slice($parts, 0, $endHeadersIndex)));
-        $url = HttpUrl::parse("http://" . ($headers->get(HttpHeaderNames::HOST) ?? "") . $path);
+        if (!$headers->exists(HttpHeaderNames::HOST)) return null;
+
+        $url = HttpUrl::parse("http://" . $headers->get(HttpHeaderNames::HOST) . $path);
 
         return new HttpRequest($method, $url, $httpVersion, $headers, $body);
     }
