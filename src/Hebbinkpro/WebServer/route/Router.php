@@ -4,9 +4,9 @@ namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
-use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequest;
-use Hebbinkpro\WebServer\http\HttpResponse;
+use Hebbinkpro\WebServer\http\request\HttpRequest;
+use Hebbinkpro\WebServer\http\request\HttpRequestMethod;
+use Hebbinkpro\WebServer\http\response\HttpResponse;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\WebClient;
 use pmmp\thread\ThreadSafe;
@@ -87,7 +87,7 @@ class Router extends ThreadSafe
      */
     public function get(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::GET, $path, $action, ...$params));
+        $this->addRoute(new Route(HttpRequestMethod::GET, $path, $action, ...$params));
     }
 
     /**
@@ -124,7 +124,7 @@ class Router extends ThreadSafe
      */
     public function post(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::POST, $path, $action, ...$params));
+        $this->addRoute(new Route(HttpRequestMethod::POST, $path, $action, ...$params));
     }
 
     /**
@@ -137,7 +137,7 @@ class Router extends ThreadSafe
      */
     public function head(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::HEAD, $path, $action, ...$params));
+        $this->addRoute(new Route(HttpRequestMethod::HEAD, $path, $action, ...$params));
     }
 
     /**
@@ -150,7 +150,7 @@ class Router extends ThreadSafe
      */
     public function put(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::PUT, $path, $action, ...$params));
+        $this->addRoute(new Route(HttpRequestMethod::PUT, $path, $action, ...$params));
     }
 
     /**
@@ -163,7 +163,7 @@ class Router extends ThreadSafe
      */
     public function delete(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::DELETE, $path, $action, ...$params));
+        $this->addRoute(new Route(HttpRequestMethod::DELETE, $path, $action, ...$params));
     }
 
     /**
@@ -178,7 +178,7 @@ class Router extends ThreadSafe
      */
     public function use(string $path, callable $action, mixed ...$params): void
     {
-        $this->addRoute(new Route(HttpMethod::ALL, $path, $action, ...$params));
+        $this->addRoute(new Route(HttpRequestMethod::ALL, $path, $action, ...$params));
     }
 
     /**

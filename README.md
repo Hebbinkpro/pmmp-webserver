@@ -49,16 +49,14 @@ $router = $webServer->getRouter();
 
 #### Route
 A route is used to perform an action on an incoming web request.
+
 ```php
-use Hebbinkpro\WebServer\route\Route;
-use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequest;
-use Hebbinkpro\WebServer\http\HttpResponse;
+use Hebbinkpro\WebServer\http\request\HttpRequestMethod;use Hebbinkpro\WebServer\http\request\HttpRequest;use Hebbinkpro\WebServer\http\response\HttpResponse;use Hebbinkpro\WebServer\route\Route;
 
     // the method can be any value in the HttpMethod class.
     // these methods represent HTTP request methods and makes the route listen to a specific type of request.
     // if you want to listen to all requests, you can use HttpMethod::ANY (or "*").
-    $method = HttpMethod::GET;
+    $method = HttpRequestMethod::GET;
     
     // the specific path the route will listen to,
     // you can find out more about the paths below

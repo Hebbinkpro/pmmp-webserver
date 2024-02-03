@@ -3,7 +3,7 @@
 namespace Hebbinkpro\WebServer;
 
 use Hebbinkpro\WebServer\exception\WebServerAlreadyStartedException;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\response\HttpResponseStatus;
 use Hebbinkpro\WebServer\route\Router;
 use pmmp\thread\ThreadSafe;
 use pocketmine\plugin\PluginBase;
@@ -35,7 +35,7 @@ class WebServer extends ThreadSafe
         $this->port = $port;
 
         // register all status codes
-        HttpStatus::registerAll();
+        HttpResponseStatus::registerAll();
 
         if ($router == null) $this->router = new Router();
         else $this->router = $router;

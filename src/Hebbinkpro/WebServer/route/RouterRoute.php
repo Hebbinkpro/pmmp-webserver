@@ -2,11 +2,11 @@
 
 namespace Hebbinkpro\WebServer\route;
 
-use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequest;
-use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\http\HttpUrl;
-use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\request\HttpRequest;
+use Hebbinkpro\WebServer\http\request\HttpRequestMethod;
+use Hebbinkpro\WebServer\http\response\HttpResponse;
+use Hebbinkpro\WebServer\http\response\HttpResponseStatusCodes;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\WebClient;
 
@@ -26,7 +26,7 @@ class RouterRoute extends Route
     {
         $this->router = $router;
 
-        parent::__construct(HttpMethod::ALL, $path . "/*", null);
+        parent::__construct(HttpRequestMethod::ALL, $path . "/*", null);
     }
 
     public function handleRequest(WebClient $client, HttpRequest $req): void
@@ -39,7 +39,7 @@ class RouterRoute extends Route
         // no route is found
         if ($route === null) {
             $res = new HttpResponse($client);
-            $res->setStatus(HttpStatusCodes::NOT_F0UND);
+            $res->setStatus(HttpResponseStatusCodes::NOT_F0UND);
             $res->end();
             return;
         }

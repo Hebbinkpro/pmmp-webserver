@@ -2,10 +2,10 @@
 
 namespace Hebbinkpro\WebServer\route;
 
-use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequest;
-use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\http\HttpUrl;
+use Hebbinkpro\WebServer\http\request\HttpRequest;
+use Hebbinkpro\WebServer\http\request\HttpRequestMethod;
+use Hebbinkpro\WebServer\http\response\HttpResponse;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
 use Hebbinkpro\WebServer\WebClient;
@@ -109,7 +109,7 @@ class Route extends ThreadSafe
     public function equals(string $method, array $path): bool
     {
         // the given method is not valid
-        if ($this->method != HttpMethod::ALL && $this->method != $method) return false;
+        if ($this->method != HttpRequestMethod::ALL && $this->method != $method) return false;
         // the given path is shorter than the expected path
         if (count($path) < count($this->path)) return false;
 

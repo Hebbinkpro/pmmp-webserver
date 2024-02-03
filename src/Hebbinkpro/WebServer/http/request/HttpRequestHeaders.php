@@ -1,11 +1,11 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http\header;
+namespace Hebbinkpro\WebServer\http\request;
 
 /**
  * Class for managing HTTP headers inside an HTTP request or response
  */
-class HttpHeaders
+class HttpRequestHeaders
 {
     /** @var string[] */
     private array $headers;
@@ -18,11 +18,11 @@ class HttpHeaders
     /**
      * Decode an HTTP header string to HttpHeaders
      * @param string $data
-     * @return HttpHeaders
+     * @return HttpRequestHeaders
      */
-    public static function fromString(string $data): HttpHeaders
+    public static function fromString(string $data): HttpRequestHeaders
     {
-        $headers = new HttpHeaders();
+        $headers = new HttpRequestHeaders();
 
         $lines = explode(PHP_EOL, $data);
         foreach ($lines as $line) {

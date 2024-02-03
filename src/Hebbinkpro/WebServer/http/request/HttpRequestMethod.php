@@ -1,12 +1,12 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\request;
 
 /**
  * All known HTTP Request Methods according to the [Mozilla web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
  * TODO: create enum instead
  */
-final class HttpMethod
+final class HttpRequestMethod
 {
     public const ALL = "*";
     public const GET = "GET";

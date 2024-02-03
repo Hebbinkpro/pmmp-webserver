@@ -1,9 +1,10 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\request;
 
 use Hebbinkpro\WebServer\http\header\HttpHeaderNames;
-use Hebbinkpro\WebServer\http\header\HttpHeaders;
+use Hebbinkpro\WebServer\http\HttpUrl;
+use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\route\Route;
 
 /**
@@ -15,17 +16,17 @@ class HttpRequest
     private string $method;
     private HttpUrl $url;
     private HttpVersion $version;
-    private HttpHeaders $headers;
+    private HttpRequestHeaders $headers;
     private string $body;
 
     /**
      * @param string $method
      * @param HttpUrl $url
      * @param HttpVersion $version
-     * @param HttpHeaders $headers
+     * @param HttpRequestHeaders $headers
      * @param string $body
      */
-    public function __construct(string $method, HttpUrl $url, HttpVersion $version, HttpHeaders $headers, string $body)
+    public function __construct(string $method, HttpUrl $url, HttpVersion $version, HttpRequestHeaders $headers, string $body)
     {
         $this->route = null;
         $this->method = $method;
@@ -54,7 +55,7 @@ class HttpRequest
         $body = "";
 
         // validate the request head
-        if (!HttpMethod::exists($method) || !str_contains($path, "/") || $httpVersion === null) return null;
+        if (!HttpRequestMethod::exists($method) || !str_contains($path, "/") || $httpVersion === null) return null;
 
         // search for the first empty line, this is the separator between the headers and body
         $endHeadersIndex = array_key_last($parts);
@@ -66,7 +67,7 @@ class HttpRequest
             array_splice($parts, 0, $endHeadersIndex);
         }
 
-        $headers = HttpHeaders::fromString(implode(PHP_EOL, array_slice($parts, 0, $endHeadersIndex)));
+        $headers = HttpRequestHeaders::fromString(implode(PHP_EOL, array_slice($parts, 0, $endHeadersIndex)));
         if (!$headers->exists(HttpHeaderNames::HOST)) return null;
 
         $url = HttpUrl::parse("http://" . $headers->get(HttpHeaderNames::HOST) . $path);
@@ -150,9 +151,9 @@ class HttpRequest
     }
 
     /**
-     * @return HttpHeaders
+     * @return HttpRequestHeaders
      */
-    public function getHeaders(): HttpHeaders
+    public function getHeaders(): HttpRequestHeaders
     {
         return $this->headers;
     }

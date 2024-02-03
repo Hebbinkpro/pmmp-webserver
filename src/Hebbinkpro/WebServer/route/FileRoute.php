@@ -3,9 +3,9 @@
 namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
-use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequest;
-use Hebbinkpro\WebServer\http\HttpResponse;
+use Hebbinkpro\WebServer\http\request\HttpRequest;
+use Hebbinkpro\WebServer\http\request\HttpRequestMethod;
+use Hebbinkpro\WebServer\http\response\HttpResponse;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 /**
@@ -27,7 +27,7 @@ class FileRoute extends Route
 
         $this->file = $file;
 
-        parent::__construct(HttpMethod::GET, $path, null);
+        parent::__construct(HttpRequestMethod::GET, $path, null);
 
         $this->setAction(function (HttpRequest $req, HttpResponse $res, mixed ...$params) {
             $res->sendFile($params[0], $params[1]);

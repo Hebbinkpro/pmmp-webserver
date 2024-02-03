@@ -2,7 +2,7 @@
 
 namespace Hebbinkpro\WebServer;
 
-use Hebbinkpro\WebServer\http\HttpRequest;
+use Hebbinkpro\WebServer\http\request\HttpRequest;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 class WebClient

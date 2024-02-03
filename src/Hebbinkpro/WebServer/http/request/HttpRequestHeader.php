@@ -1,11 +1,11 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http\header;
+namespace Hebbinkpro\WebServer\http\request;
 
 /**
  * All known HTTP Headers according to the [Mozilla web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers).
  */
-final class HttpHeaderNames
+final class HttpRequestHeader
 {
 
     // authentication

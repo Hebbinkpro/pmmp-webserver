@@ -3,11 +3,11 @@
 namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
-use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequest;
-use Hebbinkpro\WebServer\http\HttpResponse;
 use Hebbinkpro\WebServer\http\HttpUrl;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\request\HttpRequest;
+use Hebbinkpro\WebServer\http\request\HttpRequestMethod;
+use Hebbinkpro\WebServer\http\response\HttpResponse;
+use Hebbinkpro\WebServer\http\response\HttpResponseStatus;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 /**
@@ -37,7 +37,7 @@ class StaticRoute extends Route
         $path = $path . "/*";
 
         // construct the parent with a get method, the new path and the action
-        parent::__construct(HttpMethod::GET, $path, null);
+        parent::__construct(HttpRequestMethod::GET, $path, null);
         $this->setAction(function (HttpRequest $req, HttpResponse $res, mixed ...$params) {
             $folder = $params[0];
             $routePath = $params[1];
@@ -50,7 +50,7 @@ class StaticRoute extends Route
             // check if the file exists
             if (!is_file($file)) {
                 // file does not exist, send 404
-                $res->setStatus(HttpStatus::get(404));
+                $res->setStatus(HttpResponseStatus::get(404));
                 $res->send("404 File not found.", "text/plain");
                 $res->end();
                 return;

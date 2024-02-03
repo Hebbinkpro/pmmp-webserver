@@ -1,13 +1,13 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\response;
 
 use DateTime;
 use DateTimeInterface;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
-use Hebbinkpro\WebServer\http\header\HttpHeaderNames;
-use Hebbinkpro\WebServer\http\header\HttpHeaders;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\HttpVersion;
+use Hebbinkpro\WebServer\http\request\HttpRequestHeader;
+use Hebbinkpro\WebServer\http\request\HttpRequestHeaders;
 use Hebbinkpro\WebServer\WebClient;
 use pocketmine\VersionInfo;
 use function mb_strlen;
@@ -18,9 +18,9 @@ use function mb_strlen;
 class HttpResponse
 {
     private WebClient $client;
-    private HttpStatus $status;
+    private HttpResponseStatus $status;
     private HttpVersion $version;
-    private HttpHeaders $headers;
+    private HttpRequestHeaders $headers;
     private string $body;
     private bool $ended;
 
@@ -31,16 +31,16 @@ class HttpResponse
     public function __construct(WebClient $client)
     {
         $this->client = $client;
-        $this->status = HttpStatus::get(200);
+        $this->status = HttpResponseStatus::get(200);
         $this->version = HttpVersion::get();
-        $this->headers = new HttpHeaders();
+        $this->headers = new HttpRequestHeaders();
         $this->body = "";
         $this->ended = false;
 
         // set some default headers
-        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, "text/html; charset=utf-8");
-        $this->headers->set(HttpHeaderNames::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
-        $this->headers->set(HttpHeaderNames::SERVER, VersionInfo::NAME . " " . VersionInfo::BASE_VERSION);
+        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, "text/html; charset=utf-8");
+        $this->headers->set(HttpRequestHeader::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+        $this->headers->set(HttpRequestHeader::SERVER, VersionInfo::NAME . " " . VersionInfo::BASE_VERSION);
     }
 
     /**
@@ -52,15 +52,15 @@ class HttpResponse
     {
         $res = new HttpResponse($client);
         $res->setStatus(404);
-        $res->getHeaders()->set(HttpHeaderNames::CONNECTION, "close");
+        $res->getHeaders()->set(HttpRequestHeader::CONNECTION, "close");
         $res->send($res->getStatus(), "text/plain");
         return $res;
     }
 
     /**
-     * @return HttpHeaders
+     * @return HttpRequestHeaders
      */
-    public function getHeaders(): HttpHeaders
+    public function getHeaders(): HttpRequestHeaders
     {
         return $this->headers;
     }
@@ -73,24 +73,24 @@ class HttpResponse
      */
     public function send(string $data, string $contentType = "text/html"): void
     {
-        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, $contentType);
+        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, $contentType);
         $this->body = $data;
     }
 
     /**
-     * @return HttpStatus
+     * @return HttpResponseStatus
      */
-    public function getStatus(): HttpStatus
+    public function getStatus(): HttpResponseStatus
     {
         return $this->status;
     }
 
     /**
-     * @param int|HttpStatus $status
+     * @param int|HttpResponseStatus $status
      */
-    public function setStatus(int|HttpStatus $status): void
+    public function setStatus(int|HttpResponseStatus $status): void
     {
-        if (is_int($status)) $status = HttpStatus::get($status);
+        if (is_int($status)) $status = HttpResponseStatus::get($status);
         $this->status = $status;
     }
 
@@ -176,7 +176,7 @@ class HttpResponse
                 break;
         }
 
-        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, $contentType);
+        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, $contentType);
 
         $this->body = file_exists($fileName) ? file_get_contents($fileName) : $default;
     }
@@ -190,7 +190,7 @@ class HttpResponse
      */
     public function json(array $data): void
     {
-        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, "application/json");
+        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, "application/json");
         $this->body = json_encode($data);
     }
 
@@ -201,7 +201,7 @@ class HttpResponse
      */
     public function text(string $data): void
     {
-        $this->headers->set(HttpHeaderNames::CONTENT_TYPE, "text/plain");
+        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, "text/plain");
         $this->body = $data;
     }
 
@@ -220,12 +220,12 @@ class HttpResponse
 
         $this->ended = true;
         // set the content length
-        $this->headers->set(HttpHeaderNames::CONTENT_LENGTH, mb_strlen($this->body, '8bit'));
+        $this->headers->set(HttpRequestHeader::CONTENT_LENGTH, mb_strlen($this->body, '8bit'));
 
         // the body is empty and the status code is 200
-        if (empty($this->body) && $this->status === HttpStatus::get(200)) {
+        if (empty($this->body) && $this->status === HttpResponseStatus::get(200)) {
             // change the status code to 204 No Content, because it's successful but no content (body) is given
-            $this->setStatus(HttpStatus::get(204));
+            $this->setStatus(HttpResponseStatus::get(204));
         }
 
         // set first line
