@@ -12,6 +12,9 @@ use Hebbinkpro\WebServer\WebClient;
 use pocketmine\VersionInfo;
 use function mb_strlen;
 
+/**
+ * HTTP Response send by the server
+ */
 class HttpResponse
 {
     private WebClient $client;
@@ -21,6 +24,10 @@ class HttpResponse
     private string $body;
     private bool $ended;
 
+    /**
+     * Construct a basic 200 OK response
+     * @param WebClient $client
+     */
     public function __construct(WebClient $client)
     {
         $this->client = $client;
@@ -36,6 +43,11 @@ class HttpResponse
         $this->headers->set(HttpHeaderNames::SERVER, VersionInfo::NAME . " " . VersionInfo::BASE_VERSION);
     }
 
+    /**
+     * Construct a 404 Not Found response
+     * @param WebClient $client
+     * @return HttpResponse
+     */
     public static function notFound(WebClient $client): HttpResponse
     {
         $res = new HttpResponse($client);
@@ -107,7 +119,8 @@ class HttpResponse
     }
 
     /**
-     * Send the contents of a file.
+     * Send the contents of a file to the client.
+     *
      * Sets the Content-Type if the file extension is recognized.
      * - HTML: text/html
      * - JSON: application/json
@@ -123,6 +136,8 @@ class HttpResponse
 
         $parts = explode(".", $fileName) ?? [];
         $fileExtension = end($parts);
+
+        // TODO create something for all known HTTP content types
 
         $contentType = "text/html";
         switch (strtolower($fileExtension)) {
@@ -167,7 +182,8 @@ class HttpResponse
     }
 
     /**
-     * Send an array as json
+     * Send an array as JSON to the client.
+     *
      * This sets the content-type header to: application/json
      * @param array $data
      * @return void
@@ -179,7 +195,7 @@ class HttpResponse
     }
 
     /**
-     * Send plain text
+     * Send plain text to the client
      * @param string $data
      * @return void
      */
@@ -190,12 +206,16 @@ class HttpResponse
     }
 
     /**
+     * TODO: rename to send, because that's a more correct name for this function
+     *
      * End the response, this will send the response to the client.
+     *
      * After a response is ended, it is sent immediately and cannot be sent again.
      * @return void
      */
     public function end(): void
     {
+        // already ended
         if ($this->ended) return;
 
         $this->ended = true;

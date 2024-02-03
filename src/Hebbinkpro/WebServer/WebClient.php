@@ -3,6 +3,7 @@
 namespace Hebbinkpro\WebServer;
 
 use Hebbinkpro\WebServer\http\HttpRequest;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 class WebClient
 {
@@ -14,6 +15,12 @@ class WebClient
     private mixed $socket;
 
 
+    /**
+     * @param WebServer $server
+     * @param string $address
+     * @param int $port
+     * @param mixed $socket
+     */
     public function __construct(WebServer $server, string $address, int $port, mixed $socket)
     {
         $this->server = $server;
@@ -46,6 +53,10 @@ class WebClient
         return $this->socket;
     }
 
+    /**
+     * Close the connection to the client
+     * @return void
+     */
     public function close(): void
     {
         stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
@@ -55,6 +66,7 @@ class WebClient
      * Handle an incoming request
      * @param HttpRequest $req
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     public function handleRequest(HttpRequest $req): void
     {

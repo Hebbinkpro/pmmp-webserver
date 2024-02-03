@@ -2,6 +2,10 @@
 
 namespace Hebbinkpro\WebServer\http;
 
+/**
+ * All known HTTP Request Methods according to the [Mozilla web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
+ * TODO: create enum instead
+ */
 final class HttpMethod
 {
     public const ALL = "*";
@@ -15,6 +19,11 @@ final class HttpMethod
     public const TRACE = "TRACE";
     public const PATCH = "PATCH";
 
+    /**
+     * Check if the given method exists
+     * @param string $method
+     * @return bool
+     */
     public static function exists(string $method): bool
     {
         return match ($method) {

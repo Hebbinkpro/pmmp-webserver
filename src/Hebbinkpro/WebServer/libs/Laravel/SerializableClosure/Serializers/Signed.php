@@ -2,7 +2,9 @@
 
 namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers;
 
+use Closure;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Signer;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\InvalidSignatureException;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\MissingSecretKeyException;
 
@@ -11,21 +13,21 @@ class Signed implements Serializable
     /**
      * The signer that will sign and verify the closure's signature.
      *
-     * @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Signer|null
+     * @var Signer|null
      */
     public static $signer;
 
     /**
      * The closure to be serialized/unserialized.
      *
-     * @var \Closure
+     * @var Closure
      */
     protected $closure;
 
     /**
      * Creates a new serializable closure instance.
      *
-     * @param  \Closure  $closure
+     * @param Closure $closure
      * @return void
      */
     public function __construct($closure)
@@ -44,23 +46,13 @@ class Signed implements Serializable
     }
 
     /**
-     * Gets the closure.
-     *
-     * @return \Closure
-     */
-    public function getClosure()
-    {
-        return $this->closure;
-    }
-
-    /**
      * Get the serializable representation of the closure.
      *
      * @return array
      */
     public function __serialize()
     {
-        if (! static::$signer) {
+        if (!static::$signer) {
             throw new MissingSecretKeyException();
         }
 
@@ -72,20 +64,30 @@ class Signed implements Serializable
     /**
      * Restore the closure after serialization.
      *
-     * @param  array  $signature
+     * @param array $signature
      * @return void
      *
-     * @throws \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\InvalidSignatureException
+     * @throws InvalidSignatureException
      */
     public function __unserialize($signature)
     {
-        if (static::$signer && ! static::$signer->verify($signature)) {
+        if (static::$signer && !static::$signer->verify($signature)) {
             throw new InvalidSignatureException();
         }
 
-        /** @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable $serializable */
+        /** @var Serializable $serializable */
         $serializable = unserialize($signature['serializable']);
 
         $this->closure = $serializable->getClosure();
+    }
+
+    /**
+     * Gets the closure.
+     *
+     * @return Closure
+     */
+    public function getClosure()
+    {
+        return $this->closure;
     }
 }

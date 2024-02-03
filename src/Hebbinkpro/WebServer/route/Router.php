@@ -4,16 +4,20 @@ namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\HttpResponse;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\WebClient;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 
+/**
+ * A Router that handles requests by calling the Route corresponding to the request path
+ */
 class Router extends ThreadSafe
 {
+    /** @var Route[] */
     private ThreadSafeArray $routes;
 
     public function __construct()
@@ -22,9 +26,9 @@ class Router extends ThreadSafe
     }
 
     /**
-     * Handle an incoming request
-     * @param WebClient $client
-     * @param HttpRequest $request
+     * Handle an incoming client request
+     * @param WebClient $client the client
+     * @param HttpRequest $request the request from the client
      * @return void
      * @throws PhpVersionNotSupportedException
      */
@@ -48,9 +52,9 @@ class Router extends ThreadSafe
     }
 
     /**
-     * Get a route from a request
+     * Get a route corresponding to the request
      * @param HttpRequest $req
-     * @return Route|null
+     * @return Route|null null when no valid Route has been found
      */
     public function getRoute(HttpRequest $req): ?Route
     {
@@ -58,7 +62,12 @@ class Router extends ThreadSafe
         return $this->getRouteByPath($req->getMethod(), $req->getURL()->getPath());
     }
 
-
+    /**
+     * Get a route corresponding to the given url method and path
+     * @param string $method the request method
+     * @param array $path the request path
+     * @return route|null
+     */
     public function getRouteByPath(string $method, array $path): ?route
     {
         foreach ($this->routes as $route) {
@@ -82,7 +91,17 @@ class Router extends ThreadSafe
     }
 
     /**
-     * Add a GET route to the router that will respond with a file
+     * Add a Route to the router
+     * @param Route $route
+     * @return void
+     */
+    public function addRoute(Route $route): void
+    {
+        $this->routes[] = $route;
+    }
+
+    /**
+     * Add a FileRoute to the router
      * @param string $path
      * @param string $file the path of the file
      * @param string|null $default default value used when the file does not exist
@@ -90,18 +109,9 @@ class Router extends ThreadSafe
      * @throws FileNotFoundException if the file does not exist and the default value is null
      * @throws PhpVersionNotSupportedException
      */
-    public function getFile(string $path, string $file, ?string $default = null): void {
-        $this->addRoute(new FileRoute($path, $file, $default));
-    }
-
-    /**
-     * Add a route to the router
-     * @param Route $route
-     * @return void
-     */
-    public function addRoute(Route $route): void
+    public function getFile(string $path, string $file, ?string $default = null): void
     {
-        $this->routes[] = $route;
+        $this->addRoute(new FileRoute($path, $file, $default));
     }
 
     /**
@@ -157,7 +167,9 @@ class Router extends ThreadSafe
     }
 
     /**
-     * Add a route to the router that listens to all methods
+     * Add a * route to the router.
+     *
+     * This route will listen to any method using the given path.
      * @param string $path
      * @param callable $action
      * @param mixed $params
@@ -170,7 +182,7 @@ class Router extends ThreadSafe
     }
 
     /**
-     * Add a child router to this router.
+     * Add a RouterRoute to this router.
      * @param string $path
      * @param Router $router
      * @return void

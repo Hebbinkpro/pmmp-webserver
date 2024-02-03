@@ -3,30 +3,33 @@
 namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure;
 
 use Closure;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native;
+use const PHP_VERSION_ID;
 
 class UnsignedSerializableClosure
 {
     /**
      * The closure's serializable.
      *
-     * @var \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable
+     * @var Serializable
      */
     protected $serializable;
 
     /**
      * Creates a new serializable closure instance.
      *
-     * @param  \Closure  $closure
+     * @param Closure $closure
      * @return void
      */
     public function __construct(Closure $closure)
     {
-        if (\PHP_VERSION_ID < 70400) {
+        if (PHP_VERSION_ID < 70400) {
             throw new PhpVersionNotSupportedException();
         }
 
-        $this->serializable = new \Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native($closure);
+        $this->serializable = new Native($closure);
     }
 
     /**
@@ -36,7 +39,7 @@ class UnsignedSerializableClosure
      */
     public function __invoke()
     {
-        if (\PHP_VERSION_ID < 70400) {
+        if (PHP_VERSION_ID < 70400) {
             throw new PhpVersionNotSupportedException();
         }
 
@@ -46,11 +49,11 @@ class UnsignedSerializableClosure
     /**
      * Gets the closure.
      *
-     * @return \Closure
+     * @return Closure
      */
     public function getClosure()
     {
-        if (\PHP_VERSION_ID < 70400) {
+        if (PHP_VERSION_ID < 70400) {
             throw new PhpVersionNotSupportedException();
         }
 
@@ -72,7 +75,7 @@ class UnsignedSerializableClosure
     /**
      * Restore the closure after serialization.
      *
-     * @param  array  $data
+     * @param array $data
      * @return void
      */
     public function __unserialize($data)

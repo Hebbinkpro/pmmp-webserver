@@ -2,8 +2,9 @@
 
 namespace Hebbinkpro\WebServer\exception;
 
-use pocketmine\plugin\PluginBase;
-
+/**
+ * Exception thrown when someone tries to start the server when it is already running.
+ */
 class WebServerAlreadyStartedException extends WebServerException
 {
     public function __construct()

@@ -2,7 +2,6 @@
 
 namespace Hebbinkpro\WebServer\route;
 
-use Exception;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequest;
@@ -11,13 +10,21 @@ use Hebbinkpro\WebServer\http\HttpUrl;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
+/**
+ * A GET Route that functions like a FileRoute but for a folder.
+ * All files and folders inside the given folder will be accessible using the web server.
+ *
+ * Used for folders containing multiple static files (e.g. html/css/js files)
+ */
 class StaticRoute extends Route
 {
     private string $folder;
 
     /**
-     * @throws PhpVersionNotSupportedException
+     * @param string $path
+     * @param string $folder
      * @throws FolderNotFoundException
+     * @throws PhpVersionNotSupportedException
      */
     public function __construct(string $path, string $folder)
     {
@@ -36,9 +43,6 @@ class StaticRoute extends Route
             $routePath = $params[1];
 
             $path = HttpUrl::getSubPath($req->getURL()->getPath(), $routePath);
-
-            // get the url path without the /*
-            $urlPath = str_replace("/*", "", implode("/", $routePath));
 
             // get the path of the requested file, the urlPath is replaced with the folder path
             $file = $folder . "/" . implode("/", $path);

@@ -6,6 +6,7 @@ use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
 use Hebbinkpro\WebServer\http\HttpRequest;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
 
@@ -21,7 +22,6 @@ class HttpServer extends Thread
      */
     private static array $clients = [];
 
-    private bool $alive = true;
     private WebServer $server;
 
     /**
@@ -35,7 +35,7 @@ class HttpServer extends Thread
     }
 
     /**
-     * @throws SocketNotCreatedException
+     * @throws SocketNotCreatedException|PhpVersionNotSupportedException
      */
     protected function onRun(): void
     {
@@ -63,14 +63,15 @@ class HttpServer extends Thread
             usleep(100);
         }
 
-        $this->closeConnections();
+        $this->close();
     }
 
     /**
-     * Register all required things to let this thread work
+     * Register all the class loaders and http status codes
      * @return void
      */
-    private function register(): void {
+    private function register(): void
+    {
         // register all class loaders
         $this->registerClassLoaders();
 
@@ -78,19 +79,10 @@ class HttpServer extends Thread
         HttpStatus::registerAll();
     }
 
-    private function closeConnections(): void {
-        // close all clients
-        foreach (self::$clients as $client) {
-            $client->close();
-        }
-
-        // close the server socket
-        stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
-    }
-
     /**
-     * Handles all client connections
+     * Serve all active clients
      * @return void
+     * @throws PhpVersionNotSupportedException
      */
     private function serveExistingConnections(): void
     {
@@ -127,7 +119,22 @@ class HttpServer extends Thread
     }
 
     /**
-     * Handles all  incoming connections
+     * Close the server socket
+     * @return void
+     */
+    private function close(): void
+    {
+        // close all clients
+        foreach (self::$clients as $client) {
+            $client->close();
+        }
+
+        // close the server socket
+        stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
+    }
+
+    /**
+     * Serve all incoming connections
      * @return void
      */
     private function serveNewConnections(): void

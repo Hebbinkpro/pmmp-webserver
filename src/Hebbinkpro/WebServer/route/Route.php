@@ -12,6 +12,9 @@ use Hebbinkpro\WebServer\WebClient;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 
+/**
+ * A route that handles a client request for a specific path
+ */
 class Route extends ThreadSafe
 {
     private string $method;
@@ -20,6 +23,10 @@ class Route extends ThreadSafe
     private string $params;
 
     /**
+     * @param string $method the request method
+     * @param string $path the router path
+     * @param callable|null $action the action to execute
+     * @param mixed ...$params additional (thread safe) parameters to use in the action
      * @throws PhpVersionNotSupportedException
      */
     public function __construct(string $method, string $path, ?callable $action, mixed ...$params)
@@ -32,9 +39,14 @@ class Route extends ThreadSafe
     }
 
     /**
+     * Set the action of the route
+     * @param callable|null $action the action to execute
+     * @param mixed ...$params additional (thread safe) parameters to use in the action
+     * @return void
      * @throws PhpVersionNotSupportedException
      */
-    protected function setAction(?callable $action, mixed ...$params) {
+    protected final function setAction(?callable $action, mixed ...$params)
+    {
         if (!is_null($action)) {
             $serializable = new SerializableClosure($action);
             $this->action = serialize($serializable);
@@ -46,6 +58,7 @@ class Route extends ThreadSafe
     }
 
     /**
+     * Get the HTTP method
      * @return string
      */
     public function getMethod(): string
@@ -54,21 +67,22 @@ class Route extends ThreadSafe
     }
 
     /**
+     * Get the path
      * @return array
      */
     public function getPath(): array
     {
         $array = [];
-        foreach ($this->path as $key=>$value) {
+        foreach ($this->path as $key => $value) {
             $array[$key] = $value;
         }
         return $array;
     }
 
     /**
-     * Response to a request
-     * @param WebClient $client
-     * @param HttpRequest $req
+     * Handle the client request by executing the action
+     * @param WebClient $client the client
+     * @param HttpRequest $req the request of the client
      * @return void
      * @throws PhpVersionNotSupportedException
      */
@@ -87,10 +101,10 @@ class Route extends ThreadSafe
     }
 
     /**
-     * Checks if a given path is equal to the path of this route
-     * @param string $method
-     * @param array $path
-     * @return bool
+     * Checks if the path matches with the given path
+     * @param string $method the request method
+     * @param array $path the path to check for equality
+     * @return bool if the path matches
      */
     public function equals(string $method, array $path): bool
     {

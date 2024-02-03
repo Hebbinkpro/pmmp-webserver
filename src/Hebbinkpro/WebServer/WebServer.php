@@ -7,11 +7,12 @@ use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\route\Router;
 use pmmp\thread\ThreadSafe;
 use pocketmine\plugin\PluginBase;
-use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\thread\ThreadSafeClassLoader;
 
 class WebServer extends ThreadSafe
 {
+    public const PREFIX = "[WebServer]";
+
     private static ThreadSafeClassLoader $classLoader;
     private static PluginBase $plugin;
 
@@ -22,6 +23,12 @@ class WebServer extends ThreadSafe
 
     private ?HttpServer $httpServer = null;
 
+    /**
+     * Construct a new WebServer
+     * @param string $address
+     * @param int $port
+     * @param Router|null $router
+     */
     public function __construct(string $address = "0.0.0.0", int $port = 3000, Router $router = null)
     {
         $this->address = $address;
@@ -35,7 +42,12 @@ class WebServer extends ThreadSafe
 
     }
 
-    public static function register(PluginBase $plugin)
+    /**
+     * Register the plugin and classloader
+     * @param PluginBase $plugin
+     * @return void
+     */
+    public static function register(PluginBase $plugin): void
     {
         // store the plugin instance
         self::$plugin = $plugin;
@@ -73,7 +85,7 @@ class WebServer extends ThreadSafe
     }
 
     /**
-     * Start the webserver
+     * Start the web server
      * @return void
      * @throws WebServerAlreadyStartedException
      */
@@ -84,10 +96,11 @@ class WebServer extends ThreadSafe
         $this->httpServer = new HttpServer($this, self::$classLoader);
         $this->httpServer->start();
 
-        self::$plugin->getLogger()->notice("The web server is running at: http://$this->address:$this->port/");
+        self::$plugin->getLogger()->notice(self::PREFIX . " The web server is running at: http://$this->address:$this->port/");
     }
 
     /**
+     * Get if the web server is started
      * @return bool
      */
     public function isStarted(): bool
@@ -102,14 +115,14 @@ class WebServer extends ThreadSafe
     public function close(): void
     {
         if ($this->httpServer === null) {
-            self::$plugin->getLogger()->warning("Could not stop the web server, it is not running.");
+            self::$plugin->getLogger()->warning(self::PREFIX . " Could not stop the web server, it is not running.");
             return;
         }
 
-        self::$plugin->getLogger()->info("Stopping the web server...");
+        self::$plugin->getLogger()->info(self::PREFIX . " Stopping the web server...");
         // join the http server thread
         $this->httpServer->join();
-        self::$plugin->getLogger()->notice("The web server has been stopped.");
+        self::$plugin->getLogger()->notice(self::PREFIX . " The web server has been stopped.");
 
     }
 }

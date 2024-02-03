@@ -6,6 +6,9 @@ use Hebbinkpro\WebServer\http\header\HttpHeaderNames;
 use Hebbinkpro\WebServer\http\header\HttpHeaders;
 use Hebbinkpro\WebServer\route\Route;
 
+/**
+ * HTTP Request send by the client
+ */
 class HttpRequest
 {
     private ?Route $route;
@@ -15,7 +18,13 @@ class HttpRequest
     private HttpHeaders $headers;
     private string $body;
 
-
+    /**
+     * @param string $method
+     * @param HttpUrl $url
+     * @param HttpVersion $version
+     * @param HttpHeaders $headers
+     * @param string $body
+     */
     public function __construct(string $method, HttpUrl $url, HttpVersion $version, HttpHeaders $headers, string $body)
     {
         $this->route = null;
@@ -26,6 +35,11 @@ class HttpRequest
         $this->body = $body;
     }
 
+    /**
+     * Decode an HTTP Request
+     * @param string $data
+     * @return HttpRequest|null
+     */
     public static function fromString(string $data): ?HttpRequest
     {
         $parts = explode(PHP_EOL, $data);
@@ -92,11 +106,20 @@ class HttpRequest
         return $this->url;
     }
 
+    /**
+     * Get a Query Param by its name
+     * @param string $name
+     * @return string|null
+     */
     public function getQueryParam(string $name): ?string
     {
         return $this->url->getQuery()[$name] ?? null;
     }
 
+    /**
+     * Get all path params
+     * @return array
+     */
     public function getPathParams(): array
     {
         if ($this->route === null) return [];

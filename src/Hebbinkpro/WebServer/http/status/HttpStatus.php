@@ -2,6 +2,9 @@
 
 namespace Hebbinkpro\WebServer\http\status;
 
+/**
+ * HTTP Status used for an HTTP Response
+ */
 class HttpStatus
 {
     private static array $STATUS_CODES = [];
@@ -15,6 +18,11 @@ class HttpStatus
         $this->message = $message;
     }
 
+    /**
+     * Get the HttpStatus corresponding to the status code
+     * @param int $code
+     * @return HttpStatus
+     */
     public static function get(int $code): HttpStatus
     {
         return self::$STATUS_CODES["$code"];
@@ -22,6 +30,8 @@ class HttpStatus
 
     public static function registerAll(): void
     {
+        // TODO: why? I think we can solve a lot of issues by converting this to an SingletonTrait
+
         // Information responses
         self::register(new HttpStatus(100, "Continue"));
         self::register(new HttpStatus(101, "Switching Protocols"));
@@ -94,6 +104,11 @@ class HttpStatus
         self::register(new HttpStatus(511, "Network Authentication Required"));
     }
 
+    /**
+     * Register a new HTTP Status
+     * @param HttpStatus $statusCode
+     * @return void
+     */
     public static function register(HttpStatus $statusCode): void
     {
         $code = $statusCode->getCode();
@@ -101,6 +116,7 @@ class HttpStatus
     }
 
     /**
+     * Get the status code
      * @return int
      */
     public function getCode(): int
@@ -109,6 +125,7 @@ class HttpStatus
     }
 
     /**
+     * Get the status message
      * @return string
      */
     public function getMessage(): string
@@ -121,6 +138,7 @@ class HttpStatus
      */
     public function __toString(): string
     {
+        // TODO: convert to decode function
         return $this->code . " " . $this->message;
     }
 }

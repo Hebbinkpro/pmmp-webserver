@@ -2,6 +2,9 @@
 
 namespace Hebbinkpro\WebServer\http\status;
 
+/**
+ * All known HTTP Response Status Codes according to the [Mozilla web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status).
+ */
 final class HttpStatusCodes
 {
     public const CONTINUE = 100;

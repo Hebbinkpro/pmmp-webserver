@@ -2,6 +2,9 @@
 
 namespace Hebbinkpro\WebServer\http;
 
+/**
+ * An HTTP Url which contains all url data
+ */
 class HttpUrl
 {
     private string $url;
@@ -12,6 +15,14 @@ class HttpUrl
     private array $path;
     private array $query;
 
+    /**
+     * @param string $url
+     * @param string $protocol
+     * @param string $address
+     * @param int $port
+     * @param array $path
+     * @param array $query
+     */
     public function __construct(string $url, string $protocol, string $address, int $port, array $path, array $query)
     {
 
@@ -23,6 +34,11 @@ class HttpUrl
         $this->query = $query;
     }
 
+    /**
+     * Parse the url
+     * @param string $url
+     * @return HttpUrl
+     */
     public static function parse(string $url): HttpUrl
     {
         $url = urldecode($url);
