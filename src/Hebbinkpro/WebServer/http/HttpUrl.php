@@ -25,6 +25,8 @@ class HttpUrl
 
     public static function parse(string $url): HttpUrl
     {
+        $url = urldecode($url);
+
         // extract the protocol
         [$protocol, $urlPartsString] = explode("://", $url);
 
