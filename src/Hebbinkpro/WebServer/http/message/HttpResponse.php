@@ -11,6 +11,7 @@ use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
 use pocketmine\VersionInfo;
 
 /**
@@ -35,7 +36,7 @@ class HttpResponse implements HttpMessage
     public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", HttpMessageHeaders $headers = new HttpMessageHeaders())
     {
         $this->client = $client;
-        $this->status = is_int($status) ? HttpStatus::get($status) : $status;
+        $this->status = HttpStatusRegistry::getInstance()->parse($status);
         $this->version = HttpVersion::getDefault();
         $this->headers = $headers;
         $this->body = $body;
@@ -123,8 +124,7 @@ class HttpResponse implements HttpMessage
      */
     public function setStatus(int|HttpStatus $status): void
     {
-        if (is_int($status)) $status = HttpStatus::get($status);
-        $this->status = $status;
+        $this->status = HttpStatusRegistry::getInstance()->parse($status);
     }
 
     /**
@@ -252,7 +252,7 @@ class HttpResponse implements HttpMessage
             $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strlen($this->body));
         } elseif ($this->status->getCode() === HttpStatusCodes::OK) {
             // change the status code to 204 No Content, because it's successful but no content (body) is given
-            $this->setStatus(HttpStatus::get(HttpStatusCodes::NO_CONTENT));
+            $this->setStatus(HttpStatusCodes::NO_CONTENT);
         }
 
         // send the constructed data to the client

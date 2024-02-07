@@ -5,7 +5,6 @@ namespace Hebbinkpro\WebServer\http\server;
 use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
@@ -82,9 +81,6 @@ class HttpServer extends Thread
     {
         // register all class loaders
         $this->registerClassLoaders();
-
-        // register all status codes
-        HttpStatus::registerAll();
     }
 
     /**

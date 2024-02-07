@@ -121,11 +121,6 @@ class Router extends ThreadSafe implements RouterInterface
      */
     public function rejectRequest(HttpClient $client, int|HttpStatus $status = HttpStatusCodes::BAD_REQUEST): void
     {
-        if (is_int($status)) $status = HttpStatus::get($status);
-
-        // client error, so should be in the 400 range, change to bad request
-        if ($status->getCode() < 400 || $status->getCode() > 499) $status = HttpStatus::get(HttpStatusCodes::BAD_REQUEST);
-
         $res = new HttpResponse($client, $status);
         $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
         $res->text($status->toString());

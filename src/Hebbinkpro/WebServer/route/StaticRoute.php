@@ -6,7 +6,6 @@ use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
@@ -44,7 +43,7 @@ class StaticRoute extends Route
                 // check if the file exists
                 if (!is_file($file)) {
                     // file does not exist, send 404
-                    $res->setStatus(HttpStatus::get(HttpStatusCodes::NOT_F0UND));
+                    $res->setStatus(HttpStatusCodes::NOT_F0UND);
                     $res->send("404 File not found.", "text/plain");
                     $res->end();
                     return;
