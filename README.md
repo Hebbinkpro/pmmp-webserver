@@ -15,23 +15,18 @@ For creating a web server you have to register the WebServer and create a new in
 <?php
 
 use Hebbinkpro\WebServer\WebServer;
+use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 
 class YourPlugin extends \pocketmine\plugin\PluginBase {
     
     protected function onEnable() : void{
         // ...
         
-        // register the WebServer
-        WebServer::register($this);
-    
-        // This is the address the web server will be listening on, localhost (127.0.0.1) will most of the time work.
-        $address = "0.0.0.0";
-        // The port the server is listening on
-        $port = 3000;
+        $serverInfo = new HttpServerInfo("0.0.0.0", 80)
         // Create a new server on the address and port
-        $webServer = new WebServer($this, $address, $port);
+        $webServer = new WebServer($this, $serverInfo);
         
-        // after starting the server, the site will be available at http://127.0.0.1:3000
+        // after starting the server, the site will be available at http://127.0.0.1:80
         $webServer->start();
     }
 }
@@ -44,19 +39,22 @@ Routes are used to let your web server be able to do things. By creating a `Rout
 The router is used to register all your routes. the router will also handle all incoming requests and make sure they are handled by the correct `Route`.<br>
 You can access the router of your `WebServer` by calling:
 ```php
-$router = $webServer->getRouter();
+$router = $webServer->getServerInfo()->getRouter();
 ```
 
 #### Route
 A route is used to perform an action on an incoming web request.
 
 ```php
-use Hebbinkpro\WebServer\http\request\HttpRequestMethod;use Hebbinkpro\WebServer\http\request\HttpRequest;use Hebbinkpro\WebServer\http\response\HttpResponse;use Hebbinkpro\WebServer\route\Route;
-
+use Hebbinkpro\WebServer\http\HttpMethod;
+use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\route\Route;
+{
     // the method can be any value in the HttpMethod class.
     // these methods represent HTTP request methods and makes the route listen to a specific type of request.
     // if you want to listen to all requests, you can use HttpMethod::ANY (or "*").
-    $method = HttpRequestMethod::GET;
+    $method = HttpMethod::GET;
     
     // the specific path the route will listen to,
     // you can find out more about the paths below
@@ -86,6 +84,7 @@ use Hebbinkpro\WebServer\http\request\HttpRequestMethod;use Hebbinkpro\WebServer
     
     // now we construct  the Route with our given method, path and action.
     $route = new Route($method, $path, $action);
+}
 ```
 
 ##### Route Action
@@ -106,18 +105,23 @@ You can add as many params as you want, if you only want 1 param, you can use `n
 but if you want more than 1 you can just add them behind the first param. `new Route($method, $path, $action, $param1, $param2, $param3)`.
 Adding no parameters is also an option, `new Route($method, $path, $action)`.<br>
 To use the `...$params` variable in the action, you can use it as an array, so `$params[0]` will return the first parameter, and `$params[1]` will give you the second, ect.<br>
-**_Do not put any reference to`$this` or the PocketMine Thread INSIDE the action function. Actions have to be `ThreadSafe`, so only things that DO NOT depend on the PocketMine thread will work._**
+**_Do not put any code that makes use of the main thread INSIDE the action function. Actions have to be `ThreadSafe`, so
+only things that DO NOT depend on the PocketMine thread will work. If you want to use classes that do not
+extend `pmmp\thread\ThreadSafe`, you can use `serialize(...)` for the parameter and `unserialize(...)` inside the action
+function _**
 
 #### Router methods to create HTTP request routes
 For the most common methods there are functions inside the `Router` instance. 
 These functions make it so that you don't have to input an HTTP method for every new `Route` you want to make<br>
 The available method function in `Router` are:
-- GET, a route that listens only to GET requests - `Router->get($path, $action)`
-- POST, a route that listens only to POST requests - `Router->post($path, $action)`
-- HEAD, a route that listens only to HEAD requests - `Router->head($path, $action)`
-- PUT, a route that listens only to PUT requests - `Router->put($path, $action)`
-- DELETE, a route that listens only to DELETE requests - `Router->delete($path, $action)`
-- USE (also known as ANY or * in `Hebbinkpro\WebServer\http\HttpMethod`), a route that listens to ALL HTTP methods - `Router->use($path, $action)` 
+
+- GET, a route that listens only to GET requests - `Router->get($path, $action, ...$params)`
+- POST, a route that listens only to POST requests - `Router->post($path, $action, ...$params)`
+- HEAD, a route that listens only to HEAD requests - `Router->head($path, $action, ...$params)`
+- PUT, a route that listens only to PUT requests - `Router->put($path, $action, ...$params)`
+- DELETE, a route that listens only to DELETE requests - `Router->delete($path, $action, ...$params)`
+- USE (also known as ANY or * in `Hebbinkpro\WebServer\http\HttpMethod`), a route that listens to ALL HTTP
+  methods - `Router->all($path, $action, ...$params)`
 
 _You can find more info about HTTP request methods [here](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods)_<br><br>
 The path and action arguments inside the router functions are the same as the once in `Router`.
@@ -134,8 +138,9 @@ $router->addRoute($route)
 ```
 But there are also functions in `Router` to easily add a `RouterRoute` or `StaticRoute`.<br>
 For a `RouterRoute`:
+
 ```php
-use Hebbinkpro\WebServer\route\Router;
+use Hebbinkpro\WebServer\router\Router;
 
 $childRouter = new Router();
 // add here the stuff you want to the child router
@@ -173,7 +178,22 @@ To make it even better, you can also request all variables inside an `HttpReques
 #### Queries
 The query of a path is everything behind the `?` in a path, so `/?foo=bar`. There can be multiple queries after the `?` by using the `&` sign between two values.
 A single query is represented as `<name>=<value>`.<br>
-To request all queries you can use `HttpUrl->getQuery()`, or to request only a single value you can use `HttpRequest->getQueryParam($name)`.
+To request all queries you can use `HttpUrl->getQuery()`, or to request only a single value you can
+use `HttpUrl->getQueryParam($name)`.
+
+### HTTPS
+
+Since v1.0.0, the web server also supports SSL certificates which make it possible to run an HTTPS server for a more
+secure connection than HTTP.<br>
+For enabling HTTPS on your webserver you have to add `SslSettings` to the `HttpServerInfo` BEFORE you start the web
+server. This can be done in multiple ways.<br>
+
+1. Let the WebServer detect SSL certificates in the `cert` folder of your plugin data by
+   calling: `$webServer->detectSSL()`.
+2. Create a new `SslSettings` by calling `$ssl = new SslSettings(...)` and add it to
+   the `HttpServerInfo`: `new HttpServerInfo(..., $ssl)` or by calling `$serverInfo->setSSL($ssl)`.
+   If you add the SSL settings AFTER you started the server, HTTPS will not be applied and your server will function as
+   a normal HTTP server.
 
 ## Credits
 - This virion makes use of [Laravel\SerializableClosure](https://github.com/laravel/serializable-closure) for sharing the action functions given in the `Router` on the main thread with the http server thread.

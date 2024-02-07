@@ -2,49 +2,34 @@
 
 namespace Hebbinkpro\WebServer\route;
 
-use Hebbinkpro\WebServer\http\HttpUrl;
-use Hebbinkpro\WebServer\http\request\HttpRequest;
-use Hebbinkpro\WebServer\http\request\HttpRequestMethod;
-use Hebbinkpro\WebServer\http\response\HttpResponse;
-use Hebbinkpro\WebServer\http\response\HttpResponseStatusCodes;
+use Hebbinkpro\WebServer\http\HttpMethod;
+use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
-use Hebbinkpro\WebServer\WebClient;
+use Hebbinkpro\WebServer\router\Router;
 
 /**
- * A Router that is called as Route which can handle requests for sub path's
+ * A Route that functions like a Router
  */
 class RouterRoute extends Route
 {
     private Router $router;
 
     /**
-     * @param string $path
      * @param Router $router
      * @throws PhpVersionNotSupportedException
      */
-    public function __construct(string $path, Router $router)
+    public function __construct(Router $router)
     {
         $this->router = $router;
 
-        parent::__construct(HttpRequestMethod::ALL, $path . "/*", null);
+        parent::__construct(HttpMethod::ALL, null);
     }
 
-    public function handleRequest(WebClient $client, HttpRequest $req): void
+    public function handleRequest(HttpClient $client, HttpRequest $req): void
     {
-        // TODO: figure out why I didn't use $this->router->handleRequest($client, $req)
-
-        // get a route from the request
-        $route = $this->router->getRouteByPath($req->getMethod(), HttpUrl::getSubPath($req->getURL()->getPath(), $this->getPath()));
-
-        // no route is found
-        if ($route === null) {
-            $res = new HttpResponse($client);
-            $res->setStatus(HttpResponseStatusCodes::NOT_F0UND);
-            $res->end();
-            return;
-        }
-
-        $route->handleRequest($client, $req);
+        // let the router inside this route handle the request
+        $this->router->handleRequest($client, $req);
     }
 
     /**

@@ -3,7 +3,7 @@
   "description": "A HTTP/1.1 webserver Virion for PocketMine plugins",
   "license": "MIT",
   "type": "library",
-  "version": "dev-local",
+  "version": "1.0.0",
   "require": {
     "pocketmine/pocketmine-mp": "^5.0.0",
     "laravel/serializable-closure": "v1.3.0",

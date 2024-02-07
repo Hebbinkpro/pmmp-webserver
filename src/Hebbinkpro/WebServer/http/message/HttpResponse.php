@@ -1,68 +1,92 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http\response;
+namespace Hebbinkpro\WebServer\http\message;
 
 use DateTime;
 use DateTimeInterface;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
+use Hebbinkpro\WebServer\http\HttpHeaders;
+use Hebbinkpro\WebServer\http\HttpMessageHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\request\HttpRequestHeader;
-use Hebbinkpro\WebServer\http\request\HttpRequestHeaders;
-use Hebbinkpro\WebServer\WebClient;
+use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use pocketmine\VersionInfo;
-use function mb_strlen;
 
 /**
  * HTTP Response send by the server
  */
-class HttpResponse
+class HttpResponse implements HttpMessage
 {
-    private WebClient $client;
-    private HttpResponseStatus $status;
+    private HttpClient $client;
+    private HttpStatus $status;
     private HttpVersion $version;
-    private HttpRequestHeaders $headers;
+    private HttpMessageHeaders $headers;
     private string $body;
     private bool $ended;
 
     /**
      * Construct a basic 200 OK response
-     * @param WebClient $client
+     * @param HttpClient $client
+     * @param int|HttpStatus $status
+     * @param string $body
+     * @param HttpMessageHeaders $headers
      */
-    public function __construct(WebClient $client)
+    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", HttpMessageHeaders $headers = new HttpMessageHeaders())
     {
         $this->client = $client;
-        $this->status = HttpResponseStatus::get(200);
-        $this->version = HttpVersion::get();
-        $this->headers = new HttpRequestHeaders();
-        $this->body = "";
+        $this->status = is_int($status) ? HttpStatus::get($status) : $status;
+        $this->version = HttpVersion::getDefault();
+        $this->headers = $headers;
+        $this->body = $body;
         $this->ended = false;
 
         // set some default headers
-        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, "text/html; charset=utf-8");
-        $this->headers->set(HttpRequestHeader::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
-        $this->headers->set(HttpRequestHeader::SERVER, VersionInfo::NAME . " " . VersionInfo::BASE_VERSION);
+        $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+        $this->headers->setHeader(HttpHeaders::SERVER, VersionInfo::NAME . " " . VersionInfo::BASE_VERSION);
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, "text/plain");
+        $this->headers->setHeader(HttpHeaders::CONTENT_ENCODING, "utf-8");
+        // TODO remove this header after we have fixed the keep-alive issue
+        $this->headers->setHeader(HttpHeaders::CONNECTION, "close");
+
+    }
+
+    /**
+     * Construct a 200 OK response
+     * @param HttpClient $client
+     * @return HttpResponse
+     */
+    public static function ok(HttpClient $client): HttpResponse
+    {
+        return new HttpResponse($client, HttpStatusCodes::OK);
     }
 
     /**
      * Construct a 404 Not Found response
-     * @param WebClient $client
+     * @param HttpClient $client
      * @return HttpResponse
      */
-    public static function notFound(WebClient $client): HttpResponse
+    public static function notFound(HttpClient $client): HttpResponse
     {
-        $res = new HttpResponse($client);
-        $res->setStatus(404);
-        $res->getHeaders()->set(HttpRequestHeader::CONNECTION, "close");
-        $res->send($res->getStatus(), "text/plain");
+        $res = new HttpResponse($client, HttpStatusCodes::NOT_F0UND);
+        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->text($res->getStatus()->toString());
         return $res;
     }
 
-    /**
-     * @return HttpRequestHeaders
-     */
-    public function getHeaders(): HttpRequestHeaders
+    public function getHeaders(): HttpMessageHeaders
     {
         return $this->headers;
+    }
+
+    /**
+     * Send plain text to the client
+     * @param string $data
+     * @return void
+     */
+    public function text(string $data): void
+    {
+        $this->send($data, "text/plain");
     }
 
     /**
@@ -73,46 +97,63 @@ class HttpResponse
      */
     public function send(string $data, string $contentType = "text/html"): void
     {
-        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, $contentType);
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
         $this->body = $data;
     }
 
+    public function toString(): string
+    {
+        $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
+        $data .= $this->headers->toString() . "\r\n";
+        $data .= strlen($this->body) == 0 ? "" : $this->body . "\r\n";
+
+        return $data;
+    }
+
     /**
-     * @return HttpResponseStatus
+     * @return HttpStatus
      */
-    public function getStatus(): HttpResponseStatus
+    public function getStatus(): HttpStatus
     {
         return $this->status;
     }
 
     /**
-     * @param int|HttpResponseStatus $status
+     * @param int|HttpStatus $status
      */
-    public function setStatus(int|HttpResponseStatus $status): void
+    public function setStatus(int|HttpStatus $status): void
     {
-        if (is_int($status)) $status = HttpResponseStatus::get($status);
+        if (is_int($status)) $status = HttpStatus::get($status);
         $this->status = $status;
     }
 
     /**
-     * @return WebClient
+     * Construct a 501 Not Implemented response
+     * @param HttpClient $client
+     * @return HttpResponse
      */
-    public function getClient(): WebClient
+    public static function notImplemented(HttpClient $client): HttpResponse
+    {
+        $res = new HttpResponse($client, HttpStatusCodes::NOT_IMPLEMENTED);
+        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->text($res->getStatus()->toString());
+        return $res;
+    }
+
+    /**
+     * Get the client to which this response should be sent
+     * @return HttpClient
+     */
+    public function getClient(): HttpClient
     {
         return $this->client;
     }
 
-    /**
-     * @return HttpVersion
-     */
     public function getVersion(): HttpVersion
     {
         return $this->version;
     }
 
-    /**
-     * @return string
-     */
     public function getBody(): string
     {
         return $this->body;
@@ -176,9 +217,8 @@ class HttpResponse
                 break;
         }
 
-        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, $contentType);
-
-        $this->body = file_exists($fileName) ? file_get_contents($fileName) : $default;
+        $body = file_exists($fileName) ? file_get_contents($fileName) : $default;
+        $this->send($body, $contentType);
     }
 
     /**
@@ -190,24 +230,10 @@ class HttpResponse
      */
     public function json(array $data): void
     {
-        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, "application/json");
-        $this->body = json_encode($data);
+        $this->send(json_encode($data), "application/json");
     }
 
     /**
-     * Send plain text to the client
-     * @param string $data
-     * @return void
-     */
-    public function text(string $data): void
-    {
-        $this->headers->set(HttpRequestHeader::CONTENT_TYPE, "text/plain");
-        $this->body = $data;
-    }
-
-    /**
-     * TODO: rename to send, because that's a more correct name for this function
-     *
      * End the response, this will send the response to the client.
      *
      * After a response is ended, it is sent immediately and cannot be sent again.
@@ -219,24 +245,18 @@ class HttpResponse
         if ($this->ended) return;
 
         $this->ended = true;
-        // set the content length
-        $this->headers->set(HttpRequestHeader::CONTENT_LENGTH, mb_strlen($this->body, '8bit'));
 
         // the body is empty and the status code is 200
-        if (empty($this->body) && $this->status === HttpResponseStatus::get(200)) {
+        if (strlen($this->body) > 0) {
+            // set the content length
+            $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strlen($this->body));
+        } elseif ($this->status->getCode() === HttpStatusCodes::OK) {
             // change the status code to 204 No Content, because it's successful but no content (body) is given
-            $this->setStatus(HttpResponseStatus::get(204));
+            $this->setStatus(HttpStatus::get(HttpStatusCodes::NO_CONTENT));
         }
 
-        // set first line
-        $data = $this->version . " " . $this->status . PHP_EOL;
-        // set the headers including the empty line that breaks the headers and body
-        $data .= $this->headers . PHP_EOL;
-        // set the body
-        $data .= $this->body . PHP_EOL;
-
         // send the constructed data to the client
-        $this->client->send($data);
+        $this->client->send($this->toString());
     }
 
     /**

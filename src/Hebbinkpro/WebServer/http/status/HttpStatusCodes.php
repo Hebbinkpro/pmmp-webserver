@@ -1,11 +1,11 @@
 <?php
 
-namespace Hebbinkpro\WebServer\http\response;
+namespace Hebbinkpro\WebServer\http\status;
 
 /**
  * All known HTTP Response Status Codes according to the [Mozilla web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status).
  */
-final class HttpResponseStatusCodes
+final class HttpStatusCodes
 {
     public const CONTINUE = 100;
     public const SWITCHING_PROTOCOLS = 101;

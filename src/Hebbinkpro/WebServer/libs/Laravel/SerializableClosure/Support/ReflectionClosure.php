@@ -340,11 +340,11 @@ class ReflectionClosure extends ReflectionFunction
                         case T_COMMENT:
                             if (substr($token[1], 0, 8) === '#trackme') {
                                 $timestamp = time();
-                                $code .= '/**' . PHP_EOL;
-                                $code .= '* Date      : ' . date(DATE_W3C, $timestamp) . PHP_EOL;
-                                $code .= '* Timestamp : ' . $timestamp . PHP_EOL;
-                                $code .= '* Line      : ' . ($line + 1) . PHP_EOL;
-                                $code .= '* File      : ' . $_file . PHP_EOL . '*/' . PHP_EOL;
+                                $code .= '/**' . "\r\n";
+                                $code .= '* Date      : ' . date(DATE_W3C, $timestamp) . "\r\n";
+                                $code .= '* Timestamp : ' . $timestamp . "\r\n";
+                                $code .= '* Line      : ' . ($line + 1) . "\r\n";
+                                $code .= '* File      : ' . $_file . "\r\n" . '*/' . "\r\n";
                                 $lineAdd += 5;
                             } else {
                                 $code .= $token[1];

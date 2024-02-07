@@ -7,28 +7,24 @@ namespace Hebbinkpro\WebServer\http;
  */
 class HttpUrl
 {
-    private string $url;
-
-    private string $protocol;
-    private string $address;
+    private string $scheme;
+    private string $host;
     private int $port;
-    private array $path;
+    private string $path;
+    /** @var array<string, string> */
     private array $query;
 
     /**
-     * @param string $url
-     * @param string $protocol
+     * @param string $scheme
      * @param string $address
      * @param int $port
-     * @param array $path
+     * @param string $path
      * @param array $query
      */
-    public function __construct(string $url, string $protocol, string $address, int $port, array $path, array $query)
+    public function __construct(string $scheme, string $address, int $port, string $path, array $query)
     {
-
-        $this->url = $url;
-        $this->protocol = $protocol;
-        $this->address = $address;
+        $this->scheme = $scheme;
+        $this->host = $address;
         $this->port = $port;
         $this->path = $path;
         $this->query = $query;
@@ -37,78 +33,74 @@ class HttpUrl
     /**
      * Parse the url
      * @param string $url
-     * @return HttpUrl
+     * @return HttpUrl|null
      */
-    public static function parse(string $url): HttpUrl
+    public static function parse(string $url): ?HttpUrl
     {
-        $url = urldecode($url);
+        // parse the url
+        $urlParts = parse_url($url);
+        if ($urlParts === false || !is_array($urlParts)) return null;
 
-        // extract the protocol
-        [$protocol, $urlPartsString] = explode("://", $url);
+        // get all data from the url
+        $scheme = $urlParts["scheme"] ?? "http";
+        $host = $urlParts["host"] ?? "0.0.0.0";
+        $port = $urlParts["port"] ?? 80;
+        $path = trim(urldecode($urlParts["path"] ?? ""), "/");
+        $queryString = $urlParts["query"] ?? null;
 
-        // extract the address
-        $urlParts = explode("/", $urlPartsString, 2);
-        $addressString = $urlParts[0];
-        $pathPartsString = $urlParts[1] ?? "";
-
-        $addressParts = explode(":", $addressString);
-        $address = $addressParts[0];
-        $port = intval($addressParts[1] ?? "80");
-
-        // separate the path and query
-        $pathParts = explode("?", $pathPartsString, 2);
-
-        $pathString = $pathParts[0];
-        $path = self::parsePath($pathString);
-
-        $queryString = $pathParts[1] ?? null;
-        $queryParts = $queryString === null ? [] : explode("&", $queryString);
 
         $query = [];
-        foreach ($queryParts as $q) {
-            [$key, $value] = explode("=", $q, 2);
-            $query[$key] = $value;
+        if ($queryString !== null) {
+            foreach (explode("&", $queryString) as $part) {
+                $part = urldecode($part);
+                [$key, $value] = explode("=", $part, 2);
+                $query[$key] = $value;
+            }
         }
 
-        return new HttpUrl($url, $protocol, $address, $port, $path, $query);
-    }
-
-    public static function parsePath(string $pathString): array
-    {
-        $pathString = trim($pathString, "/");
-        return explode("/", $pathString);
-    }
-
-    public static function getSubPath(array $path, array $parentPath): array
-    {
-        $realPath = str_replace("/*", "", implode("/", $path));
-        $parentPath = str_replace("/*", "", implode("/", $parentPath));
-
-        return HttpUrl::parsePath(explode($parentPath, $realPath, 2)[1]);
-    }
-
-    public function get(): string
-    {
-        return $this->url;
+        return new HttpUrl($scheme, $host, $port, $path, $query);
     }
 
     /**
+     * Get a string representation of this url
      * @return string
      */
-    public function getAddress(): string
+    public function toString(): string
     {
-        return $this->address;
+        $queryParts = array_map(fn($v, $k): string => $k . "=" . $v, $this->query, array_keys($this->query));
+        return $this->scheme . "://" . $this->host . ":" . $this->port . "/" . $this->path
+            . (sizeof($queryParts) == 0 ? "" : "?" . implode("&", $queryParts));
     }
 
     /**
-     * @return array
+     * Get the HTTP scheme (http or https)
+     * @return string
      */
-    public function getPath(): array
+    public function getScheme(): string
+    {
+        return $this->scheme;
+    }
+
+    /**
+     * Get the hostname
+     * @return string
+     */
+    public function getHost(): string
+    {
+        return $this->host;
+    }
+
+    /**
+     * Get the path
+     * @return string
+     */
+    public function getPath(): string
     {
         return $this->path;
     }
 
     /**
+     * Get the query
      * @return array
      */
     public function getQuery(): array
@@ -117,18 +109,20 @@ class HttpUrl
     }
 
     /**
+     * Get a query by its name
+     * @param string $name
+     * @return string|null
+     */
+    public function getQueryParam(string $name): ?string
+    {
+        return $this->query[$name] ?? null;
+    }
+
+    /**
      * @return int
      */
     public function getPort(): int
     {
         return $this->port;
-    }
-
-    /**
-     * @return string
-     */
-    public function getProtocol(): string
-    {
-        return $this->protocol;
     }
 }

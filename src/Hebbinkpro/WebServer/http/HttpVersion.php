@@ -7,22 +7,15 @@ namespace Hebbinkpro\WebServer\http;
  */
 class HttpVersion
 {
-    private int $major;
-    private int $minor;
-
-    public function __construct(int $major, int $minor)
-    {
-        $this->major = $major;
-        $this->minor = $minor;
-    }
+    public const DEFAULT_MAJOR = 1;
+    public const DEFAULT_MINOR = 1;
 
     /**
-     * Get the default HTTP version
-     * @return HttpVersion HTTP version 1.1
+     * @param int $major major HTTP version
+     * @param int $minor minor HTTP version
      */
-    public static function get(): HttpVersion
+    public function __construct(private readonly int $major, private readonly int $minor)
     {
-        return HttpVersion::fromString("HTTP/1.1");
     }
 
     /**
@@ -32,15 +25,28 @@ class HttpVersion
      */
     public static function fromString(string $version): ?HttpVersion
     {
+        if ($version === "undefined") return self::getDefault();
+
         // invalid http request
-        if (!str_contains($version, "HTTP/")) return null;
+        if (!str_starts_with($version, "HTTP/")) return null;
 
-        $version = str_replace("HTTP/", "", $version);
-        $parts = explode(".", $version);
-        $major = intval($parts[0]);
-        $minor = intval($parts[1]);
+        // get major and minor versions
+        [$major, $minor] = explode(".", substr($version, 5));
 
-        return new HttpVersion($major, $minor);
+        // check if the integers are valid
+        if (!ctype_digit($major) || !ctype_digit($minor)) return null;
+
+
+        return new HttpVersion(intval($major), intval($minor));
+    }
+
+    /**
+     * Get the default HTTP version
+     * @return HttpVersion HTTP/1.1
+     */
+    public static function getDefault(): HttpVersion
+    {
+        return new HttpVersion(self::DEFAULT_MAJOR, self::DEFAULT_MINOR);
     }
 
     /**
@@ -60,20 +66,11 @@ class HttpVersion
     }
 
     /**
-     * TODO: i dont like the __toString, that can cause a lot of random nasty bugs
-     * @return string
+     * Get the encoded HTTP version
+     * @return string HTTP/major.minor
      */
-    public function __toString(): string
+    public function toString(): string
     {
-        return "HTTP/" . $this->getVersion();
-    }
-
-    /**
-     * Get the http version string major.minor
-     * @return string
-     */
-    public function getVersion(): string
-    {
-        return $this->major . "." . $this->minor;
+        return "HTTP/" . $this->major . "." . $this->minor;
     }
 }
