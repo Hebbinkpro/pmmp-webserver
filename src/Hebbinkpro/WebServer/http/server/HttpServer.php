@@ -4,6 +4,7 @@ namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
+use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use pocketmine\thread\Thread;
@@ -11,8 +12,6 @@ use pocketmine\thread\ThreadSafeClassLoader;
 
 class HttpServer extends Thread
 {
-    public const MAX_HEADER_BYTES = 8190;
-
     /**
      * @var resource
      */
@@ -145,22 +144,15 @@ class HttpServer extends Thread
             }
 
             // check if there is some data
-            $data = $client->read(self::MAX_HEADER_BYTES);
+            $data = $client->read(HttpConstants::MAX_STREAM_READ_LENGTH);
             if ($data !== false && strlen($data) > 0) {
 
                 // decode the request
-                $req = HttpRequest::decode($data, $this->serverInfo);
+                $req = HttpRequest::parse($data, $this->serverInfo);
 
-                // invalid request
-                if (is_int($req)) {
+                // invalid or incomplete request
+                if (is_int($req) || !$this->completeRequest($client, $req)) {
                     $router->rejectRequest($client, $req);
-                    $closed[] = $name;
-                    continue;
-                }
-
-                // the request is incomplete
-                if (!$req->isCompleted() && !$this->completeRequest($client, $req)) {
-                    $router->rejectRequest($client);
                     $closed[] = $name;
                     continue;
                 }
@@ -200,9 +192,9 @@ class HttpServer extends Thread
     {
         // loop until we have completed the body or there is no more data
         while (!$req->isCompleted()) {
-            // client is not available, or there is no (valid) data to complete the request
+            // the client is not available, or there is no (valid) data to complete the request
             if (!$client->isAvailable() ||
-                ($data = $client->read(self::MAX_HEADER_BYTES)) === false || strlen($data) == 0) {
+                ($data = $client->read(HttpConstants::MAX_STREAM_READ_LENGTH)) === false || strlen($data) == 0) {
                 return false;
             }
 

@@ -68,8 +68,9 @@ class Route extends ThreadSafe
         /** @var mixed[] $params */
         $params = unserialize($this->params);
 
-        // response to be sent back to the client
-        $res = HttpResponse::ok($client);
+        // response to be sent back to the client, and make sure HEAD requests send a response without content
+        if ($req->getMethod() === HttpMethod::HEAD) $res = HttpResponse::noContent($client);
+        else $res = HttpResponse::ok($client);
 
         // execute the closure with the request, response and parameters
         call_user_func($action->getClosure(), $req, $res, ...$params);

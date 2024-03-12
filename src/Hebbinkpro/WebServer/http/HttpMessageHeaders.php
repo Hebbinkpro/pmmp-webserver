@@ -19,17 +19,19 @@ class HttpMessageHeaders
     }
 
     /**
-     * Decode all encoded headers
+     * Parse all encoded headers
      * @param string[] $data encoded headers
-     * @return HttpMessageHeaders
+     * @return HttpMessageHeaders|null
      */
-    public static function fromStringArray(array $data): HttpMessageHeaders
+    public static function parse(array $data): ?HttpMessageHeaders
     {
         $headers = new HttpMessageHeaders();
 
         foreach ($data as $header) {
             $parts = explode(": ", $header, 2);
-            if (sizeof($parts) != 2) continue;
+
+            if (sizeof($parts) != 2 || str_ends_with($parts[0], " ")) return null;
+
             $headers->setHeader($parts[0], $parts[1]);
         }
 
@@ -44,7 +46,17 @@ class HttpMessageHeaders
      */
     public function setHeader(string $header, string $value): void
     {
-        $this->headers[$header] = $value;
+        $this->headers[strtolower($header)] = $value;
+    }
+
+    /**
+     * Remove a header from the headers
+     * @param string $header
+     * @return void
+     */
+    public function unsetHeader(string $header): void
+    {
+        unset($this->headers[strtolower($header)]);
     }
 
     /**
@@ -55,7 +67,7 @@ class HttpMessageHeaders
      */
     public function getHeader(string $header, ?string $default = null): ?string
     {
-        return $this->headers[$header] ?? $default;
+        return $this->headers[strtolower($header)] ?? $default;
     }
 
     /**
@@ -65,7 +77,7 @@ class HttpMessageHeaders
      */
     public function exists(string $header): string
     {
-        return array_key_exists($header, $this->headers);
+        return array_key_exists(strtolower($header), $this->headers);
     }
 
     /**

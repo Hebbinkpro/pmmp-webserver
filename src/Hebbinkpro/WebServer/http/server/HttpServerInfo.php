@@ -2,6 +2,7 @@
 
 namespace Hebbinkpro\WebServer\http\server;
 
+use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\router\Router;
 use pmmp\thread\ThreadSafe;
 
@@ -17,14 +18,15 @@ class HttpServerInfo extends ThreadSafe
 
     /**
      * @param string $host
-     * @param int $port
+     * @param int $port If a negative port is given, the default HTTP port (or HTTPS port when SSL is given) will be used
      * @param Router|null $router
      * @param SslSettings|null $ssl
      */
-    public function __construct(string $host, int $port, ?Router $router = null, ?SslSettings $ssl = null)
+    public function __construct(string $host, int $port = -1, ?Router $router = null, ?SslSettings $ssl = null)
     {
         $this->host = $host;
-        $this->port = $port;
+        $this->port = $port >= 0 ? $port :
+            ($ssl === null ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
         $this->router = $router ?? new Router();
         $this->ssl = $ssl;
     }

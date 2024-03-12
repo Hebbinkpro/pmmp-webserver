@@ -24,6 +24,7 @@ class HttpResponse implements HttpMessage
     private HttpVersion $version;
     private HttpMessageHeaders $headers;
     private string $body;
+    private bool $head;
     private bool $ended;
 
     /**
@@ -33,13 +34,14 @@ class HttpResponse implements HttpMessage
      * @param string $body
      * @param HttpMessageHeaders $headers
      */
-    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", HttpMessageHeaders $headers = new HttpMessageHeaders())
+    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpMessageHeaders $headers = new HttpMessageHeaders())
     {
         $this->client = $client;
         $this->status = HttpStatusRegistry::getInstance()->parse($status);
         $this->version = HttpVersion::getDefault();
         $this->headers = $headers;
-        $this->body = $body;
+        $this->body = $head ? "" : $body;
+        $this->head = $head;
         $this->ended = false;
 
         // set some default headers
@@ -60,6 +62,19 @@ class HttpResponse implements HttpMessage
     public static function ok(HttpClient $client): HttpResponse
     {
         return new HttpResponse($client, HttpStatusCodes::OK);
+    }
+
+    /**
+     * Construct a 204 No Content response.
+     *
+     * Using this constructor will make it IMPOSSIBLE to send content to the client,
+     * as the head only flag will be enabled.
+     * @param HttpClient $client
+     * @return HttpResponse
+     */
+    public static function noContent(HttpClient $client): HttpResponse
+    {
+        return new HttpResponse($client, HttpStatusCodes::NO_CONTENT, "", true);
     }
 
     /**
@@ -98,13 +113,17 @@ class HttpResponse implements HttpMessage
      */
     public function send(string $data, string $contentType = "text/html"): void
     {
+        // it is not possible to add data to an HEAD response
+        if ($this->head) return;
+
         $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
         $this->body = $data;
     }
 
     public function toString(): string
     {
-        $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
+        $data = $this->version->toString() . "
+        " . $this->status->toString() . "\r\n";
         $data .= $this->headers->toString() . "\r\n";
         $data .= strlen($this->body) == 0 ? "" : $this->body . "\r\n";
 
@@ -246,14 +265,25 @@ class HttpResponse implements HttpMessage
 
         $this->ended = true;
 
-        // the body is empty and the status code is 200
-        if (strlen($this->body) > 0) {
-            // set the content length
+        $bodyLength = strlen($this->body);
+
+        // validate the body
+        if ($bodyLength > 0 && !$this->head) {
+            // we have a body, and are not sending only the head
             $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strlen($this->body));
-        } elseif ($this->status->getCode() === HttpStatusCodes::OK) {
-            // change the status code to 204 No Content, because it's successful but no content (body) is given
-            $this->setStatus(HttpStatusCodes::NO_CONTENT);
+        } else {
+            // we don't have a body or are sending the head
+            // unset the body and content headers
+            $this->body = "";
+            $this->headers->unsetHeader(HttpHeaders::CONTENT_TYPE);
+            $this->headers->unsetHeader(HttpHeaders::CONTENT_LENGTH);
+
+            // if the status was 200 OK, replace it with 204 No Content
+            if ($this->status->getCode() === HttpStatusCodes::OK) {
+                $this->setStatus(HttpStatusCodes::NO_CONTENT);
+            }
         }
+
 
         // send the constructed data to the client
         $this->client->send($this->toString());

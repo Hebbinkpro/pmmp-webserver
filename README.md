@@ -164,7 +164,8 @@ But to make sure the client sees the correct page, the path of this page needs t
 This is why for every `Route` you create, if it is using functions in the `Router` or by creating a new `Route` instance, 
 you HAVE to provide a VALID path, otherwise a client cannot find or request your page.
 #### Default paths
-A path is nothing more than everything after the first `/` up to the end or `?` in the url after the address of a side.
+
+A path is nothing more than everything after the first `/` up to the end or `?` in the uri after the address of a side.
 
 #### prefixes
 Sometimes you want a `Route` that listens to all requests that start with `/foo`, so also to `/foo/bar` or `/foo/bar/etc`.<br>
@@ -178,8 +179,8 @@ To make it even better, you can also request all variables inside an `HttpReques
 #### Queries
 The query of a path is everything behind the `?` in a path, so `/?foo=bar`. There can be multiple queries after the `?` by using the `&` sign between two values.
 A single query is represented as `<name>=<value>`.<br>
-To request all queries you can use `HttpUrl->getQuery()`, or to request only a single value you can
-use `HttpUrl->getQueryParam($name)`.
+To request all queries you can use `HttpURI->getQuery()`, or to request only a single value you can
+use `HttpURI->getQueryParam($name)`.
 
 ### HTTPS
 

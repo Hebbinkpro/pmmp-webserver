@@ -2,10 +2,11 @@
 
 namespace Hebbinkpro\WebServer\http\message;
 
+use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMessageHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpUrl;
+use Hebbinkpro\WebServer\http\HttpURI;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -17,7 +18,7 @@ class HttpRequest implements HttpMessage
 {
     private string $routePath;
     private HttpMethod $method;
-    private HttpUrl $url;
+    private HttpURI $uri;
     private HttpVersion $version;
     private HttpMessageHeaders $headers;
     private string $body;
@@ -27,16 +28,16 @@ class HttpRequest implements HttpMessage
 
     /**
      * @param HttpMethod $method
-     * @param HttpUrl $url
+     * @param HttpURI $uri
      * @param HttpVersion $version
      * @param HttpMessageHeaders $headers
      * @param string $body
      */
-    public function __construct(HttpMethod $method, HttpUrl $url, HttpVersion $version, HttpMessageHeaders $headers, string $body)
+    public function __construct(HttpMethod $method, HttpURI $uri, HttpVersion $version, HttpMessageHeaders $headers, string $body)
     {
         $this->routePath = "";
         $this->method = $method;
-        $this->url = $url;
+        $this->uri = $uri;
         $this->version = $version;
         $this->headers = $headers;
         $this->body = "";
@@ -48,7 +49,7 @@ class HttpRequest implements HttpMessage
     /**
      * Append data to the body
      * @param string $data
-     * @return int 0 if not completed, 1 if completed, 2 if content limit is exceeded
+     * @return int 0 if not completed, 1 if completed, 2 if the content limit is exceeded
      */
     public function appendData(string $data): int
     {
@@ -74,7 +75,7 @@ class HttpRequest implements HttpMessage
      * @param HttpServerInfo $serverInfo
      * @return HttpRequest|int the HttpRequest or a 4xx status code
      */
-    public static function decode(string $data, HttpServerInfo $serverInfo): int|HttpRequest
+    public static function parse(string $data, HttpServerInfo $serverInfo): int|HttpRequest
     {
         // split the data into the HEAD and BODY parts (seperated by double line break)
         $parts = explode("\r\n\r\n", trim($data), 2);
@@ -88,30 +89,36 @@ class HttpRequest implements HttpMessage
         $lines = explode("\r\n", $head);
         if (sizeof($lines) == 0) return HttpStatusCodes::BAD_REQUEST;
 
-        // get first line of the data: METHOD PATH HTTP/1.1
-        $httpData = explode(" ", $lines[0]);
-        if (sizeof($httpData) != 3) return HttpStatusCodes::BAD_REQUEST;
+        if (strlen($lines[0]) > HttpConstants::MAX_REQUEST_LINE_LENGTH) return HttpStatusCodes::URI_TOO_LONG;
 
-        // get the head, path and version
-        $method = HttpMethod::tryFrom($httpData[0]);
-        $path = trim($httpData[1], "/");
-        $httpVersion = HttpVersion::fromString($httpData[2]);
+        // parse the request line
+        $requestLine = explode(" ", $lines[0]);
+        if (sizeof($requestLine) != 3) return HttpStatusCodes::BAD_REQUEST;
 
-        // validate the request head
-        if ($method === null) return HttpStatusCodes::METHOD_NOT_ALLOWED;
-        else if ($httpVersion === null) return HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED;
+        $method = HttpMethod::tryFrom($requestLine[0]);
+        if ($method === null) return HttpStatusCodes::NOT_IMPLEMENTED;
 
-        $headers = HttpMessageHeaders::fromStringArray(array_slice($lines, 1));
-        if (!$headers->exists(HttpHeaders::HOST)) return HttpStatusCodes::BAD_REQUEST;
+        $target = $requestLine[1];
+        if (strlen($target) < 1) return HttpStatusCodes::BAD_REQUEST;
 
-        $url = HttpUrl::parse(($serverInfo->isSslEnabled() ? "https" : "http") . "://" . $headers->getHeader(HttpHeaders::HOST) . "/" . $path);
+        $httpVersion = HttpVersion::fromString($requestLine[2]);
+        if ($httpVersion === null) return HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED;
+
+        $headers = HttpMessageHeaders::parse(array_slice($lines, 1));
+        if ($headers === null || !$headers->exists(HttpHeaders::HOST)) return HttpStatusCodes::BAD_REQUEST;
+
+        $scheme = $serverInfo->isSslEnabled() ? HttpConstants::HTTPS_SCHEME : HttpConstants::HTTP_SCHEME;
+
+        $uri = HttpURI::parseRequestTarget($scheme, $headers->getHeader(HttpHeaders::HOST), $target);
+
+
 
         // check the content limit
         $bodyLength = strlen($body);
         $contentLength = intval($headers->getHeader(HttpHeaders::CONTENT_LENGTH) ?? 0);
         if ($bodyLength > $contentLength) return HttpStatusCodes::CONTENT_TOO_LARGE;
 
-        return new HttpRequest($method, $url, $httpVersion, $headers, $body);
+        return new HttpRequest($method, $uri, $httpVersion, $headers, $body);
     }
 
     /**
@@ -132,7 +139,7 @@ class HttpRequest implements HttpMessage
         $this->routePath = $routePath;
         $this->pathParams = [];
 
-        $path = explode("/", $this->url->getPath());
+        $path = explode("/", $this->uri->getPath());
         $routePath = explode("/", $routePath);
 
         foreach ($routePath as $i => $value) {
@@ -163,7 +170,7 @@ class HttpRequest implements HttpMessage
 
 
     /**
-     * Get the url path without the route path
+     * Get the uri path without the route path
      * @return string
      */
     public function getSubPath(): string
@@ -185,11 +192,11 @@ class HttpRequest implements HttpMessage
     }
 
     /**
-     * @return HttpUrl
+     * @return HttpURI
      */
-    public function getURL(): HttpUrl
+    public function getURL(): HttpURI
     {
-        return $this->url;
+        return $this->uri;
     }
 
     /**

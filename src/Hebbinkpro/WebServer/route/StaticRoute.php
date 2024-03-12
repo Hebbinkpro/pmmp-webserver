@@ -37,7 +37,7 @@ class StaticRoute extends Route
                 $folder = $params[0];
                 $filePath = $req->getSubPath();
 
-                // get the path of the requested file, the urlPath is replaced with the folder path
+                // get the path of the requested file, the uriPath is replaced with the folder path
                 $file = $folder . "/" . $filePath;
 
                 // check if the file exists

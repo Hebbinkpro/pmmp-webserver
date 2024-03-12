@@ -3,9 +3,9 @@
 namespace Hebbinkpro\WebServer\http;
 
 /**
- * An HTTP Url which contains all url data
+ * An HTTP Uri which contains all uri data
  */
-class HttpUrl
+class HttpURI
 {
     private string $scheme;
     private string $host;
@@ -31,34 +31,52 @@ class HttpUrl
     }
 
     /**
-     * Parse the url
-     * @param string $url
-     * @return HttpUrl|null
+     * Parse a request target to an URL
+     * @param string $scheme
+     * @param string $host
+     * @param string $target
+     * @return HttpURI|null
      */
-    public static function parse(string $url): ?HttpUrl
+    public static function parseRequestTarget(string $scheme, string $host, string $target): ?HttpURI
     {
-        // parse the url
-        $urlParts = parse_url($url);
-        if ($urlParts === false || !is_array($urlParts)) return null;
+        $schemeHost = $scheme . "://" . $host;
 
-        // get all data from the url
-        $scheme = $urlParts["scheme"] ?? "http";
-        $host = $urlParts["host"] ?? "0.0.0.0";
-        $port = $urlParts["port"] ?? 80;
-        $path = trim(urldecode($urlParts["path"] ?? ""), "/");
-        $queryString = $urlParts["query"] ?? null;
+        // authority form or absolute form
+        if (str_starts_with($target, $host) || str_starts_with($target, $schemeHost)) return self::parse($target);
 
+        // origin form
+
+        if ($target === "*") return self::parse($schemeHost);
+        return self::parse($schemeHost . $target);
+    }
+
+    /**
+     * Parse the uri
+     * @param string $uri
+     * @return HttpURI|null
+     */
+    public static function parse(string $uri): ?HttpURI
+    {
+        // parse the uri
+        $uriParts = parse_url($uri);
+        if ($uriParts === false || !is_array($uriParts)) return null;
+
+        // get all data from the uri
+        $scheme = strtolower($uriParts["scheme"]) ?? HttpConstants::HTTP_SCHEME;
+        $host = $uriParts["host"] ?? "0.0.0.0";
+        $port = $uriParts["port"] ?? ($scheme === HttpConstants::HTTP_SCHEME ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
+        $path = rawurldecode(trim($uriParts["path"] ?? "", "/"));
+        $queryString = rawurldecode($uriParts["query"] ?? "");
 
         $query = [];
-        if ($queryString !== null) {
+        if (strlen($queryString) > 0) {
             foreach (explode("&", $queryString) as $part) {
-                $part = urldecode($part);
                 [$key, $value] = explode("=", $part, 2);
                 $query[$key] = $value;
             }
         }
 
-        return new HttpUrl($scheme, $host, $port, $path, $query);
+        return new HttpURI($scheme, $host, $port, $path, $query);
     }
 
     /**
