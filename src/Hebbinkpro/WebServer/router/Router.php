@@ -130,7 +130,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a GET route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed ...$params
      * @return void
      * @throws RouteExistsException
@@ -180,7 +180,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a POST route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      * @throws RouteExistsException
@@ -193,7 +193,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a HEAD route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      * @throws RouteExistsException
@@ -206,7 +206,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a PUT route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      * @throws RouteExistsException
@@ -219,7 +219,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a DELETE route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      * @throws RouteExistsException
@@ -233,7 +233,7 @@ class Router extends ThreadSafe implements RouterInterface
      * Add a route to the router that listens to all HTTP methods.
      *
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      * @throws RouteExistsException

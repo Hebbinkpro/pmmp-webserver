@@ -7,7 +7,6 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 /**
  * A GET Route that functions like a FileRoute but for a folder.
@@ -22,7 +21,6 @@ class StaticRoute extends Route
     /**
      * @param string $folder
      * @throws FolderNotFoundException
-     * @throws PhpVersionNotSupportedException
      */
     public function __construct(string $folder)
     {

@@ -5,6 +5,7 @@ namespace Hebbinkpro\WebServer\http\message;
 use DateTime;
 use DateTimeInterface;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
+use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMessageHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
@@ -46,7 +47,7 @@ class HttpResponse implements HttpMessage
         $this->ended = false;
 
         // set some default headers
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, "text/plain");
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
         $this->headers->setHeader(HttpHeaders::CONTENT_ENCODING, "utf-8");
 
     }
@@ -99,7 +100,7 @@ class HttpResponse implements HttpMessage
      */
     public function text(string $data): void
     {
-        $this->send($data, "text/plain");
+        $this->send($data);
     }
 
     /**
@@ -108,13 +109,23 @@ class HttpResponse implements HttpMessage
      * @param string $contentType content type of the data
      * @return void
      */
-    public function send(string $data, string $contentType = "text/html"): void
+    public function send(string $data, string $contentType = HttpContentType::TEXT_PLAIN): void
     {
         // it is not possible to add data to a HEAD response
         if ($this->head) return;
 
         $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
         $this->body = $data;
+    }
+
+    /**
+     * Send the status message
+     * @return void
+     */
+    public function sendStatusMessage(): void
+    {
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
+        $this->body = $this->status->getMessage();
     }
 
     public function toString(): string
@@ -176,60 +187,35 @@ class HttpResponse implements HttpMessage
 
     /**
      * Send the contents of a file to the client.
-     *
-     * Sets the Content-Type if the file extension is recognized.
-     * - HTML: text/html
-     * - JSON: application/json
-     * - etc...
      * @param string $fileName name of the file to send
      * @param string|null $default default value when the file does not exist
+     * @param string|null $contentType if no content type is given, the file extension will be used to detect it
      * @return void
      * @throws FileNotFoundException when the file does not exist and the default value is null
      */
-    public function sendFile(string $fileName, ?string $default = null): void
+    public function sendFile(string $fileName, ?string $default = null, ?string $contentType = null): void
     {
         if (!file_exists($fileName) && $default === null) throw new FileNotFoundException($fileName);
 
         $parts = explode(".", $fileName) ?? [];
         $fileExtension = end($parts);
 
-        // TODO create something for all known HTTP content types
-
-        $contentType = "text/html";
-        switch (strtolower($fileExtension)) {
-            case "txt":
-                $contentType = "text/plain";
-                break;
-            case "css":
-                $contentType = "text/css";
-                break;
-            case "js":
-                $contentType = "application/javascript";
-                break;
-            case "json":
-                $contentType = "application/json";
-                break;
-            case "jpeg":
-                $contentType = "image/jpeg";
-                break;
-            case "png":
-                $contentType = "image/png";
-                break;
-            case "gif":
-                $contentType = "image/gif";
-                break;
-            case "csv":
-                $contentType = "text/csv";
-                break;
-            case "xml":
-                $contentType = "application/xml";
-                break;
-            case "mp3":
-                $contentType = "audio/mpeg";
-                break;
-            case "mp4":
-                $contentType = "video/mp4";
-                break;
+        if ($contentType === null) {
+            // no content type given try to make something of it
+            $contentType = match ($fileExtension) {
+                "html" => HttpContentType::TEXT_HTML,
+                "css" => HttpContentType::TEXT_CSS,
+                "js" => HttpContentType::TEXT_JAVASCRIPT,
+                "json" => HttpContentType::APPLICATION_JSON,
+                "jpeg" => HttpContentType::IMAGE_JPEG,
+                "png" => HttpContentType::IMAGE_PNG,
+                "gif" => HttpContentType::IMAGE_GIF,
+                "csv" => HttpContentType::TEXT_CSV,
+                "xml" => HttpContentType::TEXT_XML,
+                "mp3" => HttpContentType::AUDIO_MPEG,
+                "mp4" => HttpContentType::VIDEO_MP4,
+                default => HttpContentType::TEXT_PLAIN,
+            };
         }
 
         $body = file_exists($fileName) ? file_get_contents($fileName) : $default;
@@ -245,7 +231,7 @@ class HttpResponse implements HttpMessage
      */
     public function json(array $data): void
     {
-        $this->send(json_encode($data), "application/json");
+        $this->send(json_encode($data), HttpContentType::APPLICATION_JSON);
     }
 
     /**

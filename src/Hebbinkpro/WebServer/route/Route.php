@@ -20,7 +20,7 @@ class Route extends ThreadSafe
 
     /**
      * @param HttpMethod $method the request method
-     * @param callable|null $action the action to execute
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void|null $action the action to execute
      * @param mixed ...$params additional (thread safe) parameters to use in the action
      */
     public function __construct(HttpMethod $method, ?callable $action, mixed ...$params)
