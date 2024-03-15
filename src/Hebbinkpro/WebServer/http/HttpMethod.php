@@ -28,4 +28,16 @@ enum HttpMethod: string
     case TRACE = "TRACE";
     /** Make partial changes to an existing resource. */
     case PATCH = "PATCH";
+
+    /**
+     * Check if the given method equals to the given method.
+     *
+     * If the given method is ALL, then true is returned.
+     * @param HttpMethod $method
+     * @return bool
+     */
+    public function equals(HttpMethod $method): bool
+    {
+        return $this === $method || $method === HttpMethod::ALL;
+    }
 }

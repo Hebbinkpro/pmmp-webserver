@@ -5,11 +5,9 @@ namespace Hebbinkpro\WebServer\libs\Laravel\SerializableClosure;
 use Closure;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Contracts\Serializable;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\InvalidSignatureException;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Native;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Serializers\Signed;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Signers\Hmac;
-use const PHP_VERSION_ID;
 
 class SerializableClosure
 {
@@ -28,10 +26,6 @@ class SerializableClosure
      */
     public function __construct(Closure $closure)
     {
-        if (PHP_VERSION_ID < 70400) {
-            throw new PhpVersionNotSupportedException();
-        }
-
         $this->serializable = Signed::$signer
             ? new Signed($closure)
             : new Native($closure);
@@ -90,10 +84,6 @@ class SerializableClosure
      */
     public function __invoke()
     {
-        if (PHP_VERSION_ID < 70400) {
-            throw new PhpVersionNotSupportedException();
-        }
-
         return call_user_func_array($this->serializable, func_get_args());
     }
 
@@ -104,10 +94,6 @@ class SerializableClosure
      */
     public function getClosure()
     {
-        if (PHP_VERSION_ID < 70400) {
-            throw new PhpVersionNotSupportedException();
-        }
-
         return $this->serializable->getClosure();
     }
 

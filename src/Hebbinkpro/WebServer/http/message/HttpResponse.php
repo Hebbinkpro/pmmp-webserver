@@ -12,7 +12,7 @@ use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
-use pocketmine\VersionInfo;
+use Hebbinkpro\WebServer\WebServer;
 
 /**
  * HTTP Response send by the server
@@ -28,10 +28,11 @@ class HttpResponse implements HttpMessage
     private bool $ended;
 
     /**
-     * Construct a basic 200 OK response
+     * Construct a basic response
      * @param HttpClient $client
      * @param int|HttpStatus $status
      * @param string $body
+     * @param bool $head
      * @param HttpMessageHeaders $headers
      */
     public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpMessageHeaders $headers = new HttpMessageHeaders())
@@ -45,12 +46,8 @@ class HttpResponse implements HttpMessage
         $this->ended = false;
 
         // set some default headers
-        $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
-        $this->headers->setHeader(HttpHeaders::SERVER, VersionInfo::NAME . " " . VersionInfo::BASE_VERSION);
         $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, "text/plain");
         $this->headers->setHeader(HttpHeaders::CONTENT_ENCODING, "utf-8");
-        // TODO remove this header after we have fixed the keep-alive issue
-        $this->headers->setHeader(HttpHeaders::CONNECTION, "close");
 
     }
 
@@ -68,7 +65,7 @@ class HttpResponse implements HttpMessage
      * Construct a 204 No Content response.
      *
      * Using this constructor will make it IMPOSSIBLE to send content to the client,
-     * as the head only flag will be enabled.
+     * as the head-only flag will be enabled.
      * @param HttpClient $client
      * @return HttpResponse
      */
@@ -113,7 +110,7 @@ class HttpResponse implements HttpMessage
      */
     public function send(string $data, string $contentType = "text/html"): void
     {
-        // it is not possible to add data to an HEAD response
+        // it is not possible to add data to a HEAD response
         if ($this->head) return;
 
         $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
@@ -122,8 +119,7 @@ class HttpResponse implements HttpMessage
 
     public function toString(): string
     {
-        $data = $this->version->toString() . "
-        " . $this->status->toString() . "\r\n";
+        $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
         $data .= $this->headers->toString() . "\r\n";
         $data .= strlen($this->body) == 0 ? "" : $this->body . "\r\n";
 
@@ -268,15 +264,10 @@ class HttpResponse implements HttpMessage
         $bodyLength = strlen($this->body);
 
         // validate the body
-        if ($bodyLength > 0 && !$this->head) {
-            // we have a body, and are not sending only the head
-            $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strlen($this->body));
-        } else {
+        if ($bodyLength == 0 || $this->head) {
             // we don't have a body or are sending the head
-            // unset the body and content headers
+            // unset the body
             $this->body = "";
-            $this->headers->unsetHeader(HttpHeaders::CONTENT_TYPE);
-            $this->headers->unsetHeader(HttpHeaders::CONTENT_LENGTH);
 
             // if the status was 200 OK, replace it with 204 No Content
             if ($this->status->getCode() === HttpStatusCodes::OK) {
@@ -284,6 +275,14 @@ class HttpResponse implements HttpMessage
             }
         }
 
+        // set the content length to the body size
+        $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strlen($this->body));
+
+        // set the final headers
+        $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+        $this->headers->setHeader(HttpHeaders::SERVER, WebServer::getServerName());
+        // TODO remove this header after we have fixed the keep-alive issue
+        $this->headers->setHeader(HttpHeaders::CONNECTION, "close");
 
         // send the constructed data to the client
         $this->client->send($this->toString());

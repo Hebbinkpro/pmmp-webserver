@@ -6,7 +6,7 @@ use Hebbinkpro\WebServer\http\HttpMessageHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
 
 /**
- * Interface for all methods required inside a HTTP Message
+ * Interface for all methods required inside an HTTP Message
  */
 interface HttpMessage
 {

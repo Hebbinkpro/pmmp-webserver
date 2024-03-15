@@ -6,7 +6,7 @@ use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
 
@@ -36,7 +36,7 @@ class HttpServer extends Thread
     }
 
     /**
-     * @throws SocketNotCreatedException|PhpVersionNotSupportedException
+     * @throws SocketNotCreatedException
      */
     protected function onRun(): void
     {
@@ -127,7 +127,6 @@ class HttpServer extends Thread
     /**
      * Serve all active clients
      * @return void
-     * @throws PhpVersionNotSupportedException
      */
     private function serveExistingConnections(): void
     {
@@ -152,12 +151,21 @@ class HttpServer extends Thread
 
                 // invalid or incomplete request
                 if (is_int($req) || !$this->completeRequest($client, $req)) {
-                    $router->rejectRequest($client, $req);
+                    $status = HttpStatusCodes::BAD_REQUEST;
+                    if (is_int($req)) $status = $req;
+
+                    $router->rejectRequest($client, $status);
                     $closed[] = $name;
                     continue;
                 }
 
-                $this->serverInfo->getRouter()->handleRequest($client, $req);
+
+                try {
+                    $this->serverInfo->getRouter()->handleRequest($client, $req);
+                } catch (Exception $e) {
+                    $router->rejectRequest($client, HttpStatusCodes::INTERNAL_SERVER_ERROR, $e->getMessage());
+                }
+
                 $client->flush();
 
                 // if the connection header close is given, close the connection

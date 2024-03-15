@@ -7,9 +7,12 @@ use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\server\SslSettings;
 use pocketmine\plugin\PluginBase;
+use pocketmine\VersionInfo;
 
 class WebServer
 {
+    public const VERSION_NAME = "PMMP-WebServer";
+    public const VERSION = "1.0.0";
     public const PREFIX = "[WebServer]";
 
     private PluginBase $plugin;
@@ -146,5 +149,14 @@ class WebServer
         $this->httpServer->join();
         $this->plugin->getLogger()->notice(self::PREFIX . " The web server has been stopped.");
 
+    }
+
+    /**
+     * Get the server name to use in the server header
+     * @return string PMMP-WebServer/x.x.x PocketMine-MP/x.x.x
+     */
+    public static function getServerName(): string
+    {
+        return self::VERSION_NAME . "/" . self::VERSION . " " . VersionInfo::NAME . "/" . VersionInfo::BASE_VERSION;
     }
 }
