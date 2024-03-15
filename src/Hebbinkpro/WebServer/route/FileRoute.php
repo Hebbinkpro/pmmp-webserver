@@ -6,7 +6,6 @@ use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 
 /**
  * A GET route that sends a file to the client
@@ -18,7 +17,7 @@ class FileRoute extends Route
     /**
      * @param string $file the file path
      * @param string|null $default
-     * @throws FileNotFoundException|PhpVersionNotSupportedException
+     * @throws FileNotFoundException
      */
     public function __construct(string $file, ?string $default = null)
     {

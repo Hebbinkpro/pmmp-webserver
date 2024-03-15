@@ -5,7 +5,6 @@ namespace Hebbinkpro\WebServer\route;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\server\HttpClient;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\router\Router;
 
 /**
@@ -17,7 +16,6 @@ class RouterRoute extends Route
 
     /**
      * @param Router $router
-     * @throws PhpVersionNotSupportedException
      */
     public function __construct(Router $router)
     {

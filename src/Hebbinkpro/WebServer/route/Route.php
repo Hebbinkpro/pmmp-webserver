@@ -6,7 +6,6 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
 use pmmp\thread\ThreadSafe;
 
@@ -23,7 +22,6 @@ class Route extends ThreadSafe
      * @param HttpMethod $method the request method
      * @param callable|null $action the action to execute
      * @param mixed ...$params additional (thread safe) parameters to use in the action
-     * @throws PhpVersionNotSupportedException
      */
     public function __construct(HttpMethod $method, ?callable $action, mixed ...$params)
     {
@@ -52,7 +50,6 @@ class Route extends ThreadSafe
      * @param HttpClient $client the client
      * @param HttpRequest $req the request of the client
      * @return void
-     * @throws PhpVersionNotSupportedException
      */
     public function handleRequest(HttpClient $client, HttpRequest $req): void
     {
