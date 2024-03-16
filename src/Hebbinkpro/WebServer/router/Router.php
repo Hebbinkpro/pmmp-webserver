@@ -12,7 +12,6 @@ use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\Exceptions\PhpVersionNotSupportedException;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\Route;
 use Hebbinkpro\WebServer\route\RouterRoute;
@@ -25,7 +24,6 @@ use pmmp\thread\ThreadSafeArray;
  */
 class Router extends ThreadSafe implements RouterInterface
 {
-    /** @var array<string, Route|array<string, Route>> */
     private ThreadSafeArray $routes;
 
     public function __construct()
@@ -64,6 +62,11 @@ class Router extends ThreadSafe implements RouterInterface
         $route->handleRequest($client, $request);
     }
 
+    /**
+     * Get the path to route to from the given request
+     * @param HttpRequest $req
+     * @return string|null
+     */
     public function getRoutePath(HttpRequest $req): ?string
     {
         $reqPath = $req->getSubPath();
@@ -128,11 +131,6 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * Add a GET route to the router
-     * @param string $path
-     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
-     * @param mixed ...$params
-     * @return void
      * @throws RouteExistsException
      */
     public function get(string $path, callable $action, mixed ...$params): void
@@ -141,6 +139,10 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
+     * Assign the route to the path
+     * @param string $path
+     * @param Route $route
+     * @return void
      * @throws RouteExistsException
      */
     public function addRoute(string $path, Route $route): void
@@ -178,11 +180,6 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * Add a POST route to the router
-     * @param string $path
-     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
-     * @param mixed $params
-     * @return void
      * @throws RouteExistsException
      */
     public function post(string $path, callable $action, mixed ...$params): void
@@ -191,11 +188,6 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * Add a HEAD route to the router
-     * @param string $path
-     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
-     * @param mixed $params
-     * @return void
      * @throws RouteExistsException
      */
     public function head(string $path, callable $action, mixed ...$params): void
@@ -204,11 +196,6 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * Add a PUT route to the router
-     * @param string $path
-     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
-     * @param mixed $params
-     * @return void
      * @throws RouteExistsException
      */
     public function put(string $path, callable $action, mixed ...$params): void
@@ -217,11 +204,6 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * Add a DELETE route to the router
-     * @param string $path
-     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
-     * @param mixed $params
-     * @return void
      * @throws RouteExistsException
      */
     public function delete(string $path, callable $action, mixed ...$params): void
@@ -230,12 +212,6 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * Add a route to the router that listens to all HTTP methods.
-     *
-     * @param string $path
-     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
-     * @param mixed $params
-     * @return void
      * @throws RouteExistsException
      */
     public function all(string $path, callable $action, mixed ...$params): void
@@ -245,6 +221,7 @@ class Router extends ThreadSafe implements RouterInterface
 
     /**
      * Add a RouterRoute to the router.
+     *
      * @param string $path
      * @param Router $router
      * @return void
@@ -276,7 +253,6 @@ class Router extends ThreadSafe implements RouterInterface
      * @param string $path
      * @param string $folder
      * @return void
-     * @throws PhpVersionNotSupportedException
      * @throws FolderNotFoundException|RouteExistsException when the given folder does not exist
      */
     public function getStatic(string $path, string $folder): void

@@ -47,7 +47,7 @@ class HttpResponse implements HttpMessage
         $this->ended = false;
 
         // set some default headers
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_HTML);
         $this->headers->setHeader(HttpHeaders::CONTENT_ENCODING, "utf-8");
 
     }
@@ -109,7 +109,7 @@ class HttpResponse implements HttpMessage
      * @param string $contentType content type of the data
      * @return void
      */
-    public function send(string $data, string $contentType = HttpContentType::TEXT_PLAIN): void
+    public function send(string $data, string $contentType = HttpContentType::TEXT_HTML): void
     {
         // it is not possible to add data to a HEAD response
         if ($this->head) return;
@@ -203,7 +203,7 @@ class HttpResponse implements HttpMessage
         if ($contentType === null) {
             // no content type given try to make something of it
             $contentType = match ($fileExtension) {
-                "html" => HttpContentType::TEXT_HTML,
+                "txt" => HttpContentType::TEXT_PLAIN,
                 "css" => HttpContentType::TEXT_CSS,
                 "js" => HttpContentType::TEXT_JAVASCRIPT,
                 "json" => HttpContentType::APPLICATION_JSON,
@@ -214,7 +214,7 @@ class HttpResponse implements HttpMessage
                 "xml" => HttpContentType::TEXT_XML,
                 "mp3" => HttpContentType::AUDIO_MPEG,
                 "mp4" => HttpContentType::VIDEO_MP4,
-                default => HttpContentType::TEXT_PLAIN,
+                default => HttpContentType::TEXT_HTML,
             };
         }
 

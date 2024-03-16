@@ -1,5 +1,6 @@
 # PMMP WebServer
-A Verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
+
+A verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
 
 ## Plugins
 - This virion is used in my Dynmap like plugin, `PocketMap`. You can find the plugin [here](https://github.com/Hebbinkpro/PocketMap)
@@ -10,7 +11,9 @@ A Verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
 
 ## How to use
 ### Creating a web server
-For creating a web server you have to register the WebServer and create a new instance of `WebServer` to start the server.
+
+For creating a web server,
+you have to register the WebServer and create a new instance of `WebServer` to start the server.
 ```php
 <?php
 
@@ -82,13 +85,14 @@ use Hebbinkpro\WebServer\route\Route;
         // consider splitting it in multiple files, or sending everything in 1 response
     }
     
-    // now we construct  the Route with our given method, path and action.
+    // now we construct the Route with our given method, path and action.
     $route = new Route($method, $path, $action);
 }
 ```
 
 ##### Route Action
-The route action is the task that is performed when a new request is sent to the correct path. The syntax for an action is
+
+The route action is the task performed when a new request is sent to the correct path. The syntax for an action is
 ```php
 function (HttpRequest $request, HttpResponse $response, mixed ...$params) {
     // your code
@@ -99,10 +103,11 @@ function (HttpRequest $request, HttpResponse $response, mixed ...$params) {
 - `...$params` is an array with all given parameters. 
 The parameters are given at the end of a new `Route`.
 ```php
-    $route = new \Hebbinkpro\WebServer\route\Route($method, $path, $action, ...$params);
+    $route = new \Hebbinkpro\WebServer\route\Route($method, $action, ...$params);
 ```
-You can add as many params as you want, if you only want 1 param, you can use `new Route($method, $path, $action, $param1)`, 
-but if you want more than 1 you can just add them behind the first param. `new Route($method, $path, $action, $param1, $param2, $param3)`.
+You can add as many params as you want, if you only want 1 param, you can use `new Route($method, $path, $action, $param1)`,
+but if you want more than 1, you can add them behind the first
+param. `new Route($method, $path, $action, $param1, $param2, $param3)`.
 Adding no parameters is also an option, `new Route($method, $path, $action)`.<br>
 To use the `...$params` variable in the action, you can use it as an array, so `$params[0]` will return the first parameter, and `$params[1]` will give you the second, ect.<br>
 **_Do not put any code that makes use of the main thread INSIDE the action function. Actions have to be `ThreadSafe`, so
@@ -115,11 +120,11 @@ For the most common methods there are functions inside the `Router` instance.
 These functions make it so that you don't have to input an HTTP method for every new `Route` you want to make<br>
 The available method function in `Router` are:
 
-- GET, a route that listens only to GET requests - `Router->get($path, $action, ...$params)`
-- POST, a route that listens only to POST requests - `Router->post($path, $action, ...$params)`
-- HEAD, a route that listens only to HEAD requests - `Router->head($path, $action, ...$params)`
-- PUT, a route that listens only to PUT requests - `Router->put($path, $action, ...$params)`
-- DELETE, a route that listens only to DELETE requests - `Router->delete($path, $action, ...$params)`
+- GET, a route that only listens to GET requests - `Router->get($path, $action, ...$params)`
+- POST, a route that only listens to POST requests - `Router->post($path, $action, ...$params)`
+- HEAD, a route that only listens to HEAD requests - `Router->head($path, $action, ...$params)`
+- PUT, a route that only listens to PUT requests - `Router->put($path, $action, ...$params)`
+- DELETE, a route that only listens to DELETE requests - `Router->delete($path, $action, ...$params)`
 - USE (also known as ANY or * in `Hebbinkpro\WebServer\http\HttpMethod`), a route that listens to ALL HTTP
   methods - `Router->all($path, $action, ...$params)`
 
@@ -129,6 +134,7 @@ The path and action arguments inside the router functions are the same as the on
 #### Other Route types
 There are three types of routes you can use outside the default `Route` implementations in the `Router`:
 - `Route` - A basic route that makes you able to create your own responses for a path
+- `FileRoute` - A route that sends a file as response
 - `RouterRoute` - A route that functions as a `Router`, but only for the specified path
 - `StaticRoute` - A route that makes you able to share the content of complete folders without making a `Route` for each different path.
 - You are not restricted to those routes, but you can also create your own routes. The only requirement is that your custom route has to extend (a child of) `\Hebbinkpro\WebServer\route\Route`.
@@ -136,26 +142,39 @@ You can add an instance of a `Route` to the `Router` using
 ```php
 $router->addRoute($route)
 ```
-But there are also functions in `Router` to easily add a `RouterRoute` or `StaticRoute`.<br>
-For a `RouterRoute`:
 
+But there are also functions in `Router` to easily add a `FileRoute`, `RouterRoute` or `StaticRoute`.
+
+##### FileRoute
+
+```php
+$file = "path/to/your/file";
+$default = "File not found";
+
+// add the file route, $default is optional
+$router->getFile($path, $file, $default);
+```
+
+##### RouterRoute
 ```php
 use Hebbinkpro\WebServer\router\Router;
 
 $childRouter = new Router();
 // add here the stuff you want to the child router
+// this is the same as for a default router
 // ...
 
 // add the router route with the path and the newly created child router
 $router->route($path, $childRouter);
 ```
-And for a `StaticRoute`;
+
+##### Static Route
 ```php
 // define the folder you want to use for the static route by using its path
 $folder = "/path/to/the/folder";
 
 // add the static route with the path of the route and the folder path
-$router->static($path, $folder)
+$router->getStatic($path, $folder)
 ```
 
 ### Paths

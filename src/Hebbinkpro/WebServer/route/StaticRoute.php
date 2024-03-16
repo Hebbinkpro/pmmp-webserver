@@ -42,7 +42,7 @@ class StaticRoute extends Route
                 if (!is_file($file)) {
                     // file does not exist, send 404
                     $res->setStatus(HttpStatusCodes::NOT_F0UND);
-                    $res->send("404 File not found.", "text/plain");
+                    $res->sendStatusMessage();
                     $res->end();
                     return;
                 }

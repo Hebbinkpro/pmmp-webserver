@@ -3,6 +3,7 @@
 namespace Hebbinkpro\WebServer\router;
 
 use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -30,16 +31,9 @@ interface RouterInterface
     public function rejectRequest(HttpClient $client, int|HttpStatus $status = HttpStatusCodes::BAD_REQUEST): void;
 
     /**
-     * Get a route path corresponding to the request
-     * @param HttpRequest $req
-     * @return string|null null when no valid Route has been found
-     */
-    public function getRoutePath(HttpRequest $req): ?string;
-
-    /**
      * Add a GET route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed ...$params
      * @return void
      */
@@ -48,7 +42,7 @@ interface RouterInterface
     /**
      * Add a POST route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -57,7 +51,7 @@ interface RouterInterface
     /**
      * Add a HEAD route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -66,7 +60,7 @@ interface RouterInterface
     /**
      * Add a PUT route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -75,7 +69,7 @@ interface RouterInterface
     /**
      * Add a DELETE route to the router
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -86,7 +80,7 @@ interface RouterInterface
      *
      * This route will listen to any method using the given path.
      * @param string $path
-     * @param callable $action
+     * @param callable(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
