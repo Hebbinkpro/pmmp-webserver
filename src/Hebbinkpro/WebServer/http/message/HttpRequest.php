@@ -77,11 +77,13 @@ class HttpRequest implements HttpMessage
      */
     public static function parse(string $data, HttpServerInfo $serverInfo): int|HttpRequest
     {
+        if ($data === "") return HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG;
+
         // split the data into the HEAD and BODY parts (seperated by double line break)
         $parts = explode("\r\n\r\n", trim($data), 2);
 
         // data does not contain a double line break, so the header is too long
-        if (!$parts || sizeof($parts) == 0) return HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG;
+        if (sizeof($parts) == 0) return HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG;
 
         $head = $parts[0];
         $body = $parts[1] ?? "";
@@ -109,9 +111,11 @@ class HttpRequest implements HttpMessage
 
         $scheme = $serverInfo->isSslEnabled() ? HttpConstants::HTTPS_SCHEME : HttpConstants::HTTP_SCHEME;
 
-        $uri = HttpURI::parseRequestTarget($scheme, $headers->getHeader(HttpHeaders::HOST), $target);
+        $host = $headers->getHeader(HttpHeaders::HOST);
+        if ($host === null) return HttpStatusCodes::BAD_REQUEST;
 
-
+        $uri = HttpURI::parseRequestTarget($scheme, $host, $target);
+        if ($uri === null) return HttpStatusCodes::BAD_REQUEST;
 
         // check the content limit
         $bodyLength = strlen($body);
@@ -211,7 +215,7 @@ class HttpRequest implements HttpMessage
      * Get all path params
      *
      * Path params are defined by :param in a Route path. (e.g. /my/path/:param, where :param is the path parameter
-     * @return array
+     * @return array<string, string>
      */
     public function getPathParams(): array
     {

@@ -19,7 +19,7 @@ class HttpURI
      * @param string $address
      * @param int $port
      * @param string $path
-     * @param array $query
+     * @param array<string, string> $query
      */
     public function __construct(string $scheme, string $address, int $port, string $path, array $query)
     {
@@ -62,7 +62,7 @@ class HttpURI
         if ($uriParts === false || !is_array($uriParts)) return null;
 
         // get all data from the uri
-        $scheme = strtolower($uriParts["scheme"]) ?? HttpConstants::HTTP_SCHEME;
+        $scheme = strtolower($uriParts["scheme"] ?? HttpConstants::HTTP_SCHEME);
         $host = $uriParts["host"] ?? "0.0.0.0";
         $port = $uriParts["port"] ?? ($scheme === HttpConstants::HTTP_SCHEME ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
         $path = rawurldecode(trim($uriParts["path"] ?? "", "/"));
@@ -119,7 +119,7 @@ class HttpURI
 
     /**
      * Get the query
-     * @return array
+     * @return array<string, string>
      */
     public function getQuery(): array
     {

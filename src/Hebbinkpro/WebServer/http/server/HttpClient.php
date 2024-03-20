@@ -6,7 +6,6 @@ use Exception;
 
 class HttpClient
 {
-    private HttpServerInfo $serverInfo;
     private string $host;
     private int $port;
 
@@ -15,14 +14,12 @@ class HttpClient
 
 
     /**
-     * @param HttpServerInfo $serverInfo
      * @param string $host
      * @param int $port
      * @param resource $socket
      */
-    public function __construct(HttpServerInfo $serverInfo, string $host, int $port, mixed $socket)
+    public function __construct(string $host, int $port, mixed $socket)
     {
-        $this->serverInfo = $serverInfo;
         $this->host = $host;
         $this->port = $port;
         $this->socket = $socket;
@@ -98,7 +95,7 @@ class HttpClient
 
     /**
      * Read data from the client
-     * @param int $bytes
+     * @param int<0, max> $bytes
      * @return string|false
      */
     public function read(int $bytes): string|false

@@ -51,13 +51,15 @@ class HttpServer extends Thread
         }
 
         // create the socket
-        self::$socket = stream_socket_server($this->serverInfo->getAddress(), $eCode, $eMsg,
+        $socket = stream_socket_server($this->serverInfo->getAddress(), $eCode, $eMsg,
             STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $context);
 
         // if there is no socket created, throw the exception with the error.
-        if (!self::$socket) {
+        if (!is_resource($socket)) {
             throw new SocketNotCreatedException($eMsg);
         }
+
+        self::$socket = $socket;
 
         // disable blocking
         stream_set_blocking(self::$socket, false);
@@ -100,7 +102,7 @@ class HttpServer extends Thread
             if (!is_resource($incomingSocket)) return;
 
             [$host, $port] = explode(":", $clientName);
-            $client = new HttpClient($this->serverInfo, $host, intval($port), $incomingSocket);
+            $client = new HttpClient($host, intval($port), $incomingSocket);
 
             if ($this->isSecure) {
                 // disable the server blocking again

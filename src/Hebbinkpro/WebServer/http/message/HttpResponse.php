@@ -39,7 +39,7 @@ class HttpResponse implements HttpMessage
     public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpMessageHeaders $headers = new HttpMessageHeaders())
     {
         $this->client = $client;
-        $this->status = HttpStatusRegistry::getInstance()->parse($status);
+        $this->status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
         $this->version = HttpVersion::getDefault();
         $this->headers = $headers;
         $this->body = $head ? "" : $body;
@@ -150,7 +150,7 @@ class HttpResponse implements HttpMessage
      */
     public function setStatus(int|HttpStatus $status): void
     {
-        $this->status = HttpStatusRegistry::getInstance()->parse($status);
+        $this->status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
     }
 
     /**
@@ -195,9 +195,9 @@ class HttpResponse implements HttpMessage
      */
     public function sendFile(string $fileName, ?string $default = null, ?string $contentType = null): void
     {
-        if (!file_exists($fileName) && $default === null) throw new FileNotFoundException($fileName);
+        if (!file_exists($fileName) && $default === null || $fileName === "") throw new FileNotFoundException($fileName);
 
-        $parts = explode(".", $fileName) ?? [];
+        $parts = explode(".", $fileName);
         $fileExtension = end($parts);
 
         if ($contentType === null) {
@@ -219,6 +219,8 @@ class HttpResponse implements HttpMessage
         }
 
         $body = file_exists($fileName) ? file_get_contents($fileName) : $default;
+        if (!is_string($body)) $body = "";
+
         $this->send($body, $contentType);
     }
 
@@ -226,12 +228,14 @@ class HttpResponse implements HttpMessage
      * Send an array as JSON to the client.
      *
      * This sets the content-type header to: application/json
-     * @param array $data
+     * @param array<mixed> $data
      * @return void
      */
     public function json(array $data): void
     {
-        $this->send(json_encode($data), HttpContentType::APPLICATION_JSON);
+        $json = json_encode($data);
+        if (!is_string($json)) $json = "[]";
+        $this->send($json, HttpContentType::APPLICATION_JSON);
     }
 
     /**
@@ -262,7 +266,7 @@ class HttpResponse implements HttpMessage
         }
 
         // set the content length to the body size
-        $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strlen($this->body));
+        $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
 
         // set the final headers
         $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));

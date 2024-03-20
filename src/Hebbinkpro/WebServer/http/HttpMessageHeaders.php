@@ -7,11 +7,11 @@ namespace Hebbinkpro\WebServer\http;
  */
 class HttpMessageHeaders
 {
-    /** @var string[] */
+    /** @var array<string, string> */
     private array $headers;
 
     /**
-     * @param array $headers
+     * @param array<string, string> $headers
      */
     public function __construct(array $headers = [])
     {
@@ -73,9 +73,9 @@ class HttpMessageHeaders
     /**
      * Check if the header exists
      * @param string $header
-     * @return string
+     * @return bool
      */
-    public function exists(string $header): string
+    public function exists(string $header): bool
     {
         return array_key_exists(strtolower($header), $this->headers);
     }

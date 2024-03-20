@@ -2,6 +2,7 @@
 
 namespace Hebbinkpro\WebServer\router;
 
+use Closure;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\exception\RouteExistsException;
@@ -21,6 +22,7 @@ use pmmp\thread\ThreadSafeArray;
 
 /**
  * A Router that handles requests by calling the Route corresponding to the request path
+ * @property-read array<string, Route|array<string, Route>> $routes
  */
 class Router extends ThreadSafe implements RouterInterface
 {
@@ -53,6 +55,12 @@ class Router extends ThreadSafe implements RouterInterface
             $route = $this->routes[$routePath];
         } else {
             $route = $this->routes[$routePath][$request->getMethod()->name];
+        }
+
+        if ($route === null) {
+            // send a 404 not found message
+            HttpResponse::notFound($client)->end();
+            return;
         }
 
         // add the route path in the request, used for path params and sub paths
@@ -133,7 +141,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * @throws RouteExistsException
      */
-    public function get(string $path, callable $action, mixed ...$params): void
+    public function get(string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::GET, $action, ...$params));
     }
@@ -162,6 +170,7 @@ class Router extends ThreadSafe implements RouterInterface
         if ($route->getMethod() === HttpMethod::ALL) $this->routes[$path] = $route;
         else {
             if (!isset($this->routes[$path])) $this->routes[$path] = new ThreadSafeArray();
+            /** @phpstan-ignore-next-line */
             $this->routes[$path][$route->getMethod()->name] = $route;
         }
     }
@@ -182,7 +191,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * @throws RouteExistsException
      */
-    public function post(string $path, callable $action, mixed ...$params): void
+    public function post(string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::POST, $action, ...$params));
     }
@@ -190,7 +199,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * @throws RouteExistsException
      */
-    public function head(string $path, callable $action, mixed ...$params): void
+    public function head(string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::HEAD, $action, ...$params));
     }
@@ -198,7 +207,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * @throws RouteExistsException
      */
-    public function put(string $path, callable $action, mixed ...$params): void
+    public function put(string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::PUT, $action, ...$params));
     }
@@ -206,7 +215,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * @throws RouteExistsException
      */
-    public function delete(string $path, callable $action, mixed ...$params): void
+    public function delete(string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::DELETE, $action, ...$params));
     }
@@ -214,7 +223,7 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * @throws RouteExistsException
      */
-    public function all(string $path, callable $action, mixed ...$params): void
+    public function all(string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::ALL, $action, ...$params));
     }

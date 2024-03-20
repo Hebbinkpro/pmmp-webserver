@@ -6,6 +6,7 @@ use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 /**
  * A GET route that sends a file to the client
@@ -26,8 +27,15 @@ class FileRoute extends Route
         $this->file = $file;
 
         parent::__construct(HttpMethod::GET,
-            function (HttpRequest $req, HttpResponse $res, mixed ...$params) {
-                $res->sendFile($params[0], $params[1]);
+            function (HttpRequest $req, HttpResponse $res, mixed $file = "", mixed $default = null, mixed ...$params) {
+                if (!is_string($file) || ($default !== null && !is_string($default))) {
+                    $res->setStatus(HttpStatusCodes::NOT_F0UND);
+                    $res->sendStatusMessage();
+                    $res->end();
+                    return;
+                }
+
+                $res->sendFile($file, $default);
                 $res->end();
             },
             $file, $default

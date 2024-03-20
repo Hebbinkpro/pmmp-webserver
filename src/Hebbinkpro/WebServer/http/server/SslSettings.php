@@ -73,7 +73,7 @@ class SslSettings extends ThreadSafe
 
     /**
      * Get the SSL stream context options
-     * @return array{ssl: array{local_cert: string, ciphers: string, local_pk?: string, passphrase?: string}
+     * @return array{ssl: array{local_cert: string, ciphers: string, local_pk?: string, passphrase?: string}}
      */
     public function getContextOptions(): array
     {
