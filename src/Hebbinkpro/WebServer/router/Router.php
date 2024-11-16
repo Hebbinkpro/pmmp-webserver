@@ -251,8 +251,8 @@ class Router extends ThreadSafe implements RouterInterface
     public function addAnyRoute(string $path, Route $route): void
     {
         // make sure the static route ends with a *
-        if (!str_ends_with($path, "/*")) $path .= "/*";
-        else if (!str_ends_with($path, "*")) $path .= "*";
+        if (str_ends_with($path, "/")) $path .= "*";
+        else if (!str_ends_with($path, "/*")) $path .= "/*";
 
         $this->addRoute($path, $route);
     }
@@ -268,5 +268,10 @@ class Router extends ThreadSafe implements RouterInterface
     {
         $this->addAnyRoute($path, new StaticRoute($folder));
 
+    }
+
+    public function getRoutes(): ThreadSafeArray
+    {
+        return $this->routes;
     }
 }
