@@ -9,6 +9,7 @@ use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
 use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * A route that handles a client request for a specific path
@@ -18,6 +19,7 @@ class Route extends ThreadSafe
     private HttpMethod $method;
     private ?string $action;
     private string $params;
+    private ThreadSafeArray $safeParams;
 
     /**
      * @param HttpMethod $method the request method
@@ -34,7 +36,16 @@ class Route extends ThreadSafe
             $this->action = serialize($serializable);
         }
 
+	    $safeParams = [];
+		foreach ($params as $i => $param) {
+			if ($param instanceof ThreadSafe) {
+				$safeParams[$i] = $param;
+				unset($params[$i]);
+			}
+		}
+
         $this->params = serialize($params);
+	    $this->safeParams = ThreadSafeArray::fromArray($safeParams);
     }
 
     /**
@@ -70,6 +81,10 @@ class Route extends ThreadSafe
 
         /** @var mixed[] $params */
         $params = unserialize($this->params);
+	    foreach ($this->safeParams as $i => $param) {
+		    $params[$i] = $param;
+	    }
+	    ksort($params, SORT_NUMERIC);
 
         // response to be sent back to the client, and make sure HEAD requests send a response without content
         if ($req->getMethod() === HttpMethod::HEAD) $res = HttpResponse::noContent($client);
