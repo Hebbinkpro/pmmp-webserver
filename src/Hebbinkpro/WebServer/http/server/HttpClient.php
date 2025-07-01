@@ -95,11 +95,12 @@ class HttpClient
 
     /**
      * Read data from the client
-     * @param int<0, max> $bytes
+     * @param int<1, max> $bytes
      * @return string|false
      */
     public function read(int $bytes): string|false
     {
+
         // we cannot read from a closed socket
         if (!$this->isAvailable()) return false;
 

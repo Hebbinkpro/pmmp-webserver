@@ -42,6 +42,7 @@ final class ThreadSafeUtils
      *
      * @param mixed $value The value to check.
      * @return bool True if the value is thread-safe, false otherwise.
+     * @phpstan-assert-if-true int|float|string|bool|ThreadSafe $value
      */
     public static function isThreadSafe(mixed $value): bool
     {
@@ -100,6 +101,7 @@ final class ThreadSafeUtils
         $array = [];
 
         foreach ($tsa->getIterator() as $k => $v) {
+            /** @var bool|float|int|ThreadSafe|string $v */
             $array[$k] = self::unwrapThreadSafe($v);
         }
 

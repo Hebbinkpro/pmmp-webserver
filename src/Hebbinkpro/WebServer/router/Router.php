@@ -22,7 +22,7 @@ use pmmp\thread\ThreadSafeArray;
 
 /**
  * A Router that handles requests by calling the Route corresponding to the request path
- * @property-read array<string, Route|array<string, Route>> $routes
+ * @property-read ThreadSafeArray<string, Route|ThreadSafeArray<string, Route>> $routes
  */
 class Router extends ThreadSafe implements RouterInterface
 {
@@ -51,10 +51,14 @@ class Router extends ThreadSafe implements RouterInterface
             return;
         }
 
-        if ($this->routes[$routePath] instanceof Route) {
-            $route = $this->routes[$routePath];
+
+        /** @var Route|ThreadSafeArray<string, Route> $routeEntry */
+        $routeEntry = $this->routes[$routePath] ?? null;
+        if ($routeEntry instanceof Route) {
+            $route = $routeEntry;
         } else {
-            $route = $this->routes[$routePath][$request->getMethod()->name];
+            /** @var Route|null $route */
+            $route = $routeEntry[$request->getMethod()->name] ?? null;
         }
 
         if ($route === null) {
