@@ -32,6 +32,15 @@ class WebServer
     }
 
     /**
+     * Get the server name to use in the server header
+     * @return string PMMP-WebServer/x.x.x PocketMine-MP/x.x.x
+     */
+    public static function getServerName(): string
+    {
+        return self::VERSION_NAME . "/" . self::VERSION . " " . VersionInfo::NAME . "/" . VersionInfo::BASE_VERSION;
+    }
+
+    /**
      * Let the WebServer detect if there is a folder called "cert" in the plugin data for an SSL certificate.
      * And activates it in the server info.
      *
@@ -149,14 +158,5 @@ class WebServer
         $this->httpServer->join();
         $this->plugin->getLogger()->notice(self::PREFIX . " The web server has been stopped.");
 
-    }
-
-    /**
-     * Get the server name to use in the server header
-     * @return string PMMP-WebServer/x.x.x PocketMine-MP/x.x.x
-     */
-    public static function getServerName(): string
-    {
-        return self::VERSION_NAME . "/" . self::VERSION . " " . VersionInfo::NAME . "/" . VersionInfo::BASE_VERSION;
     }
 }

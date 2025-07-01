@@ -42,15 +42,6 @@ class Route extends ThreadSafe
     }
 
     /**
-     * Get the HTTP method
-     * @return HttpMethod
-     */
-    public function getMethod(): HttpMethod
-    {
-        return $this->method;
-    }
-
-    /**
      * Handle the client request by executing the action
      * @param HttpClient $client the client
      * @param HttpRequest $req the request of the client
@@ -91,6 +82,15 @@ class Route extends ThreadSafe
         if (!$res->isEnded()) $res->end();
 
 
+    }
+
+    /**
+     * Get the HTTP method
+     * @return HttpMethod
+     */
+    public function getMethod(): HttpMethod
+    {
+        return $this->method;
     }
 
 

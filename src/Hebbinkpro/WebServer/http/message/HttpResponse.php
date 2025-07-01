@@ -88,19 +88,6 @@ class HttpResponse implements HttpMessage
         return $res;
     }
 
-    /**
-     * Construct a 500 Internal Server Error response
-     * @param HttpClient $client
-     * @return HttpResponse
-     */
-    public static function internalServerError(HttpClient $client): HttpResponse
-    {
-        $res = new HttpResponse($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
-        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
-        $res->text($res->getStatus()->toString());
-        return $res;
-    }
-
     public function getHeaders(): HttpMessageHeaders
     {
         return $this->headers;
@@ -131,16 +118,6 @@ class HttpResponse implements HttpMessage
         $this->body = $data;
     }
 
-    /**
-     * Send the status message
-     * @return void
-     */
-    public function sendStatusMessage(): void
-    {
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
-        $this->body = $this->status->getMessage();
-    }
-
     public function toString(): string
     {
         $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
@@ -167,6 +144,19 @@ class HttpResponse implements HttpMessage
     }
 
     /**
+     * Construct a 500 Internal Server Error response
+     * @param HttpClient $client
+     * @return HttpResponse
+     */
+    public static function internalServerError(HttpClient $client): HttpResponse
+    {
+        $res = new HttpResponse($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
+        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->text($res->getStatus()->toString());
+        return $res;
+    }
+
+    /**
      * Construct a 501 Not Implemented response
      * @param HttpClient $client
      * @return HttpResponse
@@ -177,6 +167,16 @@ class HttpResponse implements HttpMessage
         $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
         $res->text($res->getStatus()->toString());
         return $res;
+    }
+
+    /**
+     * Send the status message
+     * @return void
+     */
+    public function sendStatusMessage(): void
+    {
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
+        $this->body = $this->status->getMessage();
     }
 
     /**
