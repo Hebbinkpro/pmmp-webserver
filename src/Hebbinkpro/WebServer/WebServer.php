@@ -12,7 +12,7 @@ use pocketmine\VersionInfo;
 class WebServer
 {
     public const VERSION_NAME = "PMMP-WebServer";
-    public const VERSION = "1.0.0";
+    public const VERSION = "0.4.3";
     public const PREFIX = "[WebServer]";
 
     private PluginBase $plugin;
