@@ -3,12 +3,15 @@
 namespace Hebbinkpro\WebServer\route;
 
 use Closure;
+use Exception;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
+use Hebbinkpro\WebServer\utils\ThreadSafeUtils;
 use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * A route that handles a client request for a specific path
@@ -17,7 +20,7 @@ class Route extends ThreadSafe
 {
     private HttpMethod $method;
     private ?string $action;
-    private string $params;
+    private ThreadSafeArray $threadSafeParams;
 
     /**
      * @param HttpMethod $method the request method
@@ -34,7 +37,8 @@ class Route extends ThreadSafe
             $this->action = serialize($serializable);
         }
 
-        $this->params = serialize($params);
+        // make the array threads safe
+        $this->threadSafeParams = ThreadSafeUtils::makeThreadSafeArray($params);
     }
 
     /**
@@ -68,15 +72,20 @@ class Route extends ThreadSafe
             return;
         }
 
-        /** @var mixed[] $params */
-        $params = unserialize($this->params);
-
         // response to be sent back to the client, and make sure HEAD requests send a response without content
         if ($req->getMethod() === HttpMethod::HEAD) $res = HttpResponse::noContent($client);
         else $res = HttpResponse::ok($client);
 
-        // execute the closure with the request, response and parameters
-        call_user_func($action->getClosure(), $req, $res, ...$params);
+        try {
+            // ensure that the values are unwrapped before passing them on to the closure
+            $params = ThreadSafeUtils::unwrapThreadSafeArray($this->threadSafeParams);
+
+            // execute the closure with the request, response and parameters
+            call_user_func($action->getClosure(), $req, $res, ...$params);
+        } catch (Exception $e) {
+            error_log($e);
+            HttpResponse::internalServerError($client)->end();
+        }
 
         // end the response if it was not already done
         if (!$res->isEnded()) $res->end();

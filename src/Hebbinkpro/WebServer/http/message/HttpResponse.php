@@ -88,6 +88,19 @@ class HttpResponse implements HttpMessage
         return $res;
     }
 
+    /**
+     * Construct a 500 Internal Server Error response
+     * @param HttpClient $client
+     * @return HttpResponse
+     */
+    public static function internalServerError(HttpClient $client): HttpResponse
+    {
+        $res = new HttpResponse($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
+        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->text($res->getStatus()->toString());
+        return $res;
+    }
+
     public function getHeaders(): HttpMessageHeaders
     {
         return $this->headers;
