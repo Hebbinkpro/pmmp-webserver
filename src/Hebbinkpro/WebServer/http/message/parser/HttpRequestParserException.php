@@ -23,31 +23,11 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message;
+namespace Hebbinkpro\WebServer\http\message\parser;
 
-use Hebbinkpro\WebServer\http\HttpVersion;
+use RuntimeException;
 
-/**
- * Interface for all methods required inside an HTTP Message
- */
-interface HttpMessage
+class HttpRequestParserException extends RuntimeException
 {
-    /**
-     * Get the HTTP version of the message
-     * @return HttpVersion
-     */
-    public function getVersion(): HttpVersion;
-
-    /**
-     * Get the HTTP message headers
-     * @return HttpMessageHeaders
-     */
-    public function getHeaders(): HttpMessageHeaders;
-
-    /**
-     * Get the HTTP message body
-     * @return string
-     */
-    public function getBody(): string;
 
 }

@@ -29,13 +29,14 @@ use Hebbinkpro\WebServer\exception\WebServerAlreadyStartedException;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\server\SslSettings;
+use Hebbinkpro\WebServer\utils\log\SimpleThreadSafeLogger;
 use pocketmine\plugin\PluginBase;
 use pocketmine\VersionInfo;
 
 class WebServer
 {
     public const VERSION_NAME = "PMMP-WebServer";
-    public const VERSION = "0.4.3";
+    public const VERSION = "0.5.0";
     public const PREFIX = "[WebServer]";
 
     private PluginBase $plugin;
@@ -149,9 +150,12 @@ class WebServer
         $classLoader = $this->plugin->getServer()->getLoader();
         $classLoader->addPath("Hebbinkpro\\WebServer", __DIR__);
 
+        $logger = new SimpleThreadSafeLogger();
 
-        $this->httpServer = new HttpServer($this->serverInfo, $classLoader);
+        $this->httpServer = new HttpServer($this->serverInfo, $classLoader, $logger);
         $this->httpServer->start();
+
+        $logger->info("Staring the webserver...");
 
         $this->plugin->getLogger()->notice(self::PREFIX . " The web server is running at: {$this->serverInfo->getAddress()}/");
     }

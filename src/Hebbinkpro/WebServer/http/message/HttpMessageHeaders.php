@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\message;
 
 /**
  * Class for managing HTTP headers inside an HTTP request or response message
@@ -60,6 +60,7 @@ class HttpMessageHeaders
 
         return $headers;
     }
+
 
     /**
      * Set a header and its value

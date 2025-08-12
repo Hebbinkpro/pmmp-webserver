@@ -30,11 +30,23 @@ namespace Hebbinkpro\WebServer\http;
  */
 final class HttpConstants
 {
-    /** @var int Maximum amount of bytes to read from a socket stream at once */
-    public const MAX_STREAM_READ_LENGTH = 8192;
+    /** @var int Max number of bytes that can be stored in the temporary buffer */
+    public const MAX_CLIENT_BUFFER_SIZE = 65536; // 64KB
 
-    /** @var int Recommended byte length for the request line */
-    public const MAX_REQUEST_LINE_LENGTH = 8000;
+    /** @var int Max number of bytes to read from a socket stream at once */
+    public const MAX_STREAM_READ_LENGTH = 8192; // 8KB
+
+    /** @var int Max length for the request line (in Bytes) */
+    public const MAX_REQUEST_LINE_LENGTH = 8192; // 8KB
+
+    /** @var int Max length of a header line (in Bytes) */
+    public const MAX_HEADER_LINE_LENGTH = 4096; // 4KB
+
+    /** @var int Max length of all headers combined (in Bytes) */
+    public const MAX_TOTAL_HEADERS_LENGTH = 8192; // 8KB
+
+    /** @var int Max HTTP body size (in bytes) */
+    public const MAX_BODY_SIZE = 131072; // 128KB
 
     public const DEFAULT_HTTP_PORT = 80;
 

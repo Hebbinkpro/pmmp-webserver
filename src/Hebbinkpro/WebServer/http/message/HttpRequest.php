@@ -27,7 +27,6 @@ namespace Hebbinkpro\WebServer\http\message;
 
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
-use Hebbinkpro\WebServer\http\HttpMessageHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpURI;
 use Hebbinkpro\WebServer\http\HttpVersion;
@@ -116,18 +115,10 @@ class HttpRequest implements HttpMessage
 
         if (strlen($lines[0]) > HttpConstants::MAX_REQUEST_LINE_LENGTH) return HttpStatusCodes::URI_TOO_LONG;
 
-        // parse the request line
-        $requestLine = explode(" ", $lines[0]);
-        if (sizeof($requestLine) != 3) return HttpStatusCodes::BAD_REQUEST;
-
-        $method = HttpMethod::tryFrom($requestLine[0]);
-        if ($method === null) return HttpStatusCodes::NOT_IMPLEMENTED;
-
-        $target = $requestLine[1];
-        if (strlen($target) < 1) return HttpStatusCodes::BAD_REQUEST;
-
-        $httpVersion = HttpVersion::fromString($requestLine[2]);
-        if ($httpVersion === null) return HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED;
+        // parse the request line and return if we get an error code
+        $res = self::parseRequestLine($lines[0]);
+        if (is_int($res)) return $res;
+        [$method, $target, $httpVersion] = $res;
 
         $headers = HttpMessageHeaders::parse(array_slice($lines, 1));
         if ($headers === null || !$headers->exists(HttpHeaders::HOST)) return HttpStatusCodes::BAD_REQUEST;
@@ -146,6 +137,27 @@ class HttpRequest implements HttpMessage
         if ($bodyLength > $contentLength) return HttpStatusCodes::CONTENT_TOO_LARGE;
 
         return new HttpRequest($method, $uri, $httpVersion, $headers, $body);
+    }
+
+    /**
+     * Parse the request line (the first line) of an HTTP Request
+     * @return array<HttpMethod, string, HttpVersion>|int The HTTP Method, target and HTTP Version or an integer with an error status code
+     */
+    public static function parseRequestLine(string $requestLine): array|int
+    {
+        $parts = explode(" ", $requestLine);
+        if (sizeof($parts) != 3) return HttpStatusCodes::BAD_REQUEST;
+
+        $method = HttpMethod::tryFrom($parts[0]);
+        if ($method === null) return HttpStatusCodes::NOT_IMPLEMENTED;
+
+        $target = $parts[1];
+        if (strlen($target) < 1) return HttpStatusCodes::BAD_REQUEST;
+
+        $httpVersion = HttpVersion::fromString($parts[2]);
+        if ($httpVersion === null) return HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED;
+
+        return [$method, $target, $httpVersion];
     }
 
     /**

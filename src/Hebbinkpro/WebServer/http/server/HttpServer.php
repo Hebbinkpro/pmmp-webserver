@@ -28,8 +28,11 @@ namespace Hebbinkpro\WebServer\http\server;
 use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
 use Hebbinkpro\WebServer\http\HttpConstants;
+use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\message\parser\HttpRequestParser;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
 
@@ -48,14 +51,17 @@ class HttpServer extends Thread
     private HttpServerInfo $serverInfo;
     private bool $isSecure = false;
 
+    private ThreadSafeLogger $logger;
+
     /**
      * @param HttpServerInfo $serverInfo
      * @param ThreadSafeClassLoader $classLoader
      */
-    public function __construct(HttpServerInfo $serverInfo, ThreadSafeClassLoader $classLoader)
+    public function __construct(HttpServerInfo $serverInfo, ThreadSafeClassLoader $classLoader, ThreadSafeLogger $logger)
     {
         $this->serverInfo = $serverInfo;
         $this->setClassLoaders([$classLoader]);
+        $this->logger = $logger;
     }
 
     /**
@@ -87,11 +93,15 @@ class HttpServer extends Thread
         // disable blocking
         stream_set_blocking(self::$socket, false);
 
+        $this->logger->notice("The WebServer is now running!");
+
         // start the loop to listen for new clients until the thread is joined or the socket is invalid
         while (!$this->isJoined() && is_resource(self::$socket)) {
             $this->serveNewConnections();
             $this->serveExistingConnections();
         }
+
+        $this->logger->notice("Shutting down the WebServer...");
 
         // close all connections
         $this->close();
@@ -116,7 +126,7 @@ class HttpServer extends Thread
         try {
 
             if ($this->isSecure) {
-                // set server to blocking to handle the handshake
+                // set server to blocking to handle the handshake # TODO but its not set to blocking?
                 stream_set_blocking(self::$socket, false);
             }
 
@@ -127,11 +137,13 @@ class HttpServer extends Thread
             [$host, $port] = explode(":", $clientName);
             $client = new HttpClient($host, intval($port), $incomingSocket);
 
+            $this->logger->info("Got new connection from: $clientName");
+
             if ($this->isSecure) {
                 // disable the server blocking again
                 stream_set_blocking(self::$socket, false);
 
-                // enable crypto, blocking should be enabled for this
+                // enable crypto, blocking should be enabled for this # TODO is the previous comment because this handles the handshake?
                 stream_set_blocking($incomingSocket, true);
                 stream_socket_enable_crypto($incomingSocket, true, STREAM_CRYPTO_METHOD_SSLv23_SERVER);
             }
@@ -141,7 +153,9 @@ class HttpServer extends Thread
 
             // add the client to the cache
             self::$clients[$clientName] = $client;
-        } catch (Exception $e) {
+        } catch (Exception) {
+            // pass
+        } finally {
             if ($this->isSecure) {
                 // make sure socket is not blocking anymore
                 stream_set_blocking(self::$socket, false);
@@ -163,44 +177,68 @@ class HttpServer extends Thread
 
             // check if the socket is still open
             if (!$client->isAvailable()) {
+                $this->logger->info("Connection with $name is closed.");
                 $closed[] = $name;
                 continue;
             }
 
-            // check if there is some data
-            $data = $client->read(HttpConstants::MAX_STREAM_READ_LENGTH);
-            if ($data !== false && strlen($data) > 0) {
+            // catch all exceptions to close the client
+            try {
+                // read all available data from the client and store it in the buffer
+                if ($client->read(HttpConstants::MAX_STREAM_READ_LENGTH)) {
+                    $this->logger->info("Got data from $name");
 
-                // decode the request
-                $req = HttpRequest::parse($data, $this->serverInfo);
+                    // create a new parser if it does not yet exist
+                    if (($parser = $client->getRequestParser()) === null) {
+                        $parser = new HttpRequestParser($this->serverInfo, $this->logger);
+                        $client->setRequestParser($parser);
+                    }
 
-                // invalid or incomplete request
-                if (is_int($req) || !$this->completeRequest($client, $req)) {
-                    $status = HttpStatusCodes::BAD_REQUEST;
-                    if (is_int($req)) $status = $req;
+                    // append the client buffer to the parser
+                    $remaining = $parser->appendData($client->readBuffer());
 
-                    $router->rejectRequest($client, $status);
-                    $closed[] = $name;
-                    continue;
-                }
+                    // something went wrong while parsing
+                    if ($parser->isInvalid()) {
+                        $this->logger->warning("Got invalid request from $name. Status Code: " . $parser->getErrorStatusCode());
+                        $router->rejectRequest($client, $parser->getErrorStatusCode());
+                        $closed[] = $name;
+                        continue;
+                    }
 
+                    // request is not complete
+                    if (!$parser->isComplete()) continue;
 
-                try {
+                    // write remaining data back to the client buffer
+                    $client->writeBuffer($remaining ?? "");
+
+                    // build the HTTP Request from the parsed result
+                    $req = $parser->build();
+
+                    // remove the request parser from the client, since its finished
+                    $client->setRequestParser(null);
+
+                    // if connection close is given, close the connection
+                    if ($req->getHeaders()->getHeader(HttpHeaders::CONNECTION, "keep-alive") === "close") {
+                        // mark client as closed
+                        $client->setClosed();
+                        $closed[] = $name;
+                    }
+
+                    // handle the request
                     $this->serverInfo->getRouter()->handleRequest($client, $req);
-                } catch (Exception $e) {
-                    $router->rejectRequest($client, HttpStatusCodes::INTERNAL_SERVER_ERROR, $e->getMessage());
+
+                    $client->flush();
+                }
+            } catch (Exception $e) {
+                // try to get the status code from the exception
+                if ($e instanceof HttpServerException) {
+                    $status = $e->getStatusCode();
+                } else {
+                    $status = HttpStatusCodes::INTERNAL_SERVER_ERROR;
                 }
 
-                $client->flush();
-
-                // if the connection header close is given, close the connection
-                //if ($req->getHeaders()->getHeader(HttpRequestHeader::CONNECTION, "close") === "close") {
-                //    $closed[] = $name;
-                //    continue;
-                //}
-
-                // TODO: find a way to not have to close the connection and only close it when the CONNECTION header is set to close
-                // close the connection because we can otherwise only write ONCE to the socket, this caused me a massive headache
+                $this->logger->error("Got an error while handling $name. " . $e->getMessage());
+                $router->rejectRequest($client, $status);
                 $closed[] = $name;
             }
         }

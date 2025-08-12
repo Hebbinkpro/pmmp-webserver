@@ -39,19 +39,26 @@ class HttpServerInfo extends ThreadSafe
     private Router $router;
     private ?SslSettings $ssl;
 
+    private int $keepAliveTimeout;
+    private int $keepAliveMax;
+
     /**
      * @param string $host
-     * @param int $port If a negative port is given, the default HTTP port (or HTTPS port when SSL is given) will be used
+     * @param int<-1,65535> $port If a negative port is given, the default HTTP port (or HTTPS port when SSL is given) will be used
      * @param Router|null $router
      * @param SslSettings|null $ssl
+     * @param int<0,max> $keepAliveTimeout
+     * @param int<0,max> $keepAliveMax
      */
-    public function __construct(string $host, int $port = -1, ?Router $router = null, ?SslSettings $ssl = null)
+    public function __construct(string $host, int $port = -1, ?Router $router = null, ?SslSettings $ssl = null, int $keepAliveTimeout = 0, int $keepAliveMax = 0)
     {
         $this->host = $host;
         $this->port = $port >= 0 ? $port :
             ($ssl === null ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
         $this->router = $router ?? new Router();
         $this->ssl = $ssl;
+        $this->keepAliveTimeout = $keepAliveTimeout;
+        $this->keepAliveMax = $keepAliveMax;
     }
 
     /**
@@ -122,5 +129,27 @@ class HttpServerInfo extends ThreadSafe
     public function getScheme(): string
     {
         return "tcp";
+    }
+
+    /**
+     * Integer time in seconds that the server will keep an idle connection open.
+     *
+     * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Keep-Alive
+     * @return int
+     */
+    public function getKeepAliveTimeout(): int
+    {
+        return $this->keepAliveTimeout;
+    }
+
+    /**
+     * An integer that is the maximum number of requests that can be sent on a connection before closing it.
+     *
+     * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Keep-Alive
+     * @return int
+     */
+    public function getKeepAliveMax(): int
+    {
+        return $this->keepAliveMax;
     }
 }

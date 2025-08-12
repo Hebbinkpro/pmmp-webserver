@@ -30,7 +30,6 @@ use DateTimeInterface;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
-use Hebbinkpro\WebServer\http\HttpMessageHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
@@ -287,10 +286,11 @@ class HttpResponse implements HttpMessage
 
         $this->ended = true;
 
-        $bodyLength = strlen($this->body);
+        // set the content length to the body size
+        $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
 
-        // validate the body
-        if ($bodyLength == 0 || $this->head) {
+        // check if head was used
+        if ($this->head) {
             // we don't have a body or are sending the head
             // unset the body
             $this->body = "";
@@ -301,14 +301,18 @@ class HttpResponse implements HttpMessage
             }
         }
 
-        // set the content length to the body size
-        $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
-
         // set the final headers
         $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
         $this->headers->setHeader(HttpHeaders::SERVER, WebServer::getServerName());
-        // TODO remove this header after we have fixed the keep-alive issue
-        $this->headers->setHeader(HttpHeaders::CONNECTION, "close");
+
+        // set the correct header
+        if ($this->client->isClosed()) {
+            // set close if client has closed the connection
+            $this->headers->setHeader(HttpHeaders::CONNECTION, "close");
+        } else if (!$this->headers->exists(HttpHeaders::CONNECTION)) {
+            // set keep-alive if no header was set
+            $this->headers->setHeader(HttpHeaders::CONNECTION, "keep-alive");
+        }
 
         // send the constructed data to the client
         $this->client->send($this->toString());

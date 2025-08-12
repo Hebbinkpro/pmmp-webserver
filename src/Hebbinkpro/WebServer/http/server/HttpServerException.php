@@ -23,31 +23,23 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message;
+namespace Hebbinkpro\WebServer\http\server;
 
-use Hebbinkpro\WebServer\http\HttpVersion;
+use RuntimeException;
 
-/**
- * Interface for all methods required inside an HTTP Message
- */
-interface HttpMessage
+class HttpServerException extends RuntimeException
 {
-    /**
-     * Get the HTTP version of the message
-     * @return HttpVersion
-     */
-    public function getVersion(): HttpVersion;
+
+    public function __construct(private int $statusCode, string $message = "", int $code = 0, ?Throwable $previous = null)
+    {
+        parent::__construct($message, $code, $previous);
+    }
 
     /**
-     * Get the HTTP message headers
-     * @return HttpMessageHeaders
+     * @return int
      */
-    public function getHeaders(): HttpMessageHeaders;
-
-    /**
-     * Get the HTTP message body
-     * @return string
-     */
-    public function getBody(): string;
-
+    public function getStatusCode(): int
+    {
+        return $this->statusCode;
+    }
 }

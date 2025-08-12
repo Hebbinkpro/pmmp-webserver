@@ -23,31 +23,35 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message;
+namespace Hebbinkpro\WebServer\http\message\parser;
 
-use Hebbinkpro\WebServer\http\HttpVersion;
+use Hebbinkpro\WebServer\http\message\HttpMessage;
 
-/**
- * Interface for all methods required inside an HTTP Message
- */
-interface HttpMessage
+interface HttpMessageParser
 {
-    /**
-     * Get the HTTP version of the message
-     * @return HttpVersion
-     */
-    public function getVersion(): HttpVersion;
 
     /**
-     * Get the HTTP message headers
-     * @return HttpMessageHeaders
+     * Append new data to the parser
+     * @param string $data the data to add to the parser
+     * @return string|null Remaining data
      */
-    public function getHeaders(): HttpMessageHeaders;
+    function appendData(string $data): ?string;
 
     /**
-     * Get the HTTP message body
-     * @return string
+     * Get the current state of the parser
+     * @return HttpParserState
      */
-    public function getBody(): string;
+    function getState(): HttpParserState;
 
+    /**
+     * Get if the message is completely parsed
+     * @return bool
+     */
+    function isComplete(): bool;
+
+    /**
+     * Build an HTTP Message from a completely parsed message
+     * @return HttpMessage
+     */
+    function build(): HttpMessage;
 }

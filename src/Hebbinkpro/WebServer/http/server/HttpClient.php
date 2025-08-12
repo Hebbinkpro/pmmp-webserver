@@ -26,6 +26,9 @@
 namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
+use Hebbinkpro\WebServer\http\HttpConstants;
+use Hebbinkpro\WebServer\http\message\parser\HttpRequestParser;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 class HttpClient
 {
@@ -34,6 +37,12 @@ class HttpClient
 
     /** @var resource */
     private mixed $socket;
+
+    protected string $buffer = "";
+
+    private bool $closed = false;
+
+    private ?HttpRequestParser $requestParser = null;
 
 
     /**
@@ -117,20 +126,79 @@ class HttpClient
     }
 
     /**
-     * Read data from the client
+     * Read data from the client and append it to the buffer
      * @param int<1, max> $bytes
-     * @return string|false
+     * @return bool if data was added to the buffer
      */
-    public function read(int $bytes): string|false
+    public function read(int $bytes): bool
     {
 
         // we cannot read from a closed socket
         if (!$this->isAvailable()) return false;
 
         try {
-            return fread($this->socket, $bytes);
+            $data = fread($this->socket, $bytes);
         } catch (Exception) {
             return false;
         }
+
+        // no data
+        if (strlen($data) <= 0) return false;
+
+        // write data to the buffer
+        $this->writeBuffer($data);
+        return true;
     }
+
+    /**
+     * Get the data from the buffer, this will clear the buffer
+     * @return string the data from the buffer
+     */
+    public function readBuffer(): string
+    {
+        $data = $this->buffer;
+        $this->buffer = "";
+        return $data;
+    }
+
+    /**
+     * Write data to the buffer
+     * @param string $data data to write
+     * @return void
+     */
+    public function writeBuffer(string $data): void
+    {
+        $bufferSize = strlen($this->buffer) + strlen($data);
+        if ($bufferSize > HttpConstants::MAX_CLIENT_BUFFER_SIZE) {
+            throw new HttpServerException(HttpStatusCodes::BAD_REQUEST, "Client Buffer cannot exceed " . HttpConstants::MAX_CLIENT_BUFFER_SIZE . " bytes.");
+        }
+
+        $this->buffer .= $data;
+    }
+
+    public function setRequestParser(?HttpRequestParser $parser): void
+    {
+        $this->requestParser = $parser;
+    }
+
+    public function getRequestParser(): ?HttpRequestParser
+    {
+        return $this->requestParser;
+    }
+
+    /**
+     * Mark the client as closed
+     * @param bool $closed
+     * @return void
+     */
+    public function setClosed(bool $closed = true): void
+    {
+        $this->closed = $closed;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed;
+    }
+
 }
