@@ -29,18 +29,21 @@ use Hebbinkpro\WebServer\exception\WebServerAlreadyStartedException;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\server\SslSettings;
-use Hebbinkpro\WebServer\utils\log\SimpleThreadSafeLogger;
+use Hebbinkpro\WebServer\utils\log\PrefixedThreadSafeLogger;
 use pocketmine\plugin\PluginBase;
+use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\VersionInfo;
 
 class WebServer
 {
     public const VERSION_NAME = "PMMP-WebServer";
     public const VERSION = "0.5.0";
-    public const PREFIX = "[WebServer]";
+    public const PREFIX = "WebServer";
 
     private PluginBase $plugin;
     private HttpServerInfo $serverInfo;
+
+    private ThreadSafeLogger $logger;
 
     private ?HttpServer $httpServer = null;
 
@@ -53,6 +56,7 @@ class WebServer
     {
         $this->plugin = $plugin;
         $this->serverInfo = $serverInfo;
+        $this->logger = new PrefixedThreadSafeLogger($this->plugin->getServer()->getLogger(), self::PREFIX);
     }
 
     /**
@@ -150,14 +154,11 @@ class WebServer
         $classLoader = $this->plugin->getServer()->getLoader();
         $classLoader->addPath("Hebbinkpro\\WebServer", __DIR__);
 
-        $logger = new SimpleThreadSafeLogger();
+        $this->httpServer = new HttpServer($this->serverInfo, $classLoader, $this->logger);
 
-        $this->httpServer = new HttpServer($this->serverInfo, $classLoader, $logger);
+        $this->logger->info("Starting the webserver at: {$this->serverInfo->getAddress()}/");
         $this->httpServer->start();
 
-        $logger->info("Staring the webserver...");
-
-        $this->plugin->getLogger()->notice(self::PREFIX . " The web server is running at: {$this->serverInfo->getAddress()}/");
     }
 
     /**
@@ -176,14 +177,14 @@ class WebServer
     public function close(): void
     {
         if ($this->httpServer === null) {
-            $this->plugin->getLogger()->warning(self::PREFIX . " Could not stop the web server, it is not running.");
+            $this->logger->warning("Could not stop the web server, it is not running.");
             return;
         }
 
-        $this->plugin->getLogger()->info(self::PREFIX . " Stopping the web server...");
+        $this->logger->info("Stopping the web server...");
         // join the http server thread
         $this->httpServer->join();
-        $this->plugin->getLogger()->notice(self::PREFIX . " The web server has been stopped.");
+        $this->logger->info("The web server has been stopped.");
 
     }
 }
