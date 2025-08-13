@@ -27,8 +27,11 @@ namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
 use Hebbinkpro\WebServer\http\HttpConstants;
+use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\parser\HttpRequestParser;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\router\Router;
+use LogicException;
 
 class HttpClient
 {
@@ -44,6 +47,11 @@ class HttpClient
 
     private ?HttpRequestParser $requestParser = null;
 
+    /** @var int The time when the client was last active (unix time in seconds) */
+    private int $lastActivity;
+
+    private int $servedRequests = 0;
+
 
     /**
      * @param string $host
@@ -55,6 +63,7 @@ class HttpClient
         $this->host = $host;
         $this->port = $port;
         $this->socket = $socket;
+        $this->updateLastActivity();
     }
 
     /**
@@ -74,10 +83,10 @@ class HttpClient
     }
 
     /**
-     * Get the address (host:port) of the client
-     * @return string
+     * Get the name of the client as [host]:[port]
+     * @return string [host]:[port]
      */
-    public function getAddress(): string
+    public function getName(): string
     {
         return $this->host . ":" . $this->port;
     }
@@ -89,6 +98,7 @@ class HttpClient
     public function close(): void
     {
         stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
+        fclose($this->socket);
     }
 
     /**
@@ -103,7 +113,11 @@ class HttpClient
 
         try {
             fwrite($this->socket, $data, strlen($data));
+
+            // update activity
+            $this->updateLastActivity();
         } catch (Exception $e) {
+            HttpServer::getInstance()->getLogger()->error("Could not write to client socket. " . $e->getMessage());
         }
     }
 
@@ -147,6 +161,9 @@ class HttpClient
 
         // write data to the buffer
         $this->writeBuffer($data);
+
+        // update activity
+        $this->updateLastActivity();
         return true;
     }
 
@@ -176,8 +193,17 @@ class HttpClient
         $this->buffer .= $data;
     }
 
-    public function setRequestParser(?HttpRequestParser $parser): void
+    /**
+     * Set a new request parser
+     * @param HttpRequestParser $parser
+     * @return void
+     */
+    public function setRequestParser(HttpRequestParser $parser): void
     {
+        if ($this->requestParser !== null) {
+            throw new LogicException("Cannot set a RequestParser when the previous parser is still active!");
+        }
+
         $this->requestParser = $parser;
     }
 
@@ -201,4 +227,56 @@ class HttpClient
         return $this->closed;
     }
 
+    /**
+     * @return resource
+     */
+    public function getSocket()
+    {
+        return $this->socket;
+    }
+
+    /**
+     * Get the time when the client sent data for the last time
+     * @return int in seconds since the Unix Epoch
+     */
+    public function getLastActivity(): int
+    {
+        return $this->lastActivity;
+    }
+
+    /**
+     * Serve an HTTP request
+     * @param Router $router the router which will serve the request
+     * @param HttpRequest $req the request to serve
+     * @return void
+     */
+    public function serveRequest(Router $router, HttpRequest $req): void
+    {
+        // remove the request parser from the client, since its finished
+        $this->requestParser = null;
+
+        // increment served requests, this value will be used by handle request
+        $this->servedRequests++;
+
+        // handle the request
+        $router->handleRequest($this, $req);
+    }
+
+    /**
+     * Get the number of requests served by this client
+     * @return int
+     */
+    public function getServedRequests(): int
+    {
+        return $this->servedRequests;
+    }
+
+    /**
+     * Update the time the client was last active
+     * @return void
+     */
+    private function updateLastActivity(): void
+    {
+        $this->lastActivity = time();
+    }
 }

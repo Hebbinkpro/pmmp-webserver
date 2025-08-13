@@ -30,12 +30,15 @@ use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\server\SslSettings;
 use Hebbinkpro\WebServer\utils\log\PrefixedThreadSafeLogger;
+use LogicException;
 use pocketmine\plugin\PluginBase;
 use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\VersionInfo;
 
 class WebServer
 {
+    private static ?self $instance = null;
+
     public const VERSION_NAME = "PMMP-WebServer";
     public const VERSION = "0.5.0";
     public const PREFIX = "WebServer";
@@ -54,9 +57,19 @@ class WebServer
      */
     public function __construct(PluginBase $plugin, HttpServerInfo $serverInfo)
     {
+        if (self::$instance !== null) {
+            throw new LogicException("Only one WebServer instance can exist at once");
+        }
+        self::$instance = $this;
+
         $this->plugin = $plugin;
         $this->serverInfo = $serverInfo;
         $this->logger = new PrefixedThreadSafeLogger($this->plugin->getServer()->getLogger(), self::PREFIX);
+    }
+
+    public static function getInstance(): ?WebServer
+    {
+        return self::$instance;
     }
 
     /**

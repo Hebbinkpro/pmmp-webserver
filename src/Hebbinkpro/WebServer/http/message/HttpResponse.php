@@ -32,6 +32,7 @@ use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
@@ -291,7 +292,6 @@ class HttpResponse implements HttpMessage
 
         // check if head was used
         if ($this->head) {
-            // we don't have a body or are sending the head
             // unset the body
             $this->body = "";
 
@@ -312,6 +312,29 @@ class HttpResponse implements HttpMessage
         } else if (!$this->headers->exists(HttpHeaders::CONNECTION)) {
             // set keep-alive if no header was set
             $this->headers->setHeader(HttpHeaders::CONNECTION, "keep-alive");
+        }
+
+        // if connection is keep-alive, set Keep-Alive header
+        if ($this->headers->getHeader(HttpHeaders::CONNECTION) === "keep-alive") {
+            $values = [];
+
+            // set timeout
+            $keepAliveTimeout = HttpServer::getInstance()->getServerInfo()->getKeepAliveTimeout();
+            if ($keepAliveTimeout > 0) {
+                $values[] = "timeout=" . $keepAliveTimeout;
+            }
+
+            // set max
+            $keepAliveMax = HttpServer::getInstance()->getServerInfo()->getKeepAliveMax();
+            if ($keepAliveMax > 0) {
+                $remaining = $keepAliveMax - $this->client->getServedRequests();
+                $values[] = "max=" . $remaining;
+            }
+
+            // set the keep alive header if a value is set
+            if (sizeof($values) > 0) {
+                $this->headers->setHeader(HttpHeaders::KEEP_ALIVE, implode(",", $values));
+            }
         }
 
         // send the constructed data to the client
