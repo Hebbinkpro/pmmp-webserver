@@ -27,33 +27,22 @@ namespace Hebbinkpro\WebServer\utils\log;
 
 use LogLevel;
 use pocketmine\thread\log\ThreadSafeLogger;
-use pocketmine\utils\Terminal;
-use Throwable;
 
 class SimpleThreadSafeLogger extends ThreadSafeLogger
 {
-
     public function emergency($message): void
     {
         $this->log(LogLevel::EMERGENCY, $message);
     }
 
-    public function log($level, $message): void
-    {
-        $this->send("[WebServer/" . strtoupper($level) . "] " . $message);
-    }
-
-    protected function send($message): void
-    {
-        $this->synchronized(function () use ($message): void {
-            // send a synchronized message
-            Terminal::writeLine($message);
-        });
-    }
-
     public function alert($message): void
     {
         $this->log(LogLevel::ALERT, $message);
+    }
+
+    public function critical($message): void
+    {
+        $this->log(LogLevel::CRITICAL, $message);
     }
 
     public function error($message): void
@@ -81,14 +70,22 @@ class SimpleThreadSafeLogger extends ThreadSafeLogger
         $this->log(LogLevel::DEBUG, $message);
     }
 
-    public function logException(Throwable $e, $trace = null): void
+    public function log($level, $message): void
     {
-        $this->critical($e->getMessage());
-        $this->send($e->getTraceAsString());
+        $this->sendSynchronized("[" . strtoupper($level) . "] " . $message . PHP_EOL);
     }
 
-    public function critical($message): void
+    public function logException(\Throwable $e, $trace = null): void
     {
-        $this->log(LogLevel::CRITICAL, $message);
+        $this->critical($e->getMessage());
+        $this->sendSynchronized($e->getTraceAsString());
+    }
+
+    protected function sendSynchronized($message): void
+    {
+        $this->synchronized(function () use ($message): void {
+            // send a synchronized message
+            echo $message;
+        });
     }
 }
