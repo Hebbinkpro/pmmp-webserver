@@ -78,6 +78,8 @@ class WebServer
      * WARNING: You can only call this function BEFORE you have started the HTTP server, otherwise the detected SSL CANNOT be used by the web server.
      * @param string|null $domain the domain to use, when no domain is given, the certificate will automatically be detected
      * @param string $folder the folder inside the plugin data containing the certificate
+     * @param string|null $passphrase Passphrase with which the private key is encrypted
+     * @param string|null $ciphers The ciphers to use for SSL connections (See: Hebbinkpro\WebServer\http\server\SslSettings)
      * @return bool true if SSL is detected, false otherwise
      */
     public function detectSSL(string $domain = null, string $folder = "cert", ?string $passphrase = null, ?string $ciphers = null): bool
@@ -96,7 +98,7 @@ class WebServer
             if (!is_file($cert)) return false;
 
             $pem = $certFolder . "/$domain.pem";
-            if (is_file($pem)) $pem = null;
+            if (!is_file($pem)) $pem = null;
         }
 
         // the cert or pem is not yet set
@@ -109,8 +111,11 @@ class WebServer
             $pems = [];
 
             foreach ($files as $file) {
-                if (str_ends_with($file, ".cert")) $certs[substr($file, 0, -5)] = $certFolder . "/$file";
-                else if (str_ends_with($file, ".pem")) $pems[substr($file, 0, -4)] = $certFolder . "/$file";
+                $filePath = $certFolder . "/$file";
+
+                if (!is_file($filePath)) continue;
+                else if (str_ends_with($file, ".cert")) $certs[substr($file, 0, -5)] = $filePath;
+                else if (str_ends_with($file, ".pem")) $pems[substr($file, 0, -4)] = $filePath;
             }
 
             if (sizeof($certs) == 0) return false;
@@ -124,7 +129,6 @@ class WebServer
                 $pem = $pems[$domain] ?? $pems[array_key_first($pems)] ?? null;
             }
         }
-
 
         if ($ciphers === null) $ssl = new SslSettings($cert, $pem, $passphrase);
         else $ssl = new SslSettings($cert, $pem, $passphrase, $ciphers);

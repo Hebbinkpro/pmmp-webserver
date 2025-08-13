@@ -25,6 +25,7 @@
 
 namespace Hebbinkpro\WebServer\http\server;
 
+use InvalidArgumentException;
 use pmmp\thread\ThreadSafe;
 
 class SslSettings extends ThreadSafe
@@ -88,8 +89,12 @@ class SslSettings extends ThreadSafe
      */
     public function __construct(string $localCert, ?string $localPk = null, ?string $passphrase = null, string $ciphers = self::INTERMEDIATE_CIPHERS)
     {
+        if (!is_file($localCert)) throw new InvalidArgumentException("Local certificate file not found");
         $this->localCert = $localCert;
+
+        if (!is_file($localPk)) throw new InvalidArgumentException("Local private key file not found");
         $this->localPk = $localPk;
+
         $this->passphrase = $passphrase;
         $this->ciphers = $ciphers;
     }
