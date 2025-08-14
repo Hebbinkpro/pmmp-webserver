@@ -23,14 +23,11 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\parser;
+namespace Hebbinkpro\WebServer\http\message\builder;
 
-enum HttpParserState
+use RuntimeException;
+
+class HttpRequestBuilderException extends RuntimeException
 {
-    case EMPTY;
-    case READING_REQUEST_LINE;
-    case READING_HEADERS;
-    case READING_BODY;
-    case COMPLETE;
-    case INVALID;
+
 }

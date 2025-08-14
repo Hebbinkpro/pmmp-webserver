@@ -29,7 +29,7 @@ use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
-use Hebbinkpro\WebServer\http\message\parser\HttpRequestParser;
+use Hebbinkpro\WebServer\http\message\builder\HttpRequestBuilder;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use LogicException;
 use pocketmine\thread\log\ThreadSafeLogger;
@@ -140,8 +140,9 @@ class HttpServer extends Thread
      */
     private function serveNewConnections(): void
     {
+        $client = null;
         try {
-            $incoming = @stream_socket_accept(self::$socket, 0, $clientName);
+            $incoming = stream_socket_accept(self::$socket, 0, $clientName);
             if (!is_resource($incoming)) return;
 
             [$host, $port] = explode(":", $clientName);
@@ -167,6 +168,9 @@ class HttpServer extends Thread
         } catch (Exception $e) {
             // pass
             $this->logger->warning("Error accepting connection: " . $e->getMessage());
+
+            // close the client if it was created
+            $client?->close();
         }
     }
 
@@ -239,30 +243,30 @@ class HttpServer extends Thread
         // read all available data from the client and store it in the buffer
         if (!$client->read(HttpConstants::MAX_STREAM_READ_LENGTH)) return;
 
-        // create a new parser if it does not yet exist
-        if (($parser = $client->getRequestParser()) === null) {
-            $parser = new HttpRequestParser($this->serverInfo, $this->logger);
-            $client->setRequestParser($parser);
+        // create a new builder if it does not yet exist
+        if (($builder = $client->getRequestBuilder()) === null) {
+            $builder = new HttpRequestBuilder($this->serverInfo, $this->logger);
+            $client->setRequestBuilder($builder);
         }
 
-        // append the client buffer to the parser
-        $remaining = $parser->appendData($client->readBuffer());
+        // append the client buffer to the builder
+        $remaining = $builder->appendData($client->readBuffer());
 
         // something went wrong while parsing
-        if ($parser->isInvalid()) {
-            $this->logger->warning("Got invalid request from {$client->getName()}. Status Code: " . $parser->getErrorStatusCode());
-            $this->serverInfo->getRouter()->rejectRequest($client, $parser->getErrorStatusCode());
+        if ($builder->isInvalid()) {
+            $this->logger->warning("Got invalid request from {$client->getName()}. Status Code: " . $builder->getErrorStatusCode());
+            $this->serverInfo->getRouter()->rejectRequest($client, $builder->getErrorStatusCode());
             return;
         }
 
         // request is not complete
-        if (!$parser->isComplete()) return;
+        if (!$builder->isComplete()) return;
 
         // write remaining data back to the client buffer
         $client->writeBuffer($remaining ?? "");
 
         // build the HTTP Request from the parsed result
-        $req = $parser->build();
+        $req = $builder->build();
 
         // if Connection: close, close the connection after handling the request
         if ($req->getHeaders()->getHeader(HttpHeaders::CONNECTION, "keep-alive") === "close") {
@@ -295,7 +299,6 @@ class HttpServer extends Thread
             $client->close();
         }
         self::$clients = [];
-        self::$clientSockets = [];
 
         stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
         fclose(self::$socket);

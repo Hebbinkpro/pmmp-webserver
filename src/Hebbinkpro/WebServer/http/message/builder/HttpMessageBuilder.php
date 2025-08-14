@@ -23,11 +23,35 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\parser;
+namespace Hebbinkpro\WebServer\http\message\builder;
 
-use RuntimeException;
+use Hebbinkpro\WebServer\http\message\HttpMessage;
 
-class HttpRequestParserException extends RuntimeException
+interface HttpMessageBuilder
 {
 
+    /**
+     * Append new data to the builder
+     * @param string $data the data to add to the builder
+     * @return string|null Remaining data
+     */
+    function appendData(string $data): ?string;
+
+    /**
+     * Get the current state of the builder
+     * @return HttpBuilderState
+     */
+    function getState(): HttpBuilderState;
+
+    /**
+     * Get if the message is completely parsed
+     * @return bool
+     */
+    function isComplete(): bool;
+
+    /**
+     * Build an HTTP Message from a completely parsed message
+     * @return HttpMessage
+     */
+    function build(): HttpMessage;
 }

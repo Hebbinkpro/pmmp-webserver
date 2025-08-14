@@ -23,35 +23,14 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\parser;
+namespace Hebbinkpro\WebServer\http\message\builder;
 
-use Hebbinkpro\WebServer\http\message\HttpMessage;
-
-interface HttpMessageParser
+enum HttpBuilderState
 {
-
-    /**
-     * Append new data to the parser
-     * @param string $data the data to add to the parser
-     * @return string|null Remaining data
-     */
-    function appendData(string $data): ?string;
-
-    /**
-     * Get the current state of the parser
-     * @return HttpParserState
-     */
-    function getState(): HttpParserState;
-
-    /**
-     * Get if the message is completely parsed
-     * @return bool
-     */
-    function isComplete(): bool;
-
-    /**
-     * Build an HTTP Message from a completely parsed message
-     * @return HttpMessage
-     */
-    function build(): HttpMessage;
+    case EMPTY;
+    case READING_REQUEST_LINE;
+    case READING_HEADERS;
+    case READING_BODY;
+    case COMPLETE;
+    case INVALID;
 }

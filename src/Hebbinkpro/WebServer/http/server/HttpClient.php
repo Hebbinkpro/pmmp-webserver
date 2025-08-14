@@ -27,8 +27,8 @@ namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
 use Hebbinkpro\WebServer\http\HttpConstants;
+use Hebbinkpro\WebServer\http\message\builder\HttpRequestBuilder;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\parser\HttpRequestParser;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\router\Router;
 use LogicException;
@@ -45,7 +45,7 @@ class HttpClient
 
     private bool $closed = false;
 
-    private ?HttpRequestParser $requestParser = null;
+    private ?HttpRequestBuilder $requestBuilder = null;
 
     /** @var int The time when the client was last active (unix time in seconds) */
     private int $lastActivity;
@@ -194,22 +194,22 @@ class HttpClient
     }
 
     /**
-     * Set a new request parser
-     * @param HttpRequestParser $parser
+     * Set a new request builder
+     * @param HttpRequestBuilder $builder
      * @return void
      */
-    public function setRequestParser(HttpRequestParser $parser): void
+    public function setRequestBuilder(HttpRequestBuilder $builder): void
     {
-        if ($this->requestParser !== null) {
-            throw new LogicException("Cannot set a RequestParser when the previous parser is still active!");
+        if ($this->requestBuilder !== null) {
+            throw new LogicException("Cannot set a RequestBuilder when the previous builder is still active!");
         }
 
-        $this->requestParser = $parser;
+        $this->requestBuilder = $builder;
     }
 
-    public function getRequestParser(): ?HttpRequestParser
+    public function getRequestBuilder(): ?HttpRequestBuilder
     {
-        return $this->requestParser;
+        return $this->requestBuilder;
     }
 
     /**
@@ -252,8 +252,8 @@ class HttpClient
      */
     public function serveRequest(Router $router, HttpRequest $req): void
     {
-        // remove the request parser from the client, since its finished
-        $this->requestParser = null;
+        // remove the request builder from the client, since its finished
+        $this->requestBuilder = null;
 
         // increment served requests, this value will be used by handle request
         $this->servedRequests++;
