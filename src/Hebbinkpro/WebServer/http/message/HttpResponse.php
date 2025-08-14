@@ -338,7 +338,7 @@ class HttpResponse implements HttpMessage
         }
 
         // send the constructed data to the client
-        $this->client->send($this->toString());
+        $this->client->write($this->toString());
     }
 
     /**

@@ -27,9 +27,6 @@ namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
-use Hebbinkpro\WebServer\http\HttpConstants;
-use Hebbinkpro\WebServer\http\HttpHeaders;
-use Hebbinkpro\WebServer\http\message\builder\HttpRequestBuilder;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use LogicException;
 use pocketmine\thread\log\ThreadSafeLogger;
@@ -206,7 +203,7 @@ class HttpServer extends Thread
             // catch all exceptions to close the client
             try {
                 // handle the data
-                $this->serveClient($client);
+                $client->serve();
 
                 // close connection
                 if ($client->isClosed()) $closed[] = $name;
@@ -238,55 +235,6 @@ class HttpServer extends Thread
         }
     }
 
-    private function serveClient(HttpClient $client): void
-    {
-        // read all available data from the client and store it in the buffer
-        if (!$client->read(HttpConstants::MAX_STREAM_READ_LENGTH)) return;
-
-        // create a new builder if it does not yet exist
-        if (($builder = $client->getRequestBuilder()) === null) {
-            $builder = new HttpRequestBuilder($this->serverInfo, $this->logger);
-            $client->setRequestBuilder($builder);
-        }
-
-        // append the client buffer to the builder
-        $remaining = $builder->appendData($client->readBuffer());
-
-        // something went wrong while parsing
-        if ($builder->isInvalid()) {
-            $this->logger->warning("Got invalid request from {$client->getName()}. Status Code: " . $builder->getErrorStatusCode());
-            $this->serverInfo->getRouter()->rejectRequest($client, $builder->getErrorStatusCode());
-            return;
-        }
-
-        // request is not complete
-        if (!$builder->isComplete()) return;
-
-        // write remaining data back to the client buffer
-        $client->writeBuffer($remaining ?? "");
-
-        // build the HTTP Request from the parsed result
-        $req = $builder->build();
-
-        // if Connection: close, close the connection after handling the request
-        if ($req->getHeaders()->getHeader(HttpHeaders::CONNECTION, "keep-alive") === "close") {
-            $client->setClosed();
-        }
-
-        // max is reached, close connection after
-        $keepAliveMax = $this->serverInfo->getKeepAliveMax();
-        if ($keepAliveMax > 0 && $client->getServedRequests() + 1 >= $keepAliveMax) {
-            $client->setClosed();
-        }
-
-        // serve the http request
-        $client->serveRequest($this->serverInfo->getRouter(), $req);
-
-        // ensure all data is flushed
-        $client->flush();
-
-
-    }
 
     /**
      * Close the server socket

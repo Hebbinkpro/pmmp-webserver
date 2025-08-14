@@ -79,7 +79,6 @@ class HttpRequestBuilder implements HttpMessageBuilder
             // this shouldn't be possible if the request was valid
             $this->logger->debug("[INVALID REQUEST] Max client buffer size reached");
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST);
-            return null;
         }
 
         // append the new data to the buffer
@@ -126,7 +125,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
                         $this->state = HttpBuilderState::COMPLETE;
                     } else if ($this->contentLength > HttpConstants::MAX_BODY_SIZE) {
                         $this->logger->debug("[INVALID REQUEST] Content length is larger then max body size");
-                        return $this->setInvalid(HttpStatusCodes::CONTENT_TOO_LARGE);
+                        $this->setInvalid(HttpStatusCodes::CONTENT_TOO_LARGE);
                     } else {
                         $this->state = HttpBuilderState::READING_BODY;
                     }
@@ -155,13 +154,13 @@ class HttpRequestBuilder implements HttpMessageBuilder
     /**
      * Mark the request builder as invalid with an error code
      * @param int $errorCode an HTTP Status Code
-     * @return false
+     * @throws InvalidHttpMessageException Always, since messages are not allowed
      */
-    private function setInvalid(int $errorCode): false
+    private function setInvalid(int $errorCode): void
     {
         $this->errorStatusCode = $errorCode;
         $this->state = HttpBuilderState::INVALID;
-        return false;
+        throw new InvalidHttpMessageException();
     }
 
     private function buildRequestLine(): bool
@@ -171,7 +170,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
         // validate the request line length
         if (strlen($this->requestLine) > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
             $this->logger->debug("[INVALID REQUEST] Max request line length reached");
-            return $this->setInvalid(HttpStatusCodes::URI_TOO_LONG);
+            $this->setInvalid(HttpStatusCodes::URI_TOO_LONG);
         }
 
         // needs more data
@@ -185,7 +184,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
         // we got an error code
         if (is_int($res)) {
             $this->logger->debug("[INVALID REQUEST] Invalid Request line: $this->requestLine");
-            return $this->setInvalid($res);
+            $this->setInvalid($res);
         }
 
         // store the result values
@@ -249,7 +248,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
             // current header line is too large
             if ($headerLength > HttpConstants::MAX_HEADER_LINE_LENGTH) {
                 $this->logger->debug("[INVALID REQUEST] Max header line length reached");
-                return $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG);
+                $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG);
             }
 
             // incomplete header, wait for more data
@@ -264,7 +263,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
             // the total header length is too large
             if ($this->totalHeaderLength > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
                 $this->logger->debug("[INVALID REQUEST] Max total header length reached");
-                return $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG);
+                $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG);
             }
 
             // split the header data into name and value
@@ -272,7 +271,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
             // invalid header
             if (count($parts) < 2) {
                 $this->logger->debug("[INVALID REQUEST] Invalid header data: $this->headerData");
-                return $this->setInvalid(HttpStatusCodes::BAD_REQUEST);
+                $this->setInvalid(HttpStatusCodes::BAD_REQUEST);
             }
 
             // add the header
@@ -284,7 +283,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
         // host is required
         if (!$this->headers->exists(HttpHeaders::HOST)) {
             $this->logger->debug("[INVALID REQUEST] Missing header: host");
-            return $this->setInvalid(HttpStatusCodes::BAD_REQUEST);
+            $this->setInvalid(HttpStatusCodes::BAD_REQUEST);
         }
 
         // parse the URI using the host header
@@ -321,7 +320,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
         } else {
             // something went horribly wrong
             $this->logger->emergency("[INVALID REQUEST] Body is larger then the given content length");
-            return $this->setInvalid(HttpStatusCodes::INTERNAL_SERVER_ERROR);
+            $this->setInvalid(HttpStatusCodes::INTERNAL_SERVER_ERROR);
         }
     }
 
