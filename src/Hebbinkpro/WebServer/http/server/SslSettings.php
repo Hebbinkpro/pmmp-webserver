@@ -92,7 +92,7 @@ class SslSettings extends ThreadSafe
         if (!is_file($localCert)) throw new InvalidArgumentException("Local certificate file not found");
         $this->localCert = $localCert;
 
-        if (!is_file($localPk)) throw new InvalidArgumentException("Local private key file not found");
+        if ($localPk !== null && !is_file($localPk)) throw new InvalidArgumentException("Local private key file not found");
         $this->localPk = $localPk;
 
         $this->passphrase = $passphrase;

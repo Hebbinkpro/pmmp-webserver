@@ -60,7 +60,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private int $bodyLength = 0;
 
 
-    private ?HttpMessageHeaders $headers = null;
+    private HttpMessageHeaders $headers;
     private string $body = "";
 
     public function __construct(HttpServerInfo $serverInfo, Logger $logger)
@@ -119,7 +119,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
                     // update the state and set default values
                     $this->body = "";
-                    $this->contentLength = $this->headers->getHeader(HttpHeaders::CONTENT_LENGTH, 0);
+                    $this->contentLength = intval($this->headers->getHeader(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
                         $this->state = HttpBuilderState::COMPLETE;
@@ -155,6 +155,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
      * Mark the request builder as invalid with an error code
      * @param int $errorCode an HTTP Status Code
      * @throws InvalidHttpMessageException Always, since messages are not allowed
+     * @phpstan-return never
      */
     private function setInvalid(int $errorCode): void
     {
@@ -179,16 +180,17 @@ class HttpRequestBuilder implements HttpMessageBuilder
         }
 
         // parse the request line and store the values
+        /** @var array{HttpMethod, string, HttpVersion} $res */
         $res = HttpRequest::parseRequestLine($this->requestLine);
 
         // we got an error code
         if (is_int($res)) {
             $this->logger->debug("[INVALID REQUEST] Invalid Request line: $this->requestLine");
             $this->setInvalid($res);
+        } else {
+            // store the result values
+            [$this->method, $this->uriTarget, $this->version] = $res;
         }
-
-        // store the result values
-        [$this->method, $this->uriTarget, $this->version] = $res;
 
         return true;
     }
@@ -288,8 +290,17 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
         // parse the URI using the host header
         $scheme = $this->serverInfo->isSslEnabled() ? HttpConstants::HTTPS_SCHEME : HttpConstants::HTTP_SCHEME;
+
+        /** @var string $host - host always exists here */
         $host = $this->headers->getHeader(HttpHeaders::HOST);
-        $this->uri = HttpURI::parseRequestTarget($scheme, $host, $this->uriTarget);
+
+        $uri = HttpURI::parseRequestTarget($scheme, $host, $this->uriTarget);
+        if ($uri === null) {
+            $this->logger->debug("[INVALID REQUEST] Invalid URI: $this->uriTarget");
+            $this->setInvalid(HttpStatusCodes::BAD_REQUEST);
+        } else {
+            $this->uri = $uri;
+        }
 
         return true;
     }

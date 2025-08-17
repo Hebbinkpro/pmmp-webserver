@@ -31,17 +31,29 @@ use Throwable;
 
 class SimpleThreadSafeLogger extends ThreadSafeLogger
 {
+    /**
+     * @inheritDoc
+     */
     public function emergency($message): void
     {
         $this->log(LogLevel::EMERGENCY, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function log($level, $message): void
     {
+        /** @phpstan-ignore-next-line */
         $this->sendSynchronized("[" . strtoupper($level) . "] " . $message . PHP_EOL);
     }
 
-    protected function sendSynchronized($message): void
+    /**
+     * Sends a message synchronized over all threads
+     * @param string $message
+     * @return void
+     */
+    protected function sendSynchronized(string $message): void
     {
         $this->synchronized(function () use ($message): void {
             // send a synchronized message
@@ -49,42 +61,66 @@ class SimpleThreadSafeLogger extends ThreadSafeLogger
         });
     }
 
+    /**
+     * @inheritDoc
+     */
     public function alert($message): void
     {
         $this->log(LogLevel::ALERT, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function error($message): void
     {
         $this->log(LogLevel::ERROR, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function warning($message): void
     {
         $this->log(LogLevel::WARNING, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function notice($message): void
     {
         $this->log(LogLevel::NOTICE, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function info($message): void
     {
         $this->log(LogLevel::INFO, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function debug($message): void
     {
         $this->log(LogLevel::DEBUG, $message);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function logException(Throwable $e, $trace = null): void
     {
         $this->critical($e->getMessage());
         $this->sendSynchronized($e->getTraceAsString());
     }
 
+    /**
+     * @inheritDoc
+     */
     public function critical($message): void
     {
         $this->log(LogLevel::CRITICAL, $message);

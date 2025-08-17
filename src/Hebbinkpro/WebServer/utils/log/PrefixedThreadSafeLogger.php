@@ -40,11 +40,17 @@ class PrefixedThreadSafeLogger extends SimpleThreadSafeLogger
         $this->prefix = $prefix;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function log($level, $message): void
     {
         $this->delegate->log($level, "[$this->prefix] $message");
     }
 
+    /**
+     * @inheritDoc
+     */
     public function logException(Throwable $e, $trace = null): void
     {
         $this->delegate->logException($e, $trace);

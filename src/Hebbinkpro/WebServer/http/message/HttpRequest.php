@@ -141,7 +141,8 @@ class HttpRequest implements HttpMessage
 
     /**
      * Parse the request line (the first line) of an HTTP Request
-     * @return array<HttpMethod, string, HttpVersion>|int The HTTP Method, target and HTTP Version or an integer with an error status code
+     * @param string $requestLine The request line to parse
+     * @return array{HttpMethod, string, HttpVersion}|int The HTTP Method, target and HTTP Version or an integer with an error status code
      */
     public static function parseRequestLine(string $requestLine): array|int
     {

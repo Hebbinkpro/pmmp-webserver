@@ -122,7 +122,7 @@ class HttpClient extends SocketClient
             return;
         }
 
-        $serverInfo = HttpSERVER::getInstance()->getServerInfo();
+        $serverInfo = HttpServer::getInstance()->getServerInfo();
         $builder = $this->getOrCreateRequestBuilder();
         $router = $serverInfo->getRouter();
 
@@ -172,11 +172,15 @@ class HttpClient extends SocketClient
     private function reject(int $statusCode, ?string $reason, string $level = LogLevel::DEBUG): void
     {
         $this->closed = true;
-        HttpSERVER::getInstance()->getServerInfo()->getRouter()->rejectRequest($this, $statusCode);
+        HttpServer::getInstance()->getServerInfo()->getRouter()->rejectRequest($this, $statusCode);
         if ($reason !== null) $this->logger->log($level, "Client rejected. Reason: " . $reason);
     }
 
-    public function getOrCreateRequestBuilder(): ?HttpRequestBuilder
+    /**
+     * Returns the HttpRequestBuilder of the client or creates one
+     * @return HttpRequestBuilder
+     */
+    public function getOrCreateRequestBuilder(): HttpRequestBuilder
     {
         if ($this->requestBuilder === null || $this->requestBuilder->isInvalid()) {
             $this->requestBuilder = new HttpRequestBuilder(HttpServer::getInstance()->getServerInfo(), $this->logger);

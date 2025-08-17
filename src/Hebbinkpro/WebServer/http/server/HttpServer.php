@@ -41,8 +41,8 @@ class HttpServer extends Thread
     private static ?self $instance = null;
 
 
-    /** @var resource|null */
-    private static mixed $socket = null;
+    /** @var resource */
+    private static mixed $socket;
 
     /**
      * @var array<string, HttpClient>

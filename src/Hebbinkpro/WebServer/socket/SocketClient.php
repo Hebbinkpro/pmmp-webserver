@@ -115,7 +115,7 @@ class SocketClient
         }
 
         try {
-            fwrite($this->socket, $data, strlen($data));
+            fwrite($this->socket, $data);
         } catch (Exception $e) {
             throw new SocketException("Failed to write to socket {$this->getName()}", 0, $e);
         }
@@ -174,7 +174,7 @@ class SocketClient
         }
 
         // no data
-        if (strlen($data) <= 0) return false;
+        if ($data === false || strlen($data) <= 0) return false;
 
         // write data to the buffer
         $this->writeBuffer($data);
