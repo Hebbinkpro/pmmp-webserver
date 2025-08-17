@@ -2,6 +2,10 @@
 
 A verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
 
+## What is new in version v0.5.0?
+
+- Rewrite of the HTTP Server/Client logic for better handling of sockets and HTTP requests
+
 ## Plugins
 - This virion is used in my Dynmap like plugin, `PocketMap`. You can find the plugin [here](https://github.com/Hebbinkpro/PocketMap)
 
@@ -203,7 +207,7 @@ use `HttpURI->getQueryParam($name)`.
 
 ### HTTPS
 
-Since v1.0.0, the web server also supports SSL certificates which make it possible to run an HTTPS server for a more
+Since v0.4.0, the web server also supports SSL certificates which make it possible to run an HTTPS server for a more
 secure connection than HTTP.<br>
 For enabling HTTPS on your webserver you have to add `SslSettings` to the `HttpServerInfo` BEFORE you start the web
 server. This can be done in multiple ways.<br>
