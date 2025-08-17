@@ -70,8 +70,14 @@ class HttpClient extends SocketClient
         $this->logger = new PrefixedLogger(HttpServer::getInstance()->getLogger(), $this->getName());
     }
 
-
-
+    /**
+     * Update the time the client was last active
+     * @return void
+     */
+    private function updateLastActivity(): void
+    {
+        $this->lastActivity = time();
+    }
 
     /**
      * Set a new request builder
@@ -87,16 +93,6 @@ class HttpClient extends SocketClient
         $this->requestBuilder = $builder;
     }
 
-    public function getOrCreateRequestBuilder(): ?HttpRequestBuilder
-    {
-        if ($this->requestBuilder === null || $this->requestBuilder->isInvalid()) {
-            $this->requestBuilder = new HttpRequestBuilder(HttpServer::getInstance()->getServerInfo(), $this->logger);
-        }
-
-        return $this->requestBuilder;
-    }
-
-
     public function isClosed(): bool
     {
         return $this->closed;
@@ -109,24 +105,6 @@ class HttpClient extends SocketClient
     public function getLastActivity(): int
     {
         return $this->lastActivity;
-    }
-
-    /**
-     * Get the number of requests served by this client
-     * @return int
-     */
-    public function getServedRequests(): int
-    {
-        return $this->servedRequests;
-    }
-
-    /**
-     * Update the time the client was last active
-     * @return void
-     */
-    private function updateLastActivity(): void
-    {
-        $this->lastActivity = time();
     }
 
     /**
@@ -171,6 +149,9 @@ class HttpClient extends SocketClient
         // build the HTTP Request from the parsed result
         $req = $builder->build();
 
+        // reset request builder
+        $this->requestBuilder = null;
+
         // we are serving a new request, so increment the counter
         $this->servedRequests++;
 
@@ -183,9 +164,25 @@ class HttpClient extends SocketClient
         // ensure all data is flushed
         try {
             $this->flush();
-        } catch (SocketException $e) {
-            $this->reject(HttpStatusCodes::INTERNAL_SERVER_ERROR, $e->getMessage());
+        } catch (SocketException) {
+            // ignore exception, can already be closing
         }
+    }
+
+    private function reject(int $statusCode, ?string $reason, string $level = LogLevel::DEBUG): void
+    {
+        $this->closed = true;
+        HttpSERVER::getInstance()->getServerInfo()->getRouter()->rejectRequest($this, $statusCode);
+        if ($reason !== null) $this->logger->log($level, "Client rejected. Reason: " . $reason);
+    }
+
+    public function getOrCreateRequestBuilder(): ?HttpRequestBuilder
+    {
+        if ($this->requestBuilder === null || $this->requestBuilder->isInvalid()) {
+            $this->requestBuilder = new HttpRequestBuilder(HttpServer::getInstance()->getServerInfo(), $this->logger);
+        }
+
+        return $this->requestBuilder;
     }
 
     /**
@@ -209,10 +206,12 @@ class HttpClient extends SocketClient
         return false;
     }
 
-    private function reject(int $statusCode, ?string $reason, string $level = LogLevel::DEBUG): void
+    /**
+     * Get the number of requests served by this client
+     * @return int
+     */
+    public function getServedRequests(): int
     {
-        $this->closed = true;
-        HttpSERVER::getInstance()->getServerInfo()->getRouter()->rejectRequest($this, $statusCode);
-        if ($reason !== null) $this->logger->log($level, "Client rejected. Reason: " . $reason);
+        return $this->servedRequests;
     }
 }

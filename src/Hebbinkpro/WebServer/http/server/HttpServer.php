@@ -63,19 +63,39 @@ class HttpServer extends Thread
      */
     public function __construct(HttpServerInfo $serverInfo, ThreadSafeClassLoader $classLoader, ThreadSafeLogger $logger)
     {
-        if (self::$instance !== null) {
-            throw new LogicException("Only one HttpServer instance can exist at once");
-        }
-        self::$instance = $this;
+//        if (self::$instance !== null) {
+//            throw new LogicException("Only one HttpServer instance can exist at once");
+//        }
+//        self::$instance = $this;
 
         $this->serverInfo = $serverInfo;
         $this->setClassLoaders([$classLoader]);
         $this->logger = $logger;
     }
 
-    public static function getInstance(): ?HttpServer
+    public static function getInstance(): HttpServer
     {
+        if (self::$instance === null) {
+            throw new LogicException("Cannot access the HttpServer instance outside the HttpServer thread!");
+        }
+
         return self::$instance;
+    }
+
+    /**
+     * @return HttpServerInfo
+     */
+    public function getServerInfo(): HttpServerInfo
+    {
+        return $this->serverInfo;
+    }
+
+    /**
+     * @return ThreadSafeLogger
+     */
+    public function getLogger(): ThreadSafeLogger
+    {
+        return $this->logger;
     }
 
     /**
@@ -96,7 +116,7 @@ class HttpServer extends Thread
 
         // create the socket
         $socket = stream_socket_server(
-            $this->serverInfo->getAddress(),
+            $this->serverInfo->getSocketBindAddress(),
             $eCode,
             $eMsg,
             STREAM_SERVER_BIND | STREAM_SERVER_LISTEN,
@@ -163,12 +183,31 @@ class HttpServer extends Thread
             // add the client to the cache
             self::$clients[$clientName] = $client;
         } catch (Exception $e) {
-            // pass
-            $this->logger->warning("Error accepting connection: " . $e->getMessage());
+            // only log if client broke something, otherwise this results in a constant socket read error
+            if ($client !== null) {
+                $this->logger->debug("Error accepting connection: " . $e->getMessage());
 
-            // close the client if it was created
-            $client?->close();
+                // close the client if it was created
+                $client->close();
+            }
+
         }
+    }
+
+    /**
+     * Close the server socket
+     * @return void
+     */
+    private function close(): void
+    {
+        // close all clients
+        foreach (self::$clients as $client) {
+            $client->close();
+        }
+        self::$clients = [];
+
+        stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
+        fclose(self::$socket);
     }
 
     /**
@@ -209,15 +248,8 @@ class HttpServer extends Thread
                 if ($client->isClosed()) $closed[] = $name;
 
             } catch (Exception $e) {
-                // try to get the status code from the exception
-                if ($e instanceof HttpServerException) {
-                    $status = $e->getStatusCode();
-                } else {
-                    $status = HttpStatusCodes::INTERNAL_SERVER_ERROR;
-                }
-
                 $this->logger->error("Got an error while handling $name. " . $e->getMessage());
-                $this->serverInfo->getRouter()->rejectRequest($client, $status);
+                $this->serverInfo->getRouter()->rejectRequest($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
                 $closed[] = $name;
             }
         }
@@ -233,38 +265,5 @@ class HttpServer extends Thread
 
             $this->logger->debug("Closed connection with $name");
         }
-    }
-
-
-    /**
-     * Close the server socket
-     * @return void
-     */
-    private function close(): void
-    {
-        // close all clients
-        foreach (self::$clients as $client) {
-            $client->close();
-        }
-        self::$clients = [];
-
-        stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
-        fclose(self::$socket);
-    }
-
-    /**
-     * @return HttpServerInfo
-     */
-    public function getServerInfo(): HttpServerInfo
-    {
-        return $this->serverInfo;
-    }
-
-    /**
-     * @return ThreadSafeLogger
-     */
-    public function getLogger(): ThreadSafeLogger
-    {
-        return $this->logger;
     }
 }
