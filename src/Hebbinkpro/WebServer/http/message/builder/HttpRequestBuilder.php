@@ -63,7 +63,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private ?HttpMessageHeaders $headers = null;
     private string $body = "";
 
-    public function __construct(HttpServerInfo $serverInfo, \Logger $logger)
+    public function __construct(HttpServerInfo $serverInfo, Logger $logger)
     {
         $this->serverInfo = $serverInfo;
         $this->logger = $logger;

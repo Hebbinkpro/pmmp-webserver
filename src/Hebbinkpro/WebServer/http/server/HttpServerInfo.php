@@ -114,8 +114,11 @@ class HttpServerInfo extends ThreadSafe
     }
 
     /**
-     * Get the address (scheme://host:port)
-     * @return string
+     * Get the HTTP/HTTPS address
+     *
+     * NOTE: The address now returns an http(s) address.
+     *       For the TCP address, use getSocketBindAddress() instead!
+     * @return string [scheme]://[host]:[port]
      */
     public function getAddress(): string
     {
@@ -123,12 +126,25 @@ class HttpServerInfo extends ThreadSafe
     }
 
     /**
-     * Get the address scheme used for the address
-     * @return string
+     * Get the TCP address to which the socket should bind
+     * @return string tcp://[host]:[port]
+     */
+    public function getSocketBindAddress(): string
+    {
+        return "tcp://" . $this->host . ":" . $this->port;
+    }
+
+    /**
+     * Get the http scheme the server uses
+     * @return string http or https if SSL is enabled.
      */
     public function getScheme(): string
     {
-        return "tcp";
+        if ($this->isSslEnabled()) {
+            return "https";
+        } else {
+            return "http";
+        }
     }
 
     /**
