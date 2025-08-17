@@ -141,9 +141,9 @@ class HttpServerInfo extends ThreadSafe
     public function getScheme(): string
     {
         if ($this->isSslEnabled()) {
-            return "https";
+            return HttpConstants::HTTPS_SCHEME;
         } else {
-            return "http";
+            return HttpConstants::HTTP_SCHEME;
         }
     }
 
