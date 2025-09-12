@@ -140,14 +140,15 @@ final class HttpStatusRegistry
     }
 
     /**
-     *  Parse an HTTP Status from an integer or itself. If the status could not be parsed, 200 OK is returned.
-     * @param int|HttpStatus $status
+     *  Parse an HTTP Status from an integer or itself. If the status could not be parsed, a "Custom Status" is created.
+     * @param int|HttpStatus $status the status to parse
+     * @param string $fallbackMessage the message used when an unknown status code was given
      * @return HttpStatus
      */
-    public function parseOrDefault(int|HttpStatus $status): HttpStatus
+    public function parseOrDefault(int|HttpStatus $status, string $fallbackMessage = "Custom Status"): HttpStatus
     {
-        $s = $this->parse($status);
-        return $s ?? $this->statusCodes[HttpStatusCodes::OK];
+        if ($status instanceof HttpStatus) return $status;
+        return $this->statusCodes[$status] ?? new HttpStatus($status, $fallbackMessage);
     }
 
     /**

@@ -28,7 +28,7 @@ namespace Hebbinkpro\WebServer\http;
 /**
  * List of common content types
  */
-class HttpContentType
+final class HttpContentType
 {
     public const APPLICATION_JAVA = "application/java-archive";
     public const APPLICATION_EDI_X12 = "application/EDI-X12";
@@ -37,6 +37,7 @@ class HttpContentType
     public const APPLICATION_OCTET_STREAM = "application/octet-stream";
     public const APPLICATION_OGG = "application/ogg";
     public const APPLICATION_PDF = "application/pdf";
+    public const APPLICATION_PROBLEM_JSON = "application/problem+json";
     public const APPLICATION_XHTML_XML = "application/xhtml+xml";
     public const APPLICATION_X_SHOCKWAVE_FLASH = "application/x-shockwave-flash";
     public const APPLICATION_JSON = "application/json";

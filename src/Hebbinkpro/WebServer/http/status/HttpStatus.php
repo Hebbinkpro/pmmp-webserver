@@ -34,11 +34,13 @@ class HttpStatus extends ThreadSafe
 {
     private int $code;
     private string $message;
+    private ?string $uriReference;
 
-    public function __construct(int $code, string $message)
+    public function __construct(int $code, string $message, string $uriReference = null)
     {
         $this->code = $code;
         $this->message = $message;
+        $this->uriReference = $uriReference;
     }
 
     /**
@@ -57,6 +59,15 @@ class HttpStatus extends ThreadSafe
     public function getMessage(): string
     {
         return $this->message;
+    }
+
+    /**
+     * Get the URI reference of the status code, if null it returns the MDN docs for standard codes
+     * @return string
+     */
+    public function getUriReference(): string
+    {
+        return $this->uriReference ?? "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/$this->code";
     }
 
     /**
