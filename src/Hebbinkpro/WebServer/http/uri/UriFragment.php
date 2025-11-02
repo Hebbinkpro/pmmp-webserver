@@ -23,37 +23,41 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\uri;
 
-/**
- * All constants used for this implementation of HTTP/1.1
- */
-final class HttpConstants
+class UriFragment implements UriElement
 {
-    /** @var int Max number of bytes that can be stored in the temporary buffer */
-    public const MAX_CLIENT_BUFFER_SIZE = 65536; // 64KB
+    public function __construct(private ?string $fragment)
+    {
+    }
 
-    /** @var int Max number of bytes to read from a socket stream at once */
-    public const MAX_STREAM_READ_LENGTH = 8192; // 8KB
+    /**
+     * @inheritDoc
+     */
+    public static function parse(string $value): self
+    {
+        if (strlen($value) == 0) return new self(null);
 
-    /** @var int Max length for the request line (in Bytes) */
-    public const MAX_REQUEST_LINE_LENGTH = 8192; // 8KB
+        $value = trim($value, "#");
+        $fragment = urldecode($value);
+        return new self($fragment);
+    }
 
-    /** @var int Max length of a header line (in Bytes) */
-    public const MAX_HEADER_LINE_LENGTH = 4096; // 4KB
+    /**
+     * @return string|null
+     */
+    public function getFragment(): string|null
+    {
+        return $this->fragment;
+    }
 
-    /** @var int Max length of all headers combined (in Bytes) */
-    public const MAX_TOTAL_HEADERS_LENGTH = 8192; // 8KB
+    /**
+     * @inheritDoc
+     */
+    public function toString(): string
+    {
+        if ($this->fragment === null) return "";
 
-    /** @var int Max HTTP body size (in bytes) */
-    public const MAX_BODY_SIZE = 131072; // 128KB
-
-    public const DEFAULT_HTTP_PORT = 80;
-
-    public const DEFAULT_HTTPS_PORT = 443;
-
-    public const HTTP_SCHEME = "http";
-    public const HTTPS_SCHEME = "https";
-
-    public const HTTP_URI_ASTERISK = "*";
+        return "#" . urlencode($this->fragment);
+    }
 }

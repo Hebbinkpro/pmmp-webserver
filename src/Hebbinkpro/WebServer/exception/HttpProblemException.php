@@ -23,37 +23,25 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\exception;
 
-/**
- * All constants used for this implementation of HTTP/1.1
- */
-final class HttpConstants
+use Hebbinkpro\WebServer\http\HttpProblem;
+use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+
+class HttpProblemException extends HttpException
 {
-    /** @var int Max number of bytes that can be stored in the temporary buffer */
-    public const MAX_CLIENT_BUFFER_SIZE = 65536; // 64KB
+    public function __construct(HttpStatus|int $statusCode, string $instance, ?string $detail = null)
+    {
+        parent::__construct(new HttpProblem($statusCode, $instance, $detail));
+    }
 
-    /** @var int Max number of bytes to read from a socket stream at once */
-    public const MAX_STREAM_READ_LENGTH = 8192; // 8KB
-
-    /** @var int Max length for the request line (in Bytes) */
-    public const MAX_REQUEST_LINE_LENGTH = 8192; // 8KB
-
-    /** @var int Max length of a header line (in Bytes) */
-    public const MAX_HEADER_LINE_LENGTH = 4096; // 4KB
-
-    /** @var int Max length of all headers combined (in Bytes) */
-    public const MAX_TOTAL_HEADERS_LENGTH = 8192; // 8KB
-
-    /** @var int Max HTTP body size (in bytes) */
-    public const MAX_BODY_SIZE = 131072; // 128KB
-
-    public const DEFAULT_HTTP_PORT = 80;
-
-    public const DEFAULT_HTTPS_PORT = 443;
-
-    public const HTTP_SCHEME = "http";
-    public const HTTPS_SCHEME = "https";
-
-    public const HTTP_URI_ASTERISK = "*";
+    /**
+     * 400 bad request exception without any details and an about:blank instance
+     * @return HttpProblemException
+     */
+    public static function badRequest(): HttpProblemException
+    {
+        return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "about:blank");
+    }
 }

@@ -137,7 +137,7 @@ class HttpResponse implements HttpMessage
         // it is not possible to add data to a HEAD response
         if ($this->head) return;
 
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
+        $this->setContentType($contentType);
         $this->body = $data;
     }
 
@@ -263,15 +263,25 @@ class HttpResponse implements HttpMessage
     /**
      * Send an array as JSON to the client.
      *
-     * This sets the content-type header to: application/json
      * @param array<mixed> $data
+     * @param string $contentType default: application/json
      * @return void
      */
-    public function json(array $data): void
+    public function json(array $data, string $contentType = HttpContentType::APPLICATION_JSON): void
     {
         $json = json_encode($data);
         if (!is_string($json)) $json = "[]";
-        $this->send($json, HttpContentType::APPLICATION_JSON);
+        $this->send($json, $contentType);
+    }
+
+    /**
+     * Set the content type of the response
+     * @param string $contentType the content type
+     * @return void
+     */
+    public function setContentType(string $contentType): void
+    {
+        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
     }
 
     /**

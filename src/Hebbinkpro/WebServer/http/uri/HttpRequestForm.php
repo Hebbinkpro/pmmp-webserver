@@ -23,37 +23,38 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\uri;
 
 /**
- * All constants used for this implementation of HTTP/1.1
+ * Representation of the various HTTP request forms
  */
-final class HttpConstants
+enum HttpRequestForm
 {
-    /** @var int Max number of bytes that can be stored in the temporary buffer */
-    public const MAX_CLIENT_BUFFER_SIZE = 65536; // 64KB
+    /**
+     * Absolute path in requests to an origin server.
+     *
+     * Request Target: <code>/[path]</code>
+     */
+    case ORIGIN;
 
-    /** @var int Max number of bytes to read from a socket stream at once */
-    public const MAX_STREAM_READ_LENGTH = 8192; // 8KB
+    /**
+     * Absolute URL in requests to proxies.
+     *
+     * Request Target: <code>[scheme]://[authority]/[path]</code>
+     */
+    case ABSOLUTE;
 
-    /** @var int Max length for the request line (in Bytes) */
-    public const MAX_REQUEST_LINE_LENGTH = 8192; // 8KB
+    /**
+     * Special form for server-wide OPTIONS requests.
+     *
+     * Request Target: <code>*</code>
+     */
+    case ASTERISK;
 
-    /** @var int Max length of a header line (in Bytes) */
-    public const MAX_HEADER_LINE_LENGTH = 4096; // 4KB
-
-    /** @var int Max length of all headers combined (in Bytes) */
-    public const MAX_TOTAL_HEADERS_LENGTH = 8192; // 8KB
-
-    /** @var int Max HTTP body size (in bytes) */
-    public const MAX_BODY_SIZE = 131072; // 128KB
-
-    public const DEFAULT_HTTP_PORT = 80;
-
-    public const DEFAULT_HTTPS_PORT = 443;
-
-    public const HTTP_SCHEME = "http";
-    public const HTTPS_SCHEME = "https";
-
-    public const HTTP_URI_ASTERISK = "*";
+    /**
+     * Host and port authority form, used only with CONNECT.
+     *
+     * Request Target: <code>[host]:[port]</code>
+     */
+    case AUTHORITY;
 }

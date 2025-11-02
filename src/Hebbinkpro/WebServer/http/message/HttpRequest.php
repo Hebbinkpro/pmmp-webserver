@@ -25,13 +25,16 @@
 
 namespace Hebbinkpro\WebServer\http\message;
 
+use Hebbinkpro\WebServer\exception\HttpException;
+use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpURI;
+use Hebbinkpro\WebServer\http\HttpRequestLine;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\uri\HttpUrl;
 
 /**
  * HTTP Request send by the client
@@ -40,7 +43,7 @@ class HttpRequest implements HttpMessage
 {
     private string $routePath;
     private HttpMethod $method;
-    private HttpURI $uri;
+    private HttpUrl $uri;
     private HttpVersion $version;
     private HttpMessageHeaders $headers;
     private string $body;
@@ -50,12 +53,12 @@ class HttpRequest implements HttpMessage
 
     /**
      * @param HttpMethod $method
-     * @param HttpURI $uri
+     * @param HttpUrl $uri
      * @param HttpVersion $version
      * @param HttpMessageHeaders $headers
      * @param string $body
      */
-    public function __construct(HttpMethod $method, HttpURI $uri, HttpVersion $version, HttpMessageHeaders $headers, string $body)
+    public function __construct(HttpMethod $method, HttpUrl $uri, HttpVersion $version, HttpMessageHeaders $headers, string $body)
     {
         $this->routePath = "";
         $this->method = $method;
@@ -123,12 +126,11 @@ class HttpRequest implements HttpMessage
         $headers = HttpMessageHeaders::parse(array_slice($lines, 1));
         if ($headers === null || !$headers->exists(HttpHeaders::HOST)) return HttpStatusCodes::BAD_REQUEST;
 
-        $scheme = $serverInfo->isSslEnabled() ? HttpConstants::HTTPS_SCHEME : HttpConstants::HTTP_SCHEME;
 
         $host = $headers->getHeader(HttpHeaders::HOST);
         if ($host === null) return HttpStatusCodes::BAD_REQUEST;
 
-        $uri = HttpURI::parseRequestTarget($scheme, $host, $target);
+        $uri = HttpUrl::parseRequestTarget($serverInfo, $host, $target);
         if ($uri === null) return HttpStatusCodes::BAD_REQUEST;
 
         // check the content limit
@@ -142,23 +144,38 @@ class HttpRequest implements HttpMessage
     /**
      * Parse the request line (the first line) of an HTTP Request
      * @param string $requestLine The request line to parse
-     * @return array{HttpMethod, string, HttpVersion}|int The HTTP Method, target and HTTP Version or an integer with an error status code
+     * @return HttpRequestLine The HTTP request line
+     * @throws HttpException if the request was invalid
      */
-    public static function parseRequestLine(string $requestLine): array|int
+    public static function parseRequestLine(string $requestLine): HttpRequestLine
     {
-        $parts = explode(" ", $requestLine);
-        if (sizeof($parts) != 3) return HttpStatusCodes::BAD_REQUEST;
+        $parts = array_map("trim", explode(" ", $requestLine));
+        if (sizeof($parts) != 3) throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST,
+            "/", // is unknown at this point
+            "Malformed request line"
+        );
 
-        $method = HttpMethod::tryFrom($parts[0]);
-        if ($method === null) return HttpStatusCodes::NOT_IMPLEMENTED;
+        [$methodStr, $target, $versionStr] = $parts;
+        if (strlen($target) < 1) throw new HttpProblemException(
+            HttpStatusCodes::BAD_REQUEST,
+            $target,
+            "The Request Target cannot be empty.");
 
-        $target = $parts[1];
-        if (strlen($target) < 1) return HttpStatusCodes::BAD_REQUEST;
+        $method = HttpMethod::tryFrom($methodStr);
+        if ($method === null) throw new HttpProblemException(
+            HttpStatusCodes::NOT_IMPLEMENTED,
+            $target,
+            "The HTTP Request Method '$methodStr' is unknown.'"
+        );
 
-        $httpVersion = HttpVersion::fromString($parts[2]);
-        if ($httpVersion === null) return HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED;
+        $httpVersion = HttpVersion::fromString($versionStr);
+        if ($httpVersion === null) throw new HttpProblemException(
+            HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED,
+            $target,
+            "HTTP Version '$versionStr' is malformed or not recognized."
+        );
 
-        return [$method, $target, $httpVersion];
+        return new HttpRequestLine($method, $target, $httpVersion);
     }
 
     /**
@@ -232,9 +249,9 @@ class HttpRequest implements HttpMessage
     }
 
     /**
-     * @return HttpURI
+     * @return HttpUrl
      */
-    public function getURL(): HttpURI
+    public function getURL(): HttpUrl
     {
         return $this->uri;
     }

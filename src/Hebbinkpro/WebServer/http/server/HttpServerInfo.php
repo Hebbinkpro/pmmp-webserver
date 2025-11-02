@@ -26,6 +26,7 @@
 namespace Hebbinkpro\WebServer\http\server;
 
 use Hebbinkpro\WebServer\http\HttpConstants;
+use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\router\Router;
 use pmmp\thread\ThreadSafe;
 
@@ -113,21 +114,41 @@ class HttpServerInfo extends ThreadSafe
         $this->ssl = $ssl;
     }
 
+    public function usesDefaultPort(): bool
+    {
+
+        return match ($this->getScheme()) {
+            HttpConstants::HTTP_SCHEME => $this->port === HttpConstants::DEFAULT_HTTP_PORT,
+            HttpConstants::HTTPS_SCHEME => $this->port === HttpConstants::DEFAULT_HTTPS_PORT,
+            default => false,
+        };
+
+    }
+
     /**
      * Get the HTTP/HTTPS address
+     * @param string|null $host optional host[:port] to use instead of <code>$this->host[:$this->port]</code>
      *
      * NOTE: The address now returns an http(s) address.
      *       For the TCP address, use getSocketBindAddress() instead!
-     * @return string [scheme]://[host]:[port]
+     * @return string scheme://host[:port]
      */
-    public function getAddress(): string
+    public function getAddress(string $host = null): string
     {
-        return $this->getScheme() . "://" . $this->host . ":" . $this->port;
+        // provided host should contain host[:port]
+        if ($host !== null) {
+            return $this->getScheme() . "://" . $host;
+        }
+
+        $port = "";
+        if (!$this->usesDefaultPort()) $port = ":$this->port";
+
+        return $this->getScheme() . "://" . $this->host . $port;
     }
 
     /**
      * Get the TCP address to which the socket should bind
-     * @return string tcp://[host]:[port]
+     * @return string tcp://host:port
      */
     public function getSocketBindAddress(): string
     {
@@ -167,5 +188,30 @@ class HttpServerInfo extends ThreadSafe
     public function getKeepAliveMax(): int
     {
         return $this->keepAliveMax;
+    }
+
+    /**
+     * Get all HTTP methods the server supports
+     * @return HttpMethod[]
+     */
+    public function getSupportedMethods(): array
+    {
+        return [
+            HttpMethod::HEAD,   // required [RFC 7231]
+            HttpMethod::GET,    // required [RFC 7231]
+            HttpMethod::POST,
+            HttpMethod::PUT,
+            HttpMethod::DELETE,
+            // TODO HttpMethod::OPTIONS,
+        ];
+    }
+
+    /**
+     * Get if the server acts as a proxy.
+     * @return bool false by default
+     */
+    public function isProxy(): bool
+    {
+        return false;
     }
 }

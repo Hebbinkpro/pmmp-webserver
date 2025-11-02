@@ -23,37 +23,23 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http;
+namespace Hebbinkpro\WebServer\http\uri;
 
 /**
- * All constants used for this implementation of HTTP/1.1
+ * Base implementation for a URI element
  */
-final class HttpConstants
+interface UriElement
 {
-    /** @var int Max number of bytes that can be stored in the temporary buffer */
-    public const MAX_CLIENT_BUFFER_SIZE = 65536; // 64KB
+    /**
+     * Parse a URI Element
+     * @param string $value
+     * @return self the parsed value
+     */
+    public static function parse(string $value): self;
 
-    /** @var int Max number of bytes to read from a socket stream at once */
-    public const MAX_STREAM_READ_LENGTH = 8192; // 8KB
-
-    /** @var int Max length for the request line (in Bytes) */
-    public const MAX_REQUEST_LINE_LENGTH = 8192; // 8KB
-
-    /** @var int Max length of a header line (in Bytes) */
-    public const MAX_HEADER_LINE_LENGTH = 4096; // 4KB
-
-    /** @var int Max length of all headers combined (in Bytes) */
-    public const MAX_TOTAL_HEADERS_LENGTH = 8192; // 8KB
-
-    /** @var int Max HTTP body size (in bytes) */
-    public const MAX_BODY_SIZE = 131072; // 128KB
-
-    public const DEFAULT_HTTP_PORT = 80;
-
-    public const DEFAULT_HTTPS_PORT = 443;
-
-    public const HTTP_SCHEME = "http";
-    public const HTTPS_SCHEME = "https";
-
-    public const HTTP_URI_ASTERISK = "*";
+    /**
+     * Get the string representation of a URI Element
+     * @return string
+     */
+    public function toString(): string;
 }

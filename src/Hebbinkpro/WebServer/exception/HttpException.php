@@ -25,59 +25,33 @@
 
 namespace Hebbinkpro\WebServer\exception;
 
-use Hebbinkpro\WebServer\http\HttpContentType;
-use Hebbinkpro\WebServer\http\message\HttpResponse;
-use Hebbinkpro\WebServer\http\server\HttpClient;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
-use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
+use Hebbinkpro\WebServer\http\HttpProblem;
 use RuntimeException;
-use Throwable;
 
+/**
+ * Exception to throw when an HTTP request has a problem.
+ *
+ * @internal
+ *
+ * This exception should ALWAYS be caught and handled properly,
+ * otherwise the server can be crashed by arbitrary HTTP Requests.
+ */
 class HttpException extends RuntimeException
 {
 
-    public function __construct(private HttpStatus|int $httpStatusCode, private string $uriInstance = "/", string $message = "", int $code = 0, ?Throwable $previous = null)
+    public function __construct(private HttpProblem $httpError)
     {
-        parent::__construct($message, $code, $previous);
+        parent::__construct($this->httpError->getDetail());
     }
 
     /**
-     * Get the HTTP Status
-     * @return HttpStatus|int
+     * The HTTP problem that caused this exception to be thrown
+     * @return HttpProblem
      */
-    public function getHttpStatusCode(): HttpStatus|int
+    public function getHttpError(): HttpProblem
     {
-        return $this->httpStatusCode;
+        return $this->httpError;
     }
 
-    /**
-     * @return string
-     */
-    public function getUriInstance(): string
-    {
-        return $this->uriInstance;
-    }
-
-    /**
-     * Generate an RFC7807 compliant HTTP problem+json response
-     * @param HttpClient $client the client to which the response should be sent
-     * @return HttpResponse
-     */
-    public function getHttpResponse(HttpClient $client): HttpResponse
-    {
-
-        $status = HttpStatusRegistry::getInstance()->parseOrDefault($this->httpStatusCode, "Custom Error");
-
-        $response = new HttpResponse($client, $this->httpStatusCode);
-        $response->json([
-            "type" => $status->getUriReference(),
-            "title" => $status->getMessage(),
-            "status" => $status->getCode(),
-            "detail" => $this->message,
-            "instance" => $this->uriInstance,
-        ], HttpContentType::APPLICATION_PROBLEM_JSON);
-
-        return $response;
-    }
 
 }
