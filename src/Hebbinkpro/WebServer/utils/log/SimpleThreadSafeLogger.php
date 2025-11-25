@@ -53,9 +53,10 @@ class SimpleThreadSafeLogger extends ThreadSafeLogger
      * @param string $message
      * @return void
      */
-protected function sendSynchronized(string $message): void {
-    $this->synchronized(function () use ($message): void {
-        \GlobalLogger::get()->info($message);
+    protected function sendSynchronized(string $message): void 
+    {
+        $this->synchronized(function () use ($message): void {
+            \GlobalLogger::get()->info($message);
     });
 }
 
