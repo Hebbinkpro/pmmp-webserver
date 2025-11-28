@@ -37,9 +37,8 @@ use pocketmine\VersionInfo;
 class WebServer
 {
     public const VERSION_NAME = "PMMP-WebServer";
-    public const VERSION = "0.5.0";
+    public const VERSION = "0.5.1";
     public const PREFIX = "WebServer";
-//    private static ?self $instance = null;
     private PluginBase $plugin;
     private HttpServerInfo $serverInfo;
 
@@ -54,20 +53,12 @@ class WebServer
      */
     public function __construct(PluginBase $plugin, HttpServerInfo $serverInfo)
     {
-//        if (self::$instance !== null) {
-//            throw new LogicException("Only one WebServer instance can exist at once");
-//        }
-//        self::$instance = $this;
-
         $this->plugin = $plugin;
         $this->serverInfo = $serverInfo;
-        $this->logger = new PrefixedThreadSafeLogger($this->plugin->getServer()->getLogger(), self::PREFIX);
-    }
 
-//    public static function getInstance(): ?WebServer
-//    {
-//        return self::$instance;
-//    }
+        $loggerPrefix = self::PREFIX . " " . $this->serverInfo->getHost() . ":" . $this->serverInfo->getPort();;
+        $this->logger = new PrefixedThreadSafeLogger($this->plugin->getServer()->getLogger(), $loggerPrefix);
+    }
 
     /**
      * Get the server name to use in the server header
