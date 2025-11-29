@@ -63,11 +63,6 @@ class HttpServer extends Thread
      */
     public function __construct(HttpServerInfo $serverInfo, ThreadSafeClassLoader $classLoader, ThreadSafeLogger $logger)
     {
-//        if (self::$instance !== null) {
-//            throw new LogicException("Only one HttpServer instance can exist at once");
-//        }
-//        self::$instance = $this;
-
         $this->serverInfo = $serverInfo;
         $this->setClassLoaders([$classLoader]);
         $this->logger = $logger;

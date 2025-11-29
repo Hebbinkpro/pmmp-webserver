@@ -159,7 +159,12 @@ class HttpClient extends SocketClient
         if (!$this->closed) $this->closed = $this->validateHttpConnection($req);
 
         // handle the request
-        $router->handleRequest($this, $req);
+        try {
+            $router->handleRequest($this, $req);
+        } catch (Exception $e) {
+            // log the error but don't reject the connection as it's unavailable
+            $this->logger->logException($e);
+        }
 
         // ensure all data is flushed
         try {
