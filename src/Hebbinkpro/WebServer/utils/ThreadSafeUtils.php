@@ -100,12 +100,13 @@ final class ThreadSafeUtils
     /**
      * Unwrap a ThreadSafe object or scalar to a native PHP value.
      *
-     * @param int|float|string|bool|ThreadSafe $value A scalar, or ThreadSafe value to unwrap.
+     * @param null|int|float|string|bool|ThreadSafe $value A scalar, or ThreadSafe value to unwrap.
      * @return mixed Native PHP value unwrapped from ThreadSafe objects.
      * @throws Exception
      */
-    public static function unwrapThreadSafe(int|float|string|bool|ThreadSafe $value): mixed
+    public static function unwrapThreadSafe(null|int|float|string|bool|ThreadSafe $value): mixed
     {
+        if ($value === null) return null;
         if (is_scalar($value)) return $value;
         if ($value instanceof ThreadSafeArray) return self::unwrapThreadSafeArray($value);
         if ($value instanceof NonThreadSafeValue) return $value->deserialize();
@@ -124,7 +125,7 @@ final class ThreadSafeUtils
         $array = [];
 
         foreach ($tsa->getIterator() as $k => $v) {
-            /** @var bool|float|int|ThreadSafe|string $v */
+            /** @var null|int|float|string|bool|ThreadSafe $v */
             $array[$k] = self::unwrapThreadSafe($v);
         }
 
