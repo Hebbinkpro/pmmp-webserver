@@ -25,24 +25,12 @@
 
 namespace Hebbinkpro\WebServer\http\uri;
 
-use Hebbinkpro\WebServer\exception\HttpException;
-
-/**
- * Base implementation for a URI element
- */
-interface UriElement
+interface AuthorityUri
 {
-    /**
-     * Parse a URI Element
-     * @param string $value
-     * @return self the parsed value
-     * @throws HttpException if the value is invalid
-     */
-    public static function parse(string $value): self;
 
     /**
-     * Get the string representation of a URI Element
-     * @return string
+     * @return UriAuthority
      */
-    public function toString(): string;
+    public function getAuthority(): UriAuthority;
+
 }

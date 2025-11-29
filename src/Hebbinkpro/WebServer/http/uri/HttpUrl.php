@@ -32,6 +32,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 /**
  * An HTTP Uri which contains all url data
+ * @deprecated Moving to http/uri/url for improved parsing
  */
 class HttpUrl implements UriElement
 {
@@ -103,7 +104,8 @@ class HttpUrl implements UriElement
         $fragment = UriFragment::parse($urlParts["fragment"] ?? "");
 
         $authority = null;
-        if (($host = $urlParts["host"]) !== null) {
+        if (isset($urlParts["host"])) {
+            $host = $urlParts["host"];
             $port = $urlParts["port"] ?? ($scheme === HttpConstants::HTTP_SCHEME ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
             $user = $urlParts["user"] ?? null;
             $pass = $urlParts["pass"] ?? null;
@@ -150,9 +152,9 @@ class HttpUrl implements UriElement
     }
 
     /**
-     * @return UriAuthority
+     * @return UriAuthority|null
      */
-    public function getAuthority(): UriAuthority
+    public function getAuthority(): ?UriAuthority
     {
         return $this->authority;
     }
@@ -163,7 +165,7 @@ class HttpUrl implements UriElement
      */
     public function getHost(): string
     {
-        return $this->authority->getHost();
+        return $this->authority?->getHost() ?? "localhost";
     }
 
     /**
@@ -200,7 +202,7 @@ class HttpUrl implements UriElement
      */
     public function getPort(): int
     {
-        return $this->authority->getPort();
+        return $this->authority?->getPort() ?? 80;
     }
 
     /**

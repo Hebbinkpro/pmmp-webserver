@@ -23,26 +23,40 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\uri;
+namespace Hebbinkpro\WebServer\http\uri\url;
 
-use Hebbinkpro\WebServer\exception\HttpException;
+use Hebbinkpro\WebServer\exception\HttpProblemException;
+use Hebbinkpro\WebServer\http\uri\PathUri;
 
-/**
- * Base implementation for a URI element
- */
-interface UriElement
+class HttpUrlFactory
 {
     /**
-     * Parse a URI Element
-     * @param string $value
-     * @return self the parsed value
-     * @throws HttpException if the value is invalid
+     * Parse a request target to a URL
+     * @param string $target
+     * @return HttpUrl
      */
-    public static function parse(string $value): self;
+    public static function parseRequestTarget(string $target): HttpUrl
+    {
+        if ($target === "*") {
+            return new HttpAsteriskUrl();
+        } elseif (str_starts_with($target, "/")) {
+            return HttpOriginUrl::parse($target);
+        } elseif (filter_var($target, FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED) !== false) {
+            return HttpAbsoluteUrl::parse($target);
+        } elseif (preg_match("/^([a-zA-Z0-9.-]+|\[[a-fA-F0-9:]+]):\d+$/", $target) !== false) {
+            return HttpAuthorityUrl::parse($target);
+        }
+
+        throw HttpProblemException::badRequest();
+    }
 
     /**
-     * Get the string representation of a URI Element
-     * @return string
+     * Convert any path URI to an origin URL
+     * @param PathUri $uri
+     * @return HttpOriginUrl
      */
-    public function toString(): string;
+    public static function pathUriAsOriginUrl(PathUri $uri): HttpOriginUrl
+    {
+        return new HttpOriginUrl($uri->getPath(), $uri->getQuery(), $uri->getFragment());
+    }
 }

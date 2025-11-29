@@ -40,6 +40,7 @@ use Hebbinkpro\WebServer\WebServer;
 
 /**
  * HTTP Response send by the server
+ * TODO should this also be an immutable class like HttpRequest?
  */
 class HttpResponse implements HttpMessage
 {
@@ -47,7 +48,7 @@ class HttpResponse implements HttpMessage
     private HttpStatus $status;
     private HttpVersion $version;
     private HttpMessageHeaders $headers;
-    private string $body;
+    private string $body; // TODO replace with a buffer
     private bool $head;
     private bool $ended;
 
@@ -70,6 +71,7 @@ class HttpResponse implements HttpMessage
         $this->ended = false;
 
         // set some default headers
+        // TODO this overrides any custom headers set by the user, maybe add an override option?
         $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_HTML);
         $this->headers->setHeader(HttpHeaders::CONTENT_ENCODING, "utf-8");
 
@@ -79,6 +81,7 @@ class HttpResponse implements HttpMessage
      * Construct a 200 OK response
      * @param HttpClient $client
      * @return HttpResponse
+     * @deprecated TODO move to HttpResponseFactory
      */
     public static function ok(HttpClient $client): HttpResponse
     {
@@ -92,6 +95,7 @@ class HttpResponse implements HttpMessage
      * as the head-only flag will be enabled.
      * @param HttpClient $client
      * @return HttpResponse
+     * @deprecated TODO move to HttpResponseFactory
      */
     public static function noContent(HttpClient $client): HttpResponse
     {
@@ -102,6 +106,7 @@ class HttpResponse implements HttpMessage
      * Construct a 404 Not Found response
      * @param HttpClient $client
      * @return HttpResponse
+     * @deprecated TODO move to HttpResponseFactory
      */
     public static function notFound(HttpClient $client): HttpResponse
     {
@@ -120,27 +125,18 @@ class HttpResponse implements HttpMessage
      * Send plain text to the client
      * @param string $data
      * @return void
+     * @deprecated TODO move to HttpResponseFactory
      */
     public function text(string $data): void
     {
-        $this->send($data);
+        $this->setBody($data);
     }
 
     /**
-     * Send data as html
-     * @param string $data
-     * @param string $contentType content type of the data
-     * @return void
+     * Create a string representation of the response
+     * @return string
+     * @deprecated TODO must be streamable, especially for larger files
      */
-    public function send(string $data, string $contentType = HttpContentType::TEXT_HTML): void
-    {
-        // it is not possible to add data to a HEAD response
-        if ($this->head) return;
-
-        $this->setContentType($contentType);
-        $this->body = $data;
-    }
-
     public function toString(): string
     {
         $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
@@ -170,6 +166,7 @@ class HttpResponse implements HttpMessage
      * Construct a 500 Internal Server Error response
      * @param HttpClient $client
      * @return HttpResponse
+     * @deprecated TODO move to HttpResponseFactory
      */
     public static function internalServerError(HttpClient $client): HttpResponse
     {
@@ -183,6 +180,7 @@ class HttpResponse implements HttpMessage
      * Construct a 501 Not Implemented response
      * @param HttpClient $client
      * @return HttpResponse
+     * @deprecated TODO move to HttpResponseFactory
      */
     public static function notImplemented(HttpClient $client): HttpResponse
     {
@@ -193,8 +191,21 @@ class HttpResponse implements HttpMessage
     }
 
     /**
+     * Send data
+     * @param string $data
+     * @param string $contentType content type of the data
+     * @return void
+     * @deprecated use setBody instead, to be removed in v0.7.0
+     */
+    public function send(string $data, string $contentType = HttpContentType::TEXT_HTML): void
+    {
+        $this->setBody($data, $contentType);
+    }
+
+    /**
      * Send the status message
      * @return void
+     * @deprecated TODO move to HttpResponseFactory
      */
     public function sendStatusMessage(): void
     {
@@ -211,14 +222,35 @@ class HttpResponse implements HttpMessage
         return $this->client;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getVersion(): HttpVersion
     {
         return $this->version;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getBody(): string
     {
         return $this->body;
+    }
+
+    /**
+     * Set the response body
+     * @param string $data the body data
+     * @param string $contentType the content type of the data, the default is text/html
+     * @return void
+     */
+    public function setBody(string $data, string $contentType = HttpContentType::TEXT_HTML): void
+    {
+        // it is not possible to add data to a HEAD response
+        if ($this->head) return; // TODO throw exception?
+
+        $this->setContentType($contentType);
+        $this->body = $data;
     }
 
     /**
@@ -228,6 +260,7 @@ class HttpResponse implements HttpMessage
      * @param string|null $contentType if no content type is given, the file extension will be used to detect it
      * @return void
      * @throws FileNotFoundException when the file does not exist and the default value is null
+     * @deprecated TODO move to HttpResponseFactory, and make this streamable!!!!!!!
      */
     public function sendFile(string $fileName, ?string $default = null, ?string $contentType = null): void
     {
@@ -257,7 +290,7 @@ class HttpResponse implements HttpMessage
         $body = file_exists($fileName) ? file_get_contents($fileName) : $default;
         if (!is_string($body)) $body = "";
 
-        $this->send($body, $contentType);
+        $this->setBody($body, $contentType);
     }
 
     /**
@@ -266,12 +299,13 @@ class HttpResponse implements HttpMessage
      * @param array<mixed> $data
      * @param string $contentType default: application/json
      * @return void
+     * @deprecated TODO move to HttpResponseFactory
      */
     public function json(array $data, string $contentType = HttpContentType::APPLICATION_JSON): void
     {
         $json = json_encode($data);
         if (!is_string($json)) $json = "[]";
-        $this->send($json, $contentType);
+        $this->setBody($json, $contentType);
     }
 
     /**
@@ -289,6 +323,7 @@ class HttpResponse implements HttpMessage
      *
      * After a response is ended, it is sent immediately and cannot be sent again.
      * @return void
+     * @deprecated TODO move this to somewhere else
      */
     public function end(): void
     {
@@ -354,6 +389,7 @@ class HttpResponse implements HttpMessage
     /**
      * Get if the response is ended
      * @return bool
+     * @deprecated TODO move this to the same location as end()
      */
     public function isEnded(): bool
     {

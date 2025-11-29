@@ -25,6 +25,7 @@
 
 namespace Hebbinkpro\WebServer\http\message\builder;
 
+use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\http\message\HttpMessage;
 
 interface HttpMessageBuilder
@@ -34,6 +35,8 @@ interface HttpMessageBuilder
      * Append new data to the builder
      * @param string $data the data to add to the builder
      * @return string|null Remaining data
+     * @throws HttpRequestBuilderException if the builder is invalid or already completed
+     * @throws HttpException if the appended data resulted in an invalid HTTP request
      */
     function appendData(string $data): ?string;
 
@@ -52,6 +55,7 @@ interface HttpMessageBuilder
     /**
      * Build an HTTP Message from a completely parsed message
      * @return HttpMessage
+     * @throws HttpRequestBuilderException if the builder is not complete
      */
     function build(): HttpMessage;
 }

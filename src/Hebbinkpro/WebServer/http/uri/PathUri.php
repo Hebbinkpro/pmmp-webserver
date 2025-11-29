@@ -23,10 +23,13 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\builder;
+namespace Hebbinkpro\WebServer\http\uri;
 
-use RuntimeException;
-
-class InvalidHttpMessageException extends RuntimeException
+interface PathUri
 {
+    public function getPath(): UriPath;
+
+    public function getQuery(): UriQuery;
+
+    public function getFragment(): UriFragment;
 }

@@ -31,6 +31,7 @@ use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\exception\RouteExistsException;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
+use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
@@ -45,10 +46,13 @@ use pmmp\thread\ThreadSafeArray;
 
 /**
  * A Router that handles requests by calling the Route corresponding to the request path
- * @property-read ThreadSafeArray<string, Route|ThreadSafeArray<string, Route>> $routes
  */
 class Router extends ThreadSafe implements RouterInterface
 {
+    /**
+     * TODO change this to a tree structure
+     * @var ThreadSafeArray<string, Route|ThreadSafeArray<string, Route>>
+     */
     private ThreadSafeArray $routes;
 
     public function __construct()
@@ -73,7 +77,6 @@ class Router extends ThreadSafe implements RouterInterface
             HttpResponse::notFound($client)->end();
             return;
         }
-
 
         /** @var Route|ThreadSafeArray<string, Route> $routeEntry */
         $routeEntry = $this->routes[$routePath] ?? null;
@@ -165,6 +168,14 @@ class Router extends ThreadSafe implements RouterInterface
         $res->end();
     }
 
+    public function rejectRequestWithProblem(HttpClient $client, HttpProblem $problem): void
+    {
+        $res = $problem->createResponse($client);
+        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->end();
+
+    }
+
     /**
      * @throws RouteExistsException
      */
@@ -182,23 +193,23 @@ class Router extends ThreadSafe implements RouterInterface
      */
     public function addRoute(string $path, Route $route): void
     {
-        $path = trim($path, "/");
+        $segments = trim($path, "/");
 
-        if (isset($this->routes[$path])) {
+        if (isset($this->routes[$segments])) {
             // it's a route for all methods
-            if (!$this->routes[$path] instanceof ThreadSafeArray) throw new RouteExistsException($path, HttpMethod::ALL);
+            if (!$this->routes[$segments] instanceof ThreadSafeArray) throw new RouteExistsException($segments, HttpMethod::ALL);
 
             // there exists already a route for this method, or if an any route is added
-            if (isset($this->routes[$path][$route->getMethod()->name]) || $route->getMethod() === HttpMethod::ALL) {
-                throw new RouteExistsException($path, $route->getMethod());
+            if (isset($this->routes[$segments][$route->getMethod()->name]) || $route->getMethod() === HttpMethod::ALL) {
+                throw new RouteExistsException($segments, $route->getMethod());
             }
         }
 
-        if ($route->getMethod() === HttpMethod::ALL) $this->routes[$path] = $route;
+        if ($route->getMethod() === HttpMethod::ALL) $this->routes[$segments] = $route;
         else {
-            if (!isset($this->routes[$path])) $this->routes[$path] = new ThreadSafeArray();
+            if (!isset($this->routes[$segments])) $this->routes[$segments] = new ThreadSafeArray();
             /** @phpstan-ignore-next-line */
-            $this->routes[$path][$route->getMethod()->name] = $route;
+            $this->routes[$segments][$route->getMethod()->name] = $route;
         }
     }
 

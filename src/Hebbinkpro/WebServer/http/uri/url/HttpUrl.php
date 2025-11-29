@@ -23,26 +23,16 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\uri;
+namespace Hebbinkpro\WebServer\http\uri\url;
 
-use Hebbinkpro\WebServer\exception\HttpException;
+use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
+use Hebbinkpro\WebServer\http\uri\UriElement;
 
-/**
- * Base implementation for a URI element
- */
-interface UriElement
+interface HttpUrl extends UriElement
 {
     /**
-     * Parse a URI Element
-     * @param string $value
-     * @return self the parsed value
-     * @throws HttpException if the value is invalid
+     * Get the request form of the URL
+     * @return HttpRequestForm
      */
-    public static function parse(string $value): self;
-
-    /**
-     * Get the string representation of a URI Element
-     * @return string
-     */
-    public function toString(): string;
+    public function getRequestForm(): HttpRequestForm;
 }

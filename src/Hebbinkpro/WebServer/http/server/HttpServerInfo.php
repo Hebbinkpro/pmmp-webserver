@@ -91,14 +91,6 @@ class HttpServerInfo extends ThreadSafe
     }
 
     /**
-     * Check if the SSL cert and pk are available
-     */
-    public function isSslEnabled(): bool
-    {
-        return $this->ssl !== null;
-    }
-
-    /**
      * @return SslSettings|null
      */
     public function getSsl(): ?SslSettings
@@ -112,17 +104,6 @@ class HttpServerInfo extends ThreadSafe
     public function setSsl(?SslSettings $ssl): void
     {
         $this->ssl = $ssl;
-    }
-
-    public function usesDefaultPort(): bool
-    {
-
-        return match ($this->getScheme()) {
-            HttpConstants::HTTP_SCHEME => $this->port === HttpConstants::DEFAULT_HTTP_PORT,
-            HttpConstants::HTTPS_SCHEME => $this->port === HttpConstants::DEFAULT_HTTPS_PORT,
-            default => false,
-        };
-
     }
 
     /**
@@ -147,15 +128,6 @@ class HttpServerInfo extends ThreadSafe
     }
 
     /**
-     * Get the TCP address to which the socket should bind
-     * @return string tcp://host:port
-     */
-    public function getSocketBindAddress(): string
-    {
-        return "tcp://" . $this->host . ":" . $this->port;
-    }
-
-    /**
      * Get the http scheme the server uses
      * @return string http or https if SSL is enabled.
      */
@@ -166,6 +138,34 @@ class HttpServerInfo extends ThreadSafe
         } else {
             return HttpConstants::HTTP_SCHEME;
         }
+    }
+
+    /**
+     * Check if the SSL cert and pk are available
+     */
+    public function isSslEnabled(): bool
+    {
+        return $this->ssl !== null;
+    }
+
+    public function usesDefaultPort(): bool
+    {
+
+        return match ($this->getScheme()) {
+            HttpConstants::HTTP_SCHEME => $this->port === HttpConstants::DEFAULT_HTTP_PORT,
+            HttpConstants::HTTPS_SCHEME => $this->port === HttpConstants::DEFAULT_HTTPS_PORT,
+            default => false,
+        };
+
+    }
+
+    /**
+     * Get the TCP address to which the socket should bind
+     * @return string tcp://host:port
+     */
+    public function getSocketBindAddress(): string
+    {
+        return "tcp://" . $this->host . ":" . $this->port;
     }
 
     /**

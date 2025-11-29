@@ -35,9 +35,8 @@ use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
  */
 class HttpProblem
 {
-    public function __construct(private HttpStatus|int $statusCode, private string $instance, private ?string $detail)
+    public function __construct(private HttpStatus|int $statusCode, private ?string $instance, private ?string $detail)
     {
-
     }
 
     /**
@@ -82,6 +81,6 @@ class HttpProblem
      */
     public function getInstance(): string
     {
-        return $this->instance;
+        return $this->instance ?? "about:blank";
     }
 }

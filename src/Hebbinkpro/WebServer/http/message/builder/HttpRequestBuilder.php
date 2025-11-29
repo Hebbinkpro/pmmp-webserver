@@ -26,6 +26,7 @@
 namespace Hebbinkpro\WebServer\http\message\builder;
 
 use Hebbinkpro\WebServer\exception\HttpException;
+use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
@@ -36,7 +37,9 @@ use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
-use Hebbinkpro\WebServer\http\uri\HttpUrl;
+use Hebbinkpro\WebServer\http\uri\PathUri;
+use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
+use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 use InvalidArgumentException;
 use Logger;
 
@@ -55,7 +58,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private string $headerData = "";
     private int $totalHeaderLength = 0;
 
-    private ?HttpRequestLine $requestLine = null;
+    private HttpRequestLine $requestLine;
 
     private HttpUrl $url;
 
@@ -88,7 +91,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
         $this->buffer .= $data;
 
         $previousState = null;
-        // loop until the states dont change anymore
+        // loop until the states don't change anymore
         while ($this->state !== $previousState) {
             $previousState = $this->state;
             switch ($this->state) {
@@ -96,6 +99,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
                 case HttpBuilderState::COMPLETE:
                     throw new HttpRequestBuilderException("Cannot append data to a completed HTTP Request.");
                 case HttpBuilderState::INVALID:
+                    if ($this->httpProblem === null) $this->httpProblem = new HttpProblem(HttpStatusCodes::BAD_REQUEST, "/", null);
                     throw new HttpRequestBuilderException("Cannot append data to an invalid HTTP Request.", previous: new HttpException($this->httpProblem));
 
                 // not yet started
@@ -154,31 +158,33 @@ class HttpRequestBuilder implements HttpMessageBuilder
     }
 
     /**
+     * Mark the request builder as invalid with a status code and detail.
+     *
+     * This will automatically retrieve the <code>$instance</code> URI from the request line if it exists.
+     * @param int $status the HTTP Status code to respond
+     * @param string|null $detail the error detail
+     * @return never
+     */
+    private function setInvalid(int $status, ?string $detail): never
+    {
+        if (!isset($this->requestLine)) $instance = "/";
+        else $instance = $this->requestLine->getUriTarget();
+
+        $this->setInvalidProblem(new HttpProblem($status, $instance, $detail));
+    }
+
+    /**
      * Mark the request builder as invalid with an HttpException
      * @param HttpProblem $problem HTTP problem details
-     * @return never
-     * @throws InvalidHttpMessageException Always, since messages are not allowed
+     * @return never will always throw an HttpException
+     * @throws HttpException with the HTTP Problem details
      */
     private function setInvalidProblem(HttpProblem $problem): never
     {
         $this->httpProblem = $problem;
         $this->state = HttpBuilderState::INVALID;
         $this->logger->debug("[INVALID REQUEST] {$problem->getDetail()}");
-        throw new InvalidHttpMessageException();
-    }
-
-    /**
-     * Mark the request builder as invalid with a status code and detail.
-     *
-     * This will automatically retrieve the <code>$instance</code> URI from the request line if it exists.
-     * @param int $status the HTTP Status code to respond
-     * @param string $detail the error detail
-     * @return never
-     */
-    private function setInvalid(int $status, string $detail): never
-    {
-        $instance = $this->requestLine?->getUriTarget() ?? "/";
-        $this->setInvalidProblem(new HttpProblem($status, $instance, $detail));
+        throw new HttpException($this->httpProblem);
     }
 
     private function buildRequestLine(): bool
@@ -242,7 +248,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
             // remove the data and until string from the buffer
             $this->buffer = substr($this->buffer, $pos + $untilSize);
         } else {
-            // cutoff the until part from the end of the string
+            // cut off the until part from the end of the string
             $into .= substr($this->buffer, 0, -$untilSize);
             $this->buffer = "";
         }
@@ -298,9 +304,10 @@ class HttpRequestBuilder implements HttpMessageBuilder
         /** @var string $host - host always exists here */
         $host = $this->headers->getHeader(HttpHeaders::HOST);
 
-        $url = HttpUrl::parseRequestTarget($this->serverInfo, $host, $this->uriTarget);
-        if ($url === null) {
-            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid URI: $this->uriTarget");
+        try {
+            $url = HttpUrlFactory::parseRequestTarget($this->uriTarget);
+        } catch (HttpProblemException $e) {
+            $this->setInvalidProblem($e->getHttpError());
         }
 
         switch ($url->getRequestForm()) {
@@ -320,17 +327,16 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
             case HttpRequestForm::ABSOLUTE:
 
-                // if server is not a proxy, convert to ORIGIN
+                // if the server is not a proxy, convert to ORIGIN
                 if (!$this->serverInfo->isProxy()) {
-                    // transform to ORIGIN
-                    $url = HttpUrl::parseRequestTarget($this->serverInfo, $host, $url->getOriginUrl());
-                    // catch any malformed origin urls
-                    if ($url === null || $url->getRequestForm() !== HttpRequestForm::ORIGIN) {
+                    if ($url instanceof PathUri) {
+                        // transform to Origin URL
+                        $this->url = HttpUrlFactory::pathUriAsOriginUrl($url);
+                    } else {
+                        // unknown class
                         $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form: $this->uriTarget");
                     }
                 }
-
-                $this->url = $url;
                 break;
 
             case HttpRequestForm::ORIGIN:
@@ -367,8 +373,16 @@ class HttpRequestBuilder implements HttpMessageBuilder
         } else {
             // something went horribly wrong
             $this->logger->emergency("[INVALID REQUEST] Body is larger then the given content length");
-            $this->setInvalidProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR);
+            $this->setInvalid(HttpStatusCodes::INTERNAL_SERVER_ERROR, null);
         }
+    }
+
+    /**
+     * @return HttpProblem|null
+     */
+    public function getHttpProblem(): ?HttpProblem
+    {
+        return $this->httpProblem;
     }
 
     /**
@@ -396,16 +410,15 @@ class HttpRequestBuilder implements HttpMessageBuilder
             throw new HttpRequestBuilderException("Cannot build an HttpRequest from an incomplete builder");
         }
 
-        return new HttpRequest($this->method, $this->url, $this->version, $this->headers, $this->body);
+        return HttpRequest::withRequestLine($this->requestLine, $this->url, $this->headers, $this->body);
     }
 
+    /**
+     * @phpstan-assert-if-true HttpBuilderState::INVALID $this->state
+     * @phpstan-assert-if-true HttpProblem $this->httpProblem
+     */
     public function isInvalid(): bool
     {
         return $this->state === HttpBuilderState::INVALID;
-    }
-
-    public function getErrorStatusCode(): int
-    {
-        return $this->errorStatusCode;
     }
 }

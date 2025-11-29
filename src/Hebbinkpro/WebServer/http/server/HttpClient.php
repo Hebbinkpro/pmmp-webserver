@@ -26,10 +26,12 @@
 namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
+use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
+use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\message\builder\HttpRequestBuilder;
-use Hebbinkpro\WebServer\http\message\builder\InvalidHttpMessageException;
+use Hebbinkpro\WebServer\http\message\builder\HttpRequestBuilderException;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\socket\SocketBufferOverflowException;
@@ -118,7 +120,8 @@ class HttpClient extends SocketClient
             $hasData = $this->read(HttpConstants::MAX_STREAM_READ_LENGTH);
             if (!$hasData) return;
         } catch (Exception $e) {
-            $this->reject(HttpStatusCodes::INTERNAL_SERVER_ERROR, $e->getMessage());
+            $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
+            $this->reject($problem, LogLevel::ERROR);
             return;
         }
 
@@ -129,12 +132,18 @@ class HttpClient extends SocketClient
         // append the client buffer to the builder
         try {
             $remaining = $builder->appendData($this->readBuffer());
-        } catch (InvalidHttpMessageException) {
-            $this->reject($builder->getErrorStatusCode(), "Invalid HTTP Request");
+        } catch (HttpException $e) {
+            // the HTTP request was invalid
+            $this->reject($e->getHttpError());
+            return;
+        } catch (HttpRequestBuilderException $e) {
+            // this should never happen if the builder is properly used
+            $this->logger->error("Error while parsing request: " . $e->getMessage());
+            $this->reject(new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage()));
             return;
         }
 
-        // request is not complete
+        // the request is not complete
         if (!$builder->isComplete()) return;
 
         try {
@@ -142,7 +151,8 @@ class HttpClient extends SocketClient
             $this->writeBuffer($remaining ?? "");
         } catch (SocketBufferOverflowException $e) {
             // too much data in the buffer, this shouldn't even be possible since the builder buffer has the same size
-            $this->reject(HttpStatusCodes::INTERNAL_SERVER_ERROR, $e->getMessage(), LogLevel::ERROR);
+            $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
+            $this->reject($problem, LogLevel::ERROR);
             return;
         }
 
@@ -169,11 +179,11 @@ class HttpClient extends SocketClient
         }
     }
 
-    private function reject(int $statusCode, ?string $reason, string $level = LogLevel::DEBUG): void
+    private function reject(HttpProblem $problem, string $level = LogLevel::DEBUG): void
     {
         $this->closed = true;
-        HttpServer::getInstance()->getServerInfo()->getRouter()->rejectRequest($this, $statusCode);
-        if ($reason !== null) $this->logger->log($level, "Client rejected. Reason: " . $reason);
+        HttpServer::getInstance()->getServerInfo()->getRouter()->rejectRequestWithProblem($this, $problem);
+        if ($problem->getDetail() !== null) $this->logger->log($level, "Client rejected. Reason: " . $problem->getDetail());
     }
 
     /**

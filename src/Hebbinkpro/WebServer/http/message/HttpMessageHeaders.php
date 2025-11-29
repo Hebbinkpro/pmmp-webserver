@@ -44,7 +44,7 @@ class HttpMessageHeaders
     /**
      * Parse all encoded headers
      * @param string[] $data encoded headers
-     * @return HttpMessageHeaders|null
+     * @return HttpMessageHeaders
      */
     public static function parse(array $data): ?HttpMessageHeaders
     {

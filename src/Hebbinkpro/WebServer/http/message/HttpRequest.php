@@ -25,7 +25,6 @@
 
 namespace Hebbinkpro\WebServer\http\message;
 
-use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
@@ -34,16 +33,18 @@ use Hebbinkpro\WebServer\http\HttpRequestLine;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
-use Hebbinkpro\WebServer\http\uri\HttpUrl;
+use Hebbinkpro\WebServer\http\uri\PathUri;
+use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
+use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 
 /**
- * HTTP Request send by the client
+ * HTTP Request received from a client
  */
 class HttpRequest implements HttpMessage
 {
     private string $routePath;
     private HttpMethod $method;
-    private HttpUrl $uri;
+    private HttpUrl $url;
     private HttpVersion $version;
     private HttpMessageHeaders $headers;
     private string $body;
@@ -62,7 +63,7 @@ class HttpRequest implements HttpMessage
     {
         $this->routePath = "";
         $this->method = $method;
-        $this->uri = $uri;
+        $this->url = $uri;
         $this->version = $version;
         $this->headers = $headers;
         $this->body = "";
@@ -98,54 +99,65 @@ class HttpRequest implements HttpMessage
      * Decode an HTTP Request
      * @param string $data
      * @param HttpServerInfo $serverInfo
-     * @return HttpRequest|int the HttpRequest or a 4xx status code
+     * @return HttpRequest the parsed HttpRequest
+     * @throws HttpProblemException when something went wrong while parsing the request
      */
-    public static function parse(string $data, HttpServerInfo $serverInfo): int|HttpRequest
+    public static function parse(string $data, HttpServerInfo $serverInfo): HttpRequest
     {
-        if ($data === "") return HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG;
+        if ($data === "") throw HttpProblemException::badRequest();
+
 
         // split the data into the HEAD and BODY parts (seperated by double line break)
         $parts = explode("\r\n\r\n", trim($data), 2);
 
-        // data does not contain a double line break, so the header is too long
-        if (sizeof($parts) == 0) return HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG;
+        // data does not contain a double line break
+        if (sizeof($parts) == 0) throw HttpProblemException::badRequest();
 
         $head = $parts[0];
+        if (strlen($head) > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
+            throw HttpProblemException::blankInstance(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG);
+        }
+
         $body = $parts[1] ?? "";
 
         $lines = explode("\r\n", $head);
-        if (sizeof($lines) == 0) return HttpStatusCodes::BAD_REQUEST;
+        if (sizeof($lines) == 0) throw HttpProblemException::badRequest();
 
-        if (strlen($lines[0]) > HttpConstants::MAX_REQUEST_LINE_LENGTH) return HttpStatusCodes::URI_TOO_LONG;
+        if (strlen($lines[0]) > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
+            throw HttpProblemException::blankInstance(HttpStatusCodes::URI_TOO_LONG);
+        }
 
         // parse the request line and return if we get an error code
-        $res = self::parseRequestLine($lines[0]);
-        if (is_int($res)) return $res;
-        [$method, $target, $httpVersion] = $res;
+        $requestLine = self::parseRequestLine($lines[0]);
+        $target = $requestLine->getUriTarget();
+
+        $httpUrl = HttpUrlFactory::parseRequestTarget($target);
 
         $headers = HttpMessageHeaders::parse(array_slice($lines, 1));
-        if ($headers === null || !$headers->exists(HttpHeaders::HOST)) return HttpStatusCodes::BAD_REQUEST;
+        if ($headers === null) throw HttpProblemException::badRequest($target, "Malformed headers");
 
+        if (!$headers->exists(HttpHeaders::HOST)) {
+            throw HttpProblemException::badRequest($target, "Missing header: host");
+        }
 
         $host = $headers->getHeader(HttpHeaders::HOST);
-        if ($host === null) return HttpStatusCodes::BAD_REQUEST;
-
-        $uri = HttpUrl::parseRequestTarget($serverInfo, $host, $target);
-        if ($uri === null) return HttpStatusCodes::BAD_REQUEST;
+        if ($host === null) throw HttpProblemException::badRequest($target, "Missing header: host");
 
         // check the content limit
         $bodyLength = strlen($body);
         $contentLength = intval($headers->getHeader(HttpHeaders::CONTENT_LENGTH) ?? 0);
-        if ($bodyLength > $contentLength) return HttpStatusCodes::CONTENT_TOO_LARGE;
+        if ($bodyLength > HttpConstants::MAX_BODY_SIZE || $bodyLength > $contentLength) {
+            throw new HttpProblemException(HttpStatusCodes::CONTENT_TOO_LARGE, $target);
+        }
 
-        return new HttpRequest($method, $uri, $httpVersion, $headers, $body);
+        return HttpRequest::withRequestLine($requestLine, $httpUrl, $headers, $body);
     }
 
     /**
      * Parse the request line (the first line) of an HTTP Request
      * @param string $requestLine The request line to parse
      * @return HttpRequestLine The HTTP request line
-     * @throws HttpException if the request was invalid
+     * @throws HttpProblemException if the request was invalid
      */
     public static function parseRequestLine(string $requestLine): HttpRequestLine
     {
@@ -178,6 +190,24 @@ class HttpRequest implements HttpMessage
         return new HttpRequestLine($method, $target, $httpVersion);
     }
 
+    public static function withRequestLine(HttpRequestLine $requestLine, HttpUrl $uri, HttpMessageHeaders $headers, string $body): HttpRequest
+    {
+        return new self($requestLine->getMethod(), $uri, $requestLine->getVersion(), $headers, $body);
+    }
+
+    /**
+     * @return HttpMethod
+     */
+    public function getMethod(): HttpMethod
+    {
+        return $this->method;
+    }
+
+    public function getVersion(): HttpVersion
+    {
+        return $this->version;
+    }
+
     /**
      * Get the path over which the request was routed
      * @return string
@@ -190,13 +220,16 @@ class HttpRequest implements HttpMessage
     /**
      * Set the route that will handle this request
      * @param string $routePath
+     * @deprecated TODO Move to other class
      */
     public function setRoutePath(string $routePath): void
     {
+        if (!$this->url instanceof PathUri) return;
+
         $this->routePath = $routePath;
         $this->pathParams = [];
 
-        $path = explode("/", $this->uri->getPath());
+        $path = $this->url->getPath()->getPath();
         $routePath = explode("/", $routePath);
 
         foreach ($routePath as $i => $value) {
@@ -216,6 +249,7 @@ class HttpRequest implements HttpMessage
      * If the current route path ends with *, this will be replaced.
      * @param string $routePath
      * @return void
+     * @deprecated TODO Move to other class
      */
     public function appendRoutePath(string $routePath): void
     {
@@ -225,19 +259,22 @@ class HttpRequest implements HttpMessage
         $this->setRoutePath($current . $routePath);
     }
 
-
     /**
      * Get the uri path without the route path
      * @return string
+     * @deprecated TODO Move to other class
      */
     public function getSubPath(): string
     {
-        if (strlen($this->routePath) == 0) return $this->getURL()->getPath();
+        if (!$this->url instanceof PathUri) return "";
+        $path = $this->url->getPath();
+
+        if (sizeof($path->getPath()) == 0) return $path->toString();
 
         // a/b/c => c
         $parts = substr_count($this->routePath, "/");
 
-        $subPath = $this->getURL()->getPath();
+        $subPath = $path->toString();
         for ($i = 0; $i < $parts; $i++) {
             $idx = strpos($subPath, "/");
             if ($idx === false) break;
@@ -253,15 +290,7 @@ class HttpRequest implements HttpMessage
      */
     public function getURL(): HttpUrl
     {
-        return $this->uri;
-    }
-
-    /**
-     * @return HttpMethod
-     */
-    public function getMethod(): HttpMethod
-    {
-        return $this->method;
+        return $this->url;
     }
 
     /**
@@ -269,6 +298,7 @@ class HttpRequest implements HttpMessage
      *
      * Path params are defined by :param in a Route path. (e.g. /my/path/:param, where :param is the path parameter
      * @return array<string, string>
+     * @deprecated TODO Move to other class
      */
     public function getPathParams(): array
     {
@@ -279,6 +309,7 @@ class HttpRequest implements HttpMessage
      * Get a path param by its name
      * @param string $name the name of the path param
      * @return string|null null when the param does not exist.
+     * @deprecated TODO Move to other class
      */
     public function getPathParam(string $name): ?string
     {
@@ -298,14 +329,10 @@ class HttpRequest implements HttpMessage
     /**
      * Get if the message body is completed
      * @return bool
+     * @deprecated TODO why does this exist?
      */
     public function isCompleted(): bool
     {
         return $this->completed;
-    }
-
-    public function getVersion(): HttpVersion
-    {
-        return $this->version;
     }
 }

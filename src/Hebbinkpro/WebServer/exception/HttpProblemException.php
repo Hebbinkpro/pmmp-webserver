@@ -38,10 +38,23 @@ class HttpProblemException extends HttpException
 
     /**
      * 400 bad request exception without any details and an about:blank instance
+     * @param string|null $instance instance to use, if not present, a blank instance is used
+     * @param string|null $detail detail to use, if not present, no detail is used
      * @return HttpProblemException
      */
-    public static function badRequest(): HttpProblemException
+    public static function badRequest(string $instance = null, ?string $detail = null): HttpProblemException
     {
-        return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "about:blank");
+        if ($instance === null) return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "about:blank", $detail);
+        return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, $instance);
+    }
+
+    /**
+     * Http Problem with a blank instance
+     * @param HttpStatus|int $statusCode the HTTP status code
+     * @return HttpProblemException
+     */
+    public static function blankInstance(HttpStatus|int $statusCode): HttpProblemException
+    {
+        return new HttpProblemException($statusCode, "about:blank");
     }
 }

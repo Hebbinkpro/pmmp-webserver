@@ -41,7 +41,7 @@ class HttpException extends RuntimeException
 
     public function __construct(private HttpProblem $httpError)
     {
-        parent::__construct($this->httpError->getDetail());
+        parent::__construct($this->httpError->getDetail() ?? "");
     }
 
     /**

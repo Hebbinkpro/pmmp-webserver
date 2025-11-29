@@ -47,6 +47,7 @@ interface HttpMessage
     /**
      * Get the HTTP message body
      * @return string
+     * @deprecated TODO replace by some streaming principle
      */
     public function getBody(): string;
 

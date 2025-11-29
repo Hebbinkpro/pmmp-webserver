@@ -37,7 +37,7 @@ use pocketmine\VersionInfo;
 class WebServer
 {
     public const VERSION_NAME = "PMMP-WebServer";
-    public const VERSION = "0.5.1";
+    public const VERSION = "0.6.0-dev";
     public const PREFIX = "WebServer";
     private PluginBase $plugin;
     private HttpServerInfo $serverInfo;
@@ -56,7 +56,7 @@ class WebServer
         $this->plugin = $plugin;
         $this->serverInfo = $serverInfo;
 
-        $loggerPrefix = self::PREFIX . " " . $this->serverInfo->getHost() . ":" . $this->serverInfo->getPort();;
+        $loggerPrefix = self::PREFIX . " " . $this->serverInfo->getHost() . ":" . $this->serverInfo->getPort();
         $this->logger = new PrefixedThreadSafeLogger($this->plugin->getServer()->getLogger(), $loggerPrefix);
     }
 
