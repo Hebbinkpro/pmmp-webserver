@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,12 @@ use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
+use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
-use Hebbinkpro\WebServer\WebServer;
 
 /**
  * HTTP Response send by the server
@@ -47,7 +47,7 @@ class HttpResponse implements HttpMessage
     private HttpClient $client;
     private HttpStatus $status;
     private HttpVersion $version;
-    private HttpMessageHeaders $headers;
+    private HttpHeader $headers;
     private string $body; // TODO replace with a buffer
     private bool $head;
     private bool $ended;
@@ -58,9 +58,9 @@ class HttpResponse implements HttpMessage
      * @param int|HttpStatus $status
      * @param string $body
      * @param bool $head
-     * @param HttpMessageHeaders $headers
+     * @param HttpHeader $headers
      */
-    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpMessageHeaders $headers = new HttpMessageHeaders())
+    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpHeader $headers = new HttpHeader())
     {
         $this->client = $client;
         $this->status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
@@ -116,7 +116,7 @@ class HttpResponse implements HttpMessage
         return $res;
     }
 
-    public function getHeaders(): HttpMessageHeaders
+    public function getHeaders(): HttpHeader
     {
         return $this->headers;
     }
@@ -346,9 +346,17 @@ class HttpResponse implements HttpMessage
             }
         }
 
-        // set the final headers
+        // get the server info
+        $serverInfo = HttpServer::getInstance()->getServerInfo();
+
+        // set the date header
         $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
-        $this->headers->setHeader(HttpHeaders::SERVER, WebServer::getServerName());
+
+        // set the server name if it is set
+        if (($serverName = $serverInfo->getName()) !== null) {
+            $this->headers->setHeader(HttpHeaders::SERVER, $serverName);
+        }
+
 
         // set the correct header
         if ($this->client->isClosed()) {
@@ -360,17 +368,17 @@ class HttpResponse implements HttpMessage
         }
 
         // if connection is keep-alive, set Keep-Alive header
-        if ($this->headers->getHeader(HttpHeaders::CONNECTION) === "keep-alive") {
+        if ($this->headers->getFieldValue(HttpHeaders::CONNECTION) === "keep-alive") {
             $values = [];
 
             // set timeout
-            $keepAliveTimeout = HttpServer::getInstance()->getServerInfo()->getKeepAliveTimeout();
+            $keepAliveTimeout = $serverInfo->getKeepAliveTimeout();
             if ($keepAliveTimeout > 0) {
                 $values[] = "timeout=" . $keepAliveTimeout;
             }
 
             // set max
-            $keepAliveMax = HttpServer::getInstance()->getServerInfo()->getKeepAliveMax();
+            $keepAliveMax = $serverInfo->getKeepAliveMax();
             if ($keepAliveMax > 0) {
                 $remaining = $keepAliveMax - $this->client->getServedRequests();
                 $values[] = "max=" . $remaining;

@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ use pocketmine\VersionInfo;
 class WebServer
 {
     public const VERSION_NAME = "PMMP-WebServer";
-    public const VERSION = "0.6.0-dev";
+    public const VERSION = "1.0.0-dev";
     public const PREFIX = "WebServer";
     private PluginBase $plugin;
     private HttpServerInfo $serverInfo;
@@ -61,12 +61,12 @@ class WebServer
     }
 
     /**
-     * Get the server name to use in the server header
-     * @return string PMMP-WebServer/x.x.x PocketMine-MP/x.x.x
+     * Get the default server name
+     * @return string PMMP-WebServer/x.x.x (PocketMine-MP/x.x.x)
      */
-    public static function getServerName(): string
+    public static function getDefaultServerName(): string
     {
-        return self::VERSION_NAME . "/" . self::VERSION . " " . VersionInfo::NAME . "/" . VersionInfo::BASE_VERSION;
+        return self::VERSION_NAME . "/" . self::VERSION . " (" . VersionInfo::NAME . "/" . VersionInfo::BASE_VERSION . ")";
     }
 
     /**

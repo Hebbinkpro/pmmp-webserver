@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ namespace Hebbinkpro\WebServer\http\server;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\router\Router;
+use Hebbinkpro\WebServer\WebServer;
 use pmmp\thread\ThreadSafe;
 
 /**
@@ -42,6 +43,7 @@ class HttpServerInfo extends ThreadSafe
 
     private int $keepAliveTimeout;
     private int $keepAliveMax;
+    private ?string $name;
 
     /**
      * @param string $host
@@ -50,8 +52,9 @@ class HttpServerInfo extends ThreadSafe
      * @param SslSettings|null $ssl
      * @param int<0,max> $keepAliveTimeout
      * @param int<0,max> $keepAliveMax
+     * @param string|null $name set to null to disable, set to empty string for `WebServer::getDefaultServerName()`
      */
-    public function __construct(string $host, int $port = -1, ?Router $router = null, ?SslSettings $ssl = null, int $keepAliveTimeout = 0, int $keepAliveMax = 0)
+    public function __construct(string $host, int $port = -1, ?Router $router = null, ?SslSettings $ssl = null, int $keepAliveTimeout = 0, int $keepAliveMax = 0, ?string $name = "")
     {
         $this->host = $host;
         $this->port = $port >= 0 ? $port :
@@ -60,6 +63,7 @@ class HttpServerInfo extends ThreadSafe
         $this->ssl = $ssl;
         $this->keepAliveTimeout = $keepAliveTimeout;
         $this->keepAliveMax = $keepAliveMax;
+        $this->name = $name === "" ? WebServer::getDefaultServerName() : $name;
     }
 
     /**
@@ -213,5 +217,16 @@ class HttpServerInfo extends ThreadSafe
     public function isProxy(): bool
     {
         return false;
+    }
+
+    /**
+     * The server name
+     *
+     * This is the name that will be used in the Server header in a response.
+     * @return string|null
+     */
+    public function getName(): ?string
+    {
+        return $this->name;
     }
 }
