@@ -7,3 +7,5 @@ parameters:
 	excludePaths:
 	    - src/Hebbinkpro/WebServer/libs/*
 	treatPhpDocTypesAsCertain: false
+	editorUrl: 'file://%%file%%:%%line%%'
+	editorUrlTitle: '%%file%%:%%line%%'
