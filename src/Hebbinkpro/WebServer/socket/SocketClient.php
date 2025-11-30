@@ -111,7 +111,8 @@ class SocketClient
     {
         // we cannot write from a closed socket
         if (!$this->isAvailable()) {
-            throw new SocketClosedException("Cannot write to closed socket {$this->getName()}");
+            // we cannot write from a closed socket, this can be thrown when the client closes the connection
+            return false;
         }
 
         try {
