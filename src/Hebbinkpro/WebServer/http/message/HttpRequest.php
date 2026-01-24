@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpRequestLine;
 use Hebbinkpro\WebServer\http\HttpVersion;
+use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\PathUri;
@@ -39,6 +40,7 @@ use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 
 /**
  * HTTP Request received from a client
+ * @deprecated Will be replaced by an immutable class
  */
 class HttpRequest implements HttpMessage
 {
@@ -46,7 +48,7 @@ class HttpRequest implements HttpMessage
     private HttpMethod $method;
     private HttpUrl $url;
     private HttpVersion $version;
-    private HttpMessageHeaders $headers;
+    private HttpHeader $headers;
     private string $body;
     /** @var array<string, string> */
     private array $pathParams;
@@ -56,10 +58,10 @@ class HttpRequest implements HttpMessage
      * @param HttpMethod $method
      * @param HttpUrl $uri
      * @param HttpVersion $version
-     * @param HttpMessageHeaders $headers
+     * @param HttpHeader $headers
      * @param string $body
      */
-    public function __construct(HttpMethod $method, HttpUrl $uri, HttpVersion $version, HttpMessageHeaders $headers, string $body)
+    public function __construct(HttpMethod $method, HttpUrl $uri, HttpVersion $version, HttpHeader $headers, string $body)
     {
         $this->routePath = "";
         $this->method = $method;
@@ -82,7 +84,7 @@ class HttpRequest implements HttpMessage
         $this->body .= $data;
 
         $bodyLength = strlen($this->body);
-        $contentLength = intval($this->headers->getHeader(HttpHeaders::CONTENT_LENGTH) ?? 0);
+        $contentLength = intval($this->headers->getFieldValue(HttpHeaders::CONTENT_LENGTH) ?? 0);
 
         // content limit is exceeded
         if ($bodyLength > $contentLength) return 2;
@@ -133,19 +135,19 @@ class HttpRequest implements HttpMessage
 
         $httpUrl = HttpUrlFactory::parseRequestTarget($target);
 
-        $headers = HttpMessageHeaders::parse(array_slice($lines, 1));
+        $headers = HttpHeader::parse(array_slice($lines, 1));
         if ($headers === null) throw HttpProblemException::badRequest($target, "Malformed headers");
 
-        if (!$headers->exists(HttpHeaders::HOST)) {
+        if (!$headers->fieldExists(HttpHeaders::HOST)) {
             throw HttpProblemException::badRequest($target, "Missing header: host");
         }
 
-        $host = $headers->getHeader(HttpHeaders::HOST);
+        $host = $headers->getFieldValue(HttpHeaders::HOST);
         if ($host === null) throw HttpProblemException::badRequest($target, "Missing header: host");
 
         // check the content limit
         $bodyLength = strlen($body);
-        $contentLength = intval($headers->getHeader(HttpHeaders::CONTENT_LENGTH) ?? 0);
+        $contentLength = intval($headers->getFieldValue(HttpHeaders::CONTENT_LENGTH) ?? 0);
         if ($bodyLength > HttpConstants::MAX_BODY_SIZE || $bodyLength > $contentLength) {
             throw new HttpProblemException(HttpStatusCodes::CONTENT_TOO_LARGE, $target);
         }
@@ -158,39 +160,14 @@ class HttpRequest implements HttpMessage
      * @param string $requestLine The request line to parse
      * @return HttpRequestLine The HTTP request line
      * @throws HttpProblemException if the request was invalid
+     * @deprecated Use <code>HttpRequestLine::parse()</code> instead
      */
     public static function parseRequestLine(string $requestLine): HttpRequestLine
     {
-        $parts = array_map("trim", explode(" ", $requestLine));
-        if (sizeof($parts) != 3) throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST,
-            "/", // is unknown at this point
-            "Malformed request line"
-        );
-
-        [$methodStr, $target, $versionStr] = $parts;
-        if (strlen($target) < 1) throw new HttpProblemException(
-            HttpStatusCodes::BAD_REQUEST,
-            $target,
-            "The Request Target cannot be empty.");
-
-        $method = HttpMethod::tryFrom($methodStr);
-        if ($method === null) throw new HttpProblemException(
-            HttpStatusCodes::NOT_IMPLEMENTED,
-            $target,
-            "The HTTP Request Method '$methodStr' is unknown.'"
-        );
-
-        $httpVersion = HttpVersion::fromString($versionStr);
-        if ($httpVersion === null) throw new HttpProblemException(
-            HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED,
-            $target,
-            "HTTP Version '$versionStr' is malformed or not recognized."
-        );
-
-        return new HttpRequestLine($method, $target, $httpVersion);
+        return HttpRequestLine::parse($requestLine);
     }
 
-    public static function withRequestLine(HttpRequestLine $requestLine, HttpUrl $uri, HttpMessageHeaders $headers, string $body): HttpRequest
+    public static function withRequestLine(HttpRequestLine $requestLine, HttpUrl $uri, HttpHeader $headers, string $body): HttpRequest
     {
         return new self($requestLine->getMethod(), $uri, $requestLine->getVersion(), $headers, $body);
     }
@@ -316,7 +293,7 @@ class HttpRequest implements HttpMessage
         return $this->pathParams[$name] ?? null;
     }
 
-    public function getHeaders(): HttpMessageHeaders
+    public function getHeaders(): HttpHeader
     {
         return $this->headers;
     }

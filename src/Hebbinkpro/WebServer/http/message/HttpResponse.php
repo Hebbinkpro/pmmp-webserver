@@ -32,6 +32,7 @@ use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
+use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
@@ -40,14 +41,14 @@ use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
 
 /**
  * HTTP Response send by the server
- * TODO should this also be an immutable class like HttpRequest?
+ * @deprecated Will be replaced by an immutable class
  */
 class HttpResponse implements HttpMessage
 {
     private HttpClient $client;
     private HttpStatus $status;
     private HttpVersion $version;
-    private HttpHeader $headers;
+    private HttpHeaderBuilder $headers;
     private string $body; // TODO replace with a buffer
     private bool $head;
     private bool $ended;
@@ -58,9 +59,9 @@ class HttpResponse implements HttpMessage
      * @param int|HttpStatus $status
      * @param string $body
      * @param bool $head
-     * @param HttpHeader $headers
+     * @param HttpHeaderBuilder $headers
      */
-    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpHeader $headers = new HttpHeader())
+    public function __construct(HttpClient $client, int|HttpStatus $status, string $body = "", bool $head = false, HttpHeaderBuilder $headers = new HttpHeaderBuilder())
     {
         $this->client = $client;
         $this->status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
@@ -72,8 +73,8 @@ class HttpResponse implements HttpMessage
 
         // set some default headers
         // TODO this overrides any custom headers set by the user, maybe add an override option?
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_HTML);
-        $this->headers->setHeader(HttpHeaders::CONTENT_ENCODING, "utf-8");
+        $this->headers->setField(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_HTML);
+        $this->headers->setField(HttpHeaders::CONTENT_ENCODING, "utf-8");
 
     }
 
@@ -111,14 +112,14 @@ class HttpResponse implements HttpMessage
     public static function notFound(HttpClient $client): HttpResponse
     {
         $res = new HttpResponse($client, HttpStatusCodes::NOT_F0UND);
-        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->getHeaders()->setField(HttpHeaders::CONNECTION, "close");
         $res->text($res->getStatus()->toString());
         return $res;
     }
 
     public function getHeaders(): HttpHeader
     {
-        return $this->headers;
+        return $this->headers->build();
     }
 
     /**
@@ -140,7 +141,7 @@ class HttpResponse implements HttpMessage
     public function toString(): string
     {
         $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
-        $data .= $this->headers->toString() . "\r\n";
+        $data .= $this->headers->build()->toString() . "\r\n";
         $data .= strlen($this->body) == 0 ? "" : $this->body . "\r\n";
 
         return $data;
@@ -171,7 +172,7 @@ class HttpResponse implements HttpMessage
     public static function internalServerError(HttpClient $client): HttpResponse
     {
         $res = new HttpResponse($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
-        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->getHeaders()->setField(HttpHeaders::CONNECTION, "close");
         $res->text($res->getStatus()->toString());
         return $res;
     }
@@ -185,7 +186,7 @@ class HttpResponse implements HttpMessage
     public static function notImplemented(HttpClient $client): HttpResponse
     {
         $res = new HttpResponse($client, HttpStatusCodes::NOT_IMPLEMENTED);
-        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        $res->getHeaders()->setField(HttpHeaders::CONNECTION, "close");
         $res->text($res->getStatus()->toString());
         return $res;
     }
@@ -209,7 +210,7 @@ class HttpResponse implements HttpMessage
      */
     public function sendStatusMessage(): void
     {
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
+        $this->headers->setField(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
         $this->body = $this->status->getMessage();
     }
 
@@ -315,7 +316,7 @@ class HttpResponse implements HttpMessage
      */
     public function setContentType(string $contentType): void
     {
-        $this->headers->setHeader(HttpHeaders::CONTENT_TYPE, $contentType);
+        $this->headers->setField(HttpHeaders::CONTENT_TYPE, $contentType);
     }
 
     /**
@@ -333,7 +334,7 @@ class HttpResponse implements HttpMessage
         $this->ended = true;
 
         // set the content length to the body size
-        $this->headers->setHeader(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
+        $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
 
         // check if head was used
         if ($this->head) {
@@ -350,21 +351,21 @@ class HttpResponse implements HttpMessage
         $serverInfo = HttpServer::getInstance()->getServerInfo();
 
         // set the date header
-        $this->headers->setHeader(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+        $this->headers->setField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
 
         // set the server name if it is set
         if (($serverName = $serverInfo->getName()) !== null) {
-            $this->headers->setHeader(HttpHeaders::SERVER, $serverName);
+            $this->headers->setField(HttpHeaders::SERVER, $serverName);
         }
 
 
         // set the correct header
         if ($this->client->isClosed()) {
             // set close if client has closed the connection
-            $this->headers->setHeader(HttpHeaders::CONNECTION, "close");
-        } else if (!$this->headers->exists(HttpHeaders::CONNECTION)) {
+            $this->headers->setField(HttpHeaders::CONNECTION, "close");
+        } else if (!$this->headers->fieldExists(HttpHeaders::CONNECTION)) {
             // set keep-alive if no header was set
-            $this->headers->setHeader(HttpHeaders::CONNECTION, "keep-alive");
+            $this->headers->setField(HttpHeaders::CONNECTION, "keep-alive");
         }
 
         // if connection is keep-alive, set Keep-Alive header
@@ -386,7 +387,7 @@ class HttpResponse implements HttpMessage
 
             // set the keep alive header if a value is set
             if (sizeof($values) > 0) {
-                $this->headers->setHeader(HttpHeaders::KEEP_ALIVE, implode(",", $values));
+                $this->headers->setField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
             }
         }
 
