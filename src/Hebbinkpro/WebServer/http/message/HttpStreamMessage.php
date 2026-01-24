@@ -31,25 +31,24 @@ use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 /**
  * Interface for all methods required inside an HTTP Message
  */
-interface HttpMessage
+interface HttpStreamMessage
 {
     /**
-     * Get the HTTP version of the message
+     * Get the HTTP version
      * @return HttpVersion
      */
     public function getVersion(): HttpVersion;
 
     /**
-     * Get the HTTP message headers
+     * Get the HTTP headers
      * @return HttpHeader
      */
     public function getHeaders(): HttpHeader;
 
     /**
-     * Get the HTTP message body
-     * @return string
-     * @deprecated TODO replace by some streaming principle
+     * Get the HTTP body as a stream
+     * @return resource
      */
-    public function getBody(): string;
+    public function getBody(): mixed;
 
 }

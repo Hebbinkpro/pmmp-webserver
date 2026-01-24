@@ -1,0 +1,302 @@
+<?php
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025-2026 Hebbinkpro
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+namespace Hebbinkpro\WebServer\http\message\response;
+
+use DateTime;
+use DateTimeInterface;
+use Hebbinkpro\WebServer\exception\FileNotFoundException;
+use Hebbinkpro\WebServer\http\HttpContentType;
+use Hebbinkpro\WebServer\http\HttpHeaders;
+use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
+use Hebbinkpro\WebServer\http\message\HttpMessageBody;
+use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpServer;
+use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
+use JsonException;
+use LogicException;
+
+class HttpResponseBuilder
+{
+    private HttpStatus $status;
+    private HttpHeaderBuilder $headers;
+    private ?HttpMessageBody $body;
+    private bool $sendNoContent;
+
+    /**
+     * @param bool $sendNoContent if true, only the response headers can be set, the body will be null
+     */
+    public function __construct(bool $sendNoContent = false)
+    {
+        $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::OK);
+        $this->headers = new HttpHeaderBuilder();
+        $this->body = null;
+        $this->sendNoContent = $sendNoContent;
+    }
+
+    /**
+     * Set the status of the response
+     * @param HttpStatus|int $status
+     * @return $this
+     */
+    public function setStatus(HttpStatus|int $status): HttpResponseBuilder
+    {
+        $this->status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
+        return $this;
+    }
+
+    /**
+     * Get the header builder of the response
+     * @return HttpHeaderBuilder
+     */
+    public function getHeaders(): HttpHeaderBuilder
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Set a response header
+     *
+     * Equivalent to `$builder->getHeaders()->setHeader($header, $value)`
+     * @param string $header the header name
+     * @param string $value the header value
+     * @return $this
+     */
+    public function setHeaders(string $header, string $value): HttpResponseBuilder
+    {
+        $this->headers->setField($header, $value);
+        return $this;
+    }
+
+    /**
+     * Send a string as plain text
+     *
+     *  Alias: `sendString($text, HttpContentType::TEXT_PLAIN)`
+     * @param string $text the text to send
+     * @return $this
+     */
+    public function text(string $text): HttpResponseBuilder
+    {
+        $this->sendString($text, HttpContentType::TEXT_PLAIN);
+        return $this;
+    }
+
+    /**
+     * Send a string as a response.
+     *
+     * Sets the body as a temporary file stream to which the string is written.
+     * @param string $data the data to send
+     * @param string $contentType the content type of the data
+     * @return $this
+     */
+    public function sendString(string $data, string $contentType): HttpResponseBuilder
+    {
+        $stream = fopen("php://temp", "r+");
+        fwrite($stream, $data);
+        rewind($stream);
+
+        $this->setBody(new HttpMessageBody($stream, strlen($data)));
+        $this->setContentType($contentType);
+        return $this;
+    }
+
+    /**
+     * Set the body stream of the response
+     *
+     * If this is a no-content response, the body will be ignored
+     * @param HttpMessageBody|null $body the body
+     * @return void
+     */
+    public function setBody(?HttpMessageBody $body): void
+    {
+        if ($this->sendNoContent && $body !== null) return;
+        $this->body = $body;
+    }
+
+    /**
+     * Set the content type of the response
+     *
+     * Equivalent to `$builder->getHeaders()->setHeader(HttpHeaders::CONTENT_TYPE, $contentType)`
+     * @param string $contentType
+     * @return $this
+     */
+    public function setContentType(string $contentType): HttpResponseBuilder
+    {
+        $this->headers->setField(HttpHeaders::CONTENT_TYPE, $contentType);
+        return $this;
+    }
+
+    /**
+     * Send HTML as a response
+     *
+     * Alias: `sendString($html, HttpContentType::TEXT_HTML)`
+     * @param string $html the HTML to send
+     * @return $this
+     */
+    public function html(string $html): HttpResponseBuilder
+    {
+        $this->sendString($html, HttpContentType::TEXT_HTML);
+        return $this;
+    }
+
+    /**
+     * Send JSON data as a response
+     *
+     * Encodes the JSON data using `json_encode($json, $flags | JSON_THROW_ON_ERROR)`
+     *
+     * Alias: `sendString($encoded_json, HttpContentType::APPLICATION_JSON);`
+     * @param array $data the JSON data to send
+     * @param int $flags the `json_encode` flags to use when encoding the JSON data
+     * @return $this
+     * @throws JsonException if the JSON data is invalid
+     */
+    public function json(array $data, int $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES): HttpResponseBuilder
+    {
+        $this->sendString(json_encode($data, $flags | JSON_THROW_ON_ERROR), HttpContentType::APPLICATION_JSON);
+        return $this;
+    }
+
+    /**
+     * Send a file as a response or send a default value if the file does not exist
+     *
+     * The content type is required to determine the content type of the default value.
+     * @param string $filename the name of the file to send
+     * @param string $default the default value to send if the file does not exist
+     * @param string $contentType the content type of the file and default value
+     * @return $this
+     */
+    public function sendFileOrDefault(mixed $filename, string $default, string $contentType): HttpResponseBuilder
+    {
+        try {
+            return $this->sendFile($filename, $contentType);
+        } catch (FileNotFoundException) {
+            // file does not exist, send the default value
+            return $this->sendString($default, $contentType);
+        }
+    }
+
+    /**
+     * Send a file as a response
+     *
+     * Creates a file stream using `fopen()` and determines the file size using `filesize()`.
+     * @param string $filename the name of the file to send
+     * @param string|null $contentType the content type of the file. If null, `mime_content_type()` is used
+     * @return $this
+     * @throws FileNotFoundException if the file does not exist
+     */
+    public function sendFile(string $filename, ?string $contentType = null): HttpResponseBuilder
+    {
+
+        if (!file_exists($filename)) throw new FileNotFoundException($filename);
+        $stream = fopen($filename, "rb");
+
+        if ($contentType === null) {
+            // determine the mimetype, otherwise default to octet-stream
+            $contentType = @mime_content_type($filename);
+            if ($contentType === false) $contentType = HttpContentType::APPLICATION_OCTET_STREAM;
+        }
+
+        // try to get the filesize
+        $length = @filesize($filename);
+        if ($length === false) {
+            throw new LogicException("Could not determine file size of $filename");
+        }
+
+        return $this->sendStream($stream, $length, $contentType);
+    }
+
+    /**
+     * Send a file stream as a response
+     * @param resource $stream the stream to send
+     * @param string $contentType the content type of the stream, defaults to octet-stream
+     * @return $this
+     */
+    public function sendStream(mixed $stream, int $length, string $contentType = HttpContentType::APPLICATION_OCTET_STREAM): HttpResponseBuilder
+    {
+        $this->setBody(new HttpMessageBody($stream, $length));
+        $this->setContentType($contentType);
+        return $this;
+    }
+
+    public function build(HttpClient $client): HttpStreamResponse
+    {
+        $this->finalize($client);
+        $headers = $this->headers->build();
+        return new HttpStreamResponse($client, $this->status, $headers, $this->body);
+    }
+
+
+    /**
+     * Finalize the response such that it is ready to be built
+     *
+     * This function will always be called during $build()$, which ensures that everything set here will be part of the response.
+     * @param HttpClient $client
+     * @return void
+     */
+    protected function finalize(HttpClient $client): void
+    {
+        $serverInfo = HttpServer::getInstance()->getServerInfo();
+
+        // set the final content length
+        $contentLength = $this->body?->getLength() ?? 0;
+        $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval($contentLength));
+
+        // set server headers
+        $this->headers->setField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+
+        // set the server name if it is set
+        if ($serverInfo->getName() !== null) {
+            $this->headers->setField(HttpHeaders::SERVER, $serverInfo->getName());
+        }
+
+        $connection = $client->isClosed() ? "close" : "keep-alive";
+        $this->headers->setField(HttpHeaders::CONNECTION, $connection);
+
+        // if connection is keep-alive, set Keep-Alive header
+        if (!$client->isClosed()) {
+            $values = [];
+
+            // set timeout
+            $keepAliveTimeout = HttpServer::getInstance()->getServerInfo()->getKeepAliveTimeout();
+            if ($keepAliveTimeout > 0) {
+                $values[] = "timeout=" . $keepAliveTimeout;
+            }
+
+            // set max
+            $keepAliveMax = HttpServer::getInstance()->getServerInfo()->getKeepAliveMax();
+            if ($keepAliveMax > 0) {
+                $remaining = $keepAliveMax - $client->getServedRequests();
+                $values[] = "max=" . $remaining;
+            }
+
+            // set the keep alive header if a value is set
+            if (sizeof($values) > 0) {
+                $this->headers->setField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
+            }
+        }
+    }
+}
