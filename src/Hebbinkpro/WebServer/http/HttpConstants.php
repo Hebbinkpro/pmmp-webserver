@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -56,4 +56,7 @@ final class HttpConstants
     public const HTTPS_SCHEME = "https";
 
     public const HTTP_URI_ASTERISK = "*";
+
+    public const HTTP_VERSION_MAJOR = 1;
+    public const HTTP_VERSION_MINOR = 1;
 }

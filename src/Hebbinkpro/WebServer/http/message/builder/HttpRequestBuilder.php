@@ -191,19 +191,21 @@ class HttpRequestBuilder implements HttpMessageBuilder
     {
         $finished = $this->readBufferUntil($this->requestLineStr, "\r\n");
 
+        $lineSize = strlen($this->requestLineStr);
+
         // validate the request line length
-        if (strlen($this->requestLineStr) > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
+        if ($lineSize > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
             $this->setInvalid(HttpStatusCodes::URI_TOO_LONG, "Max request line length reached");
         }
 
-        // needs more data
-        if (!$finished) {
+        // needs more data, or got an empty line
+        if (!$finished || $lineSize == 0) {
             return false;
         }
 
         // parse the request line and store the values
         try {
-            $this->requestLine = HttpRequest::parseRequestLine($this->requestLineStr);
+            $this->requestLine = HttpRequestLine::parse($this->requestLineStr);
         } catch (HttpException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }

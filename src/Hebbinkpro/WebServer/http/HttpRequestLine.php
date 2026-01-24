@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,10 @@
  */
 
 namespace Hebbinkpro\WebServer\http;
+
+use Hebbinkpro\WebServer\exception\HttpProblemException;
+use Hebbinkpro\WebServer\http\server\HttpServer;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 class HttpRequestLine
 {
@@ -53,6 +57,66 @@ class HttpRequestLine
     public function getVersion(): HttpVersion
     {
         return $this->version;
+    }
+
+    /**
+     * Parse the request line (the first line) of an HTTP Request
+     * @param string $requestLine The request line to parse
+     * @return HttpRequestLine The HTTP request line
+     * @throws HttpProblemException if the request was invalid
+     */
+    public static function parse(string $requestLine): self
+    {
+
+        // check if the request line contains exactly 2 spaces
+        $count = substr_count($requestLine, " ");
+        if ($count != 2) {
+            throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST,
+                "/", // is unknown at this point
+                "Malformed request line"
+            );
+        }
+
+        // get the different parts
+        [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);;
+
+        // first, validate the HTTP version
+        $httpVersion = HttpVersion::parse($versionStr);
+        if ($httpVersion->getMajorVersion() != HttpConstants::HTTP_VERSION_MAJOR
+            || $httpVersion->getMinorVersion() != HttpConstants::HTTP_VERSION_MINOR) {
+
+            throw new HttpProblemException(
+                HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED,
+                "/",
+                "HTTP Version Not Supported"
+            );
+        }
+
+        // ensure it is a valid token
+        if (!@preg_match("/^" . HttpParsingRules::TOKEN . "$/", $methodStr)) throw new HttpProblemException(
+            HttpStatusCodes::BAD_REQUEST,
+            $target,
+            "Malformed Request Method"
+        );
+
+        // validate the method, also gainst the servers supported methods
+        $method = HttpMethod::tryFrom(strtoupper($methodStr));
+        $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
+        if ($method === null || !in_array($method, $supportedMethods)) throw new HttpProblemException(
+            HttpStatusCodes::NOT_IMPLEMENTED,
+            $target,
+            "Not Implemented"
+        );
+
+        // allow all visible ascii characters, proper parsing will be done later
+        if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
+            throw new HttpProblemException(
+                HttpStatusCodes::BAD_REQUEST,
+                $target,
+                "Invalid Request Target");
+        }
+
+        return new self($method, $target, $httpVersion);
     }
 
 }

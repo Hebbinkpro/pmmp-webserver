@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,15 @@
 
 namespace Hebbinkpro\WebServer\http;
 
+use Hebbinkpro\WebServer\exception\HttpProblemException;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+
 /**
  * HTTP Version to identify the HTTP request version of the client and to use in the response of the server.
  */
 class HttpVersion
 {
-    public const DEFAULT_MAJOR = 1;
-    public const DEFAULT_MINOR = 1;
+
 
     /**
      * @param int $major major HTTP version
@@ -45,20 +47,20 @@ class HttpVersion
      * Decode an http version
      * @param string $version
      * @return HttpVersion|null
+     * @throws HttpProblemException if the version string was malformed
      */
-    public static function fromString(string $version): ?HttpVersion
+    public static function parse(string $version): ?HttpVersion
     {
-        if ($version === "undefined") return self::getDefault();
+        // invalid http version
+        if (!@preg_match("/^" . HttpParsingRules::HTTP_VERSION . "$/", $version)) {
+            throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "Malformed HTTP Version");
+        }
 
-        // invalid http request
-        if (!str_starts_with($version, "HTTP/")) return null;
+        // remove the HTTP/ prefix
+        $httpVersion = substr($version, 5);
 
-        // get major and minor versions
-        [$major, $minor] = explode(".", substr($version, 5));
-
-        // check if the integers are valid
-        if (!ctype_digit($major) || !ctype_digit($minor)) return null;
-
+        // get major and minor versions, since it passed the preg_match, we are sure that they are digits in [0-9]
+        [$major, $minor] = explode(".", $httpVersion);
 
         return new HttpVersion(intval($major), intval($minor));
     }
@@ -69,7 +71,7 @@ class HttpVersion
      */
     public static function getDefault(): HttpVersion
     {
-        return new HttpVersion(self::DEFAULT_MAJOR, self::DEFAULT_MINOR);
+        return new HttpVersion(HttpConstants::HTTP_VERSION_MAJOR, HttpConstants::HTTP_VERSION_MINOR);
     }
 
     /**
