@@ -61,6 +61,32 @@ class HttpHeaderBuilder extends BaseHttpHeader
     }
 
     /**
+     * Set a header field from an unparsed field line
+     *
+     * Validates and parses the field line before the field is set.
+     * @param string $fieldLine the field line
+     * @return void
+     * @throws HttpProblemException if the field line is malformed
+     */
+    public function setFromFieldLine(string $fieldLine): void
+    {
+        // invalid field line, does not match RFC 9110 section 5
+        if (!@preg_match("/^" . HttpParsingRules::FIELD_LINE . "$/", $fieldLine)) {
+            throw HttpProblemException::badRequest(null, "Malformed header");
+        }
+
+        $parts = explode(":", $fieldLine, 2);
+
+        // this is actually a redundant check, as the : is definitely inside the string
+        if (sizeof($parts) != 2) {
+            throw HttpProblemException::badRequest(null, "Malformed header");
+        }
+
+        // trim the value to remove optional whitespace
+        $this->setField($parts[0], trim($parts[1]));
+    }
+
+    /**
      * Set a field only if the field name is not yet set
      * @param string $fieldName
      * @param string $value
@@ -119,30 +145,12 @@ class HttpHeaderBuilder extends BaseHttpHeader
      */
     public static function parse(array $fieldLines): self
     {
-        $headerFields = [];
+        $headerFields = new HttpHeaderBuilder();
         foreach ($fieldLines as $line) {
-
-            // invalid field line, does not match RFC 9110 section 5
-            if (!@preg_match("/^" . HttpParsingRules::FIELD_LINE . "$/", $line)) {
-                throw HttpProblemException::badRequest(null, "Malformed header");
-            }
-
-            $parts = explode(":", $line, 2);
-
-            // this is actually a redundant check, as the : is definitely inside the string
-            if (sizeof($parts) != 2) {
-                throw HttpProblemException::badRequest(null, "Malformed header");
-            }
-
-            // lower and trim, just to be sure
-            $name = self::normalizeFieldName(trim($parts[0]));
-            $value = trim($parts[1]);
-
-            if (!isset($headerFields[$name])) $headerFields[$name] = [$value];
-            else $headerFields[$name][] = $value;
+            $headerFields->setFromFieldLine($line);
         }
 
-        return new self($headerFields);
+        return $headerFields;
     }
 
 }
