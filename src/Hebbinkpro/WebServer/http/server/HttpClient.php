@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -212,7 +212,7 @@ class HttpClient extends SocketClient
     private function validateHttpConnection(HttpRequest $req): bool
     {
         // if Connection: close, close the connection after handling the request
-        if ($req->getHeaders()->getHeader(HttpHeaders::CONNECTION, "keep-alive") === "close") {
+        if ($req->getHeaders()->getFieldValue(HttpHeaders::CONNECTION, "keep-alive") === "close") {
             return true;
         }
 
