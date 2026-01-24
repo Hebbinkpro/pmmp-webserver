@@ -137,9 +137,10 @@ final class HttpParsingRules
 
     public const OBS_TEXT = "[\x80-\xFF]";
 
+    public const HTTP_VERSION = "HTTP/" . self::DIGIT . "." . self::DIGIT;
 
     public const FIELD_VCHAR = "(" . self::VCHAR . "|" . self::OBS_TEXT . ")";
-    public const FIELD_CONTENT = self::FIELD_VCHAR . "(" . self::RWS . self::FIELD_VCHAR . ")?";
-    /** @var string Field line interpretation according to RFC 9110 */
+    public const FIELD_CONTENT = self::FIELD_VCHAR . "((" . self::SP . "|" . self::HTAB . "|" . self::FIELD_VCHAR . ")+" . self::FIELD_VCHAR . ")?";
+
     public const FIELD_LINE = self::TOKEN . ":" . self::OWS . "(" . self::FIELD_CONTENT . ")*" . self::OWS;
 }
