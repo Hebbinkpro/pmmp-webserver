@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,10 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
+use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpRequestLine;
-use Hebbinkpro\WebServer\http\message\HttpMessageHeaders;
+use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -55,7 +56,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private string $buffer = "";
     private string $requestLineStr = "";
     private string $uriTarget = "";
-    private string $headerData = "";
+    private string $headerLine = "";
     private int $totalHeaderLength = 0;
 
     private HttpRequestLine $requestLine;
@@ -65,8 +66,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private int $contentLength = 0;
     private int $bodyLength = 0;
 
-
-    private HttpMessageHeaders $headers;
+    private HttpHeaderBuilder $headers;
     private string $body = "";
 
     public function __construct(HttpServerInfo $serverInfo, Logger $logger)
@@ -115,8 +115,8 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
                     // update the state and set default values
                     $this->state = HttpBuilderState::READING_HEADERS;
-                    $this->headerData = "";
-                    $this->headers = new HttpMessageHeaders();
+                    $this->headerLine = "";
+                    $this->headers = new HttpHeaderBuilder();
                     $this->totalHeaderLength = 0;
                     break;
 
@@ -126,7 +126,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
                     // update the state and set default values
                     $this->body = "";
-                    $this->contentLength = intval($this->headers->getHeader(HttpHeaders::CONTENT_LENGTH, "0"));
+                    $this->contentLength = intval($this->headers->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
                         $this->state = HttpBuilderState::COMPLETE;
@@ -261,48 +261,49 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
         // loop until all headers have been read
         while (true) {
-            $headersAvailable = $this->readBufferUntil($this->headerData, "\r\n");
-            $headerLength = strlen($this->headerData);
+            // read the next header into $this->headerData
+            $headersAvailable = $this->readBufferUntil($this->headerLine, HttpParsingRules::CRLF);
 
-            // current header line is too large
+            // first check buffer sizes, such that we do never read more into the buffer then we are allowed
+
+            // current header line is already too long
+            $headerLength = strlen($this->headerLine);
             if ($headerLength > HttpConstants::MAX_HEADER_LINE_LENGTH) {
                 $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG, "Max header line length reached");
+            }
+
+            // add to total header length, and add 2 additional bytes for the linebreak (\r\n)
+            $newTotalLength = $this->totalHeaderLength + $headerLength + 2;
+
+            // the total header length is too large
+            if ($newTotalLength > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
+                $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG, "Max total header length reached");
             }
 
             // incomplete header, wait for more data
             if (!$headersAvailable) return false;
 
+            // write the total header length
+            $this->totalHeaderLength = $newTotalLength;
+
             // found the double linebreak, headers are complete
             if ($headerLength == 0) break;
 
-            // add the header length, and add 2 bytes for the linebreak (\r\n)
-            $this->totalHeaderLength += $headerLength + 2;
-
-            // the total header length is too large
-            if ($this->totalHeaderLength > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
-                $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG, "Max total header length reached");
+            // try to set the field from the parsed line
+            try {
+                $this->headers->setFromFieldLine($this->headerLine);
+            } catch (HttpProblemException $e) {
+                $this->setInvalidProblem($e->getHttpError());
             }
 
-            // split the header data into name and value
-            $parts = explode(":", $this->headerData, 2);
-            // invalid header
-            if (count($parts) < 2) {
-                $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid header: $this->headerData");
-            }
-
-            // add the header
-            $this->headers->setHeader(trim($parts[0]), trim($parts[1]));
-            // reset header data
-            $this->headerData = "";
+            // reset header line
+            $this->headerLine = "";
         }
 
-        // host is required
-        if (!$this->headers->exists(HttpHeaders::HOST)) {
+        // host is required for HTTP/1.1
+        if (!$this->headers->fieldExists(HttpHeaders::HOST)) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
-
-        /** @var string $host - host always exists here */
-        $host = $this->headers->getHeader(HttpHeaders::HOST);
 
         try {
             $url = HttpUrlFactory::parseRequestTarget($this->uriTarget);
@@ -410,7 +411,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
             throw new HttpRequestBuilderException("Cannot build an HttpRequest from an incomplete builder");
         }
 
-        return HttpRequest::withRequestLine($this->requestLine, $this->url, $this->headers, $this->body);
+        return HttpRequest::withRequestLine($this->requestLine, $this->url, $this->headers->build(), $this->body);
     }
 
     /**
