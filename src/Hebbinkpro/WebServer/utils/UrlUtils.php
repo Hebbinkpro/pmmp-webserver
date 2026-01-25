@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +51,7 @@ final class UrlUtils
         }
 
         $matches = array_intersect_key($urlParts, $combinedKeys);
-        if (sizeof(array_diff($matches, $requiredKeys)) > 0) {
+        if (sizeof(array_intersect_key($matches, $requiredKeys)) != sizeof($requiredKeys)) {
             throw HttpProblemException::badRequest();
         }
 

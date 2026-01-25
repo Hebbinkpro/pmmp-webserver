@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@
 
 namespace Hebbinkpro\WebServer\utils;
 
-use Exception;
 use pmmp\thread\NonThreadSafeValueError;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
@@ -102,7 +101,6 @@ final class ThreadSafeUtils
      *
      * @param null|int|float|string|bool|ThreadSafe $value A scalar, or ThreadSafe value to unwrap.
      * @return mixed Native PHP value unwrapped from ThreadSafe objects.
-     * @throws Exception
      */
     public static function unwrapThreadSafe(null|int|float|string|bool|ThreadSafe $value): mixed
     {
@@ -118,7 +116,6 @@ final class ThreadSafeUtils
      *
      * @param ThreadSafeArray $tsa
      * @return array<mixed,mixed>
-     * @throws Exception
      */
     public static function unwrapThreadSafeArray(ThreadSafeArray $tsa): array
     {
