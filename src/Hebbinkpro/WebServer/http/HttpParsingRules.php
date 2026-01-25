@@ -26,11 +26,10 @@
 namespace Hebbinkpro\WebServer\http;
 
 /**
- * HTTP Parsing Rules based on RFC 5234, 7230 and 9110
+ * HTTP Parsing Rules (RFC 5234, 7230 and 9110), and URI parsing rules (RFC 3986)
  */
 final class HttpParsingRules
 {
-    // --- definitions of RFC 5234 ---
 
     /**
      * A-Z / a-z
@@ -107,9 +106,6 @@ final class HttpParsingRules
      */
     public const WSP = "[ \t]";
 
-
-    // --- definitions of RFC 7230 ---
-
     /**
      * "bad" whitespace
      *
@@ -137,7 +133,7 @@ final class HttpParsingRules
 
     public const OBS_TEXT = "[\x80-\xFF]";
 
-    public const HTTP_VERSION = "HTTP/" . self::DIGIT . "." . self::DIGIT;
+    public const HTTP_VERSION = "HTTP\/" . self::DIGIT . "." . self::DIGIT;
 
     public const FIELD_VCHAR = "(" . self::VCHAR . "|" . self::OBS_TEXT . ")";
     public const FIELD_CONTENT = self::FIELD_VCHAR . "((" . self::SP . "|" . self::HTAB . "|" . self::FIELD_VCHAR . ")+" . self::FIELD_VCHAR . ")?";

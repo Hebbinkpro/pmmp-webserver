@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,24 +43,28 @@ class UriAuthority implements UriElement
         $host = "";
 
         // got user[:pass]@[host[:port]]
-        if (str_contains($value, "@")) {
-            [$user, $host] = explode("@", $value, 2);
+        if (($at = strpos($value, "@")) !== false) {
+            $user = substr($value, 0, $at);
+            $host = substr($value, $at + 1);
 
-            // got user:pass
-            if (str_contains($user, ":")) {
-                [$user, $pass] = explode(":", $user, 2);
+            // got user:pass - pass can contain many colons
+            if (($colon = strpos($value, ":")) !== false) {
+                $host = substr($value, $colon + 1);
+                $user = substr($value, 0, $colon);
             }
         }
 
-        // got host:port
-        if (str_contains($host, ":")) {
-            [$host, $port] = explode(":", $host, 2);
-            $port = intval($port);
-        }
+        // get the last colon as it could still contain an IPv6 address
+        if (($colon = strrpos($host, ":")) !== false) {
+            $ipv6End = strrpos($host, "]");
+            if ($ipv6End === false || $colon > $ipv6End) {
+                // get the port and validate that its a digit
+                $portStr = substr($host, $colon + 1);
+                if (!ctype_digit($portStr)) throw HttpProblemException::badRequest();
 
-        // somehow there is no valid host
-        if (strlen($host) == 0) {
-            throw HttpProblemException::badRequest();
+                $port = intval($portStr);
+                $host = substr($host, 0, $colon);
+            }
         }
 
         return new self($host, $port, $user, $pass);

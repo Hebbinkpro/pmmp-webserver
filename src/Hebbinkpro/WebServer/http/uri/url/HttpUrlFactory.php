@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ namespace Hebbinkpro\WebServer\http\uri\url;
 
 use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\uri\PathUri;
+use Hebbinkpro\WebServer\utils\UrlUtils;
 
 class HttpUrlFactory
 {
@@ -37,15 +38,13 @@ class HttpUrlFactory
      */
     public static function parseRequestTarget(string $target): HttpUrl
     {
-        if ($target === "*") {
-            return new HttpAsteriskUrl();
-        } elseif (str_starts_with($target, "/")) {
-            return HttpOriginUrl::parse($target);
-        } elseif (filter_var($target, FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED) !== false) {
-            return HttpAbsoluteUrl::parse($target);
-        } elseif (preg_match("/^([a-zA-Z0-9.-]+|\[[a-fA-F0-9:]+]):\d+$/", $target) !== false) {
-            return HttpAuthorityUrl::parse($target);
-        }
+        if ($target === "*") return new HttpAsteriskUrl();
+
+        // some very simple check to determine which type of URL we should parse
+        $targetParts = UrlUtils::parseUrl($target);
+        if (array_key_exists("scheme", $targetParts)) return HttpAbsoluteUrl::parse($target);
+        if (array_key_exists("path", $targetParts)) return HttpOriginUrl::parse($target);
+        if (array_key_exists("host", $targetParts)) return HttpAuthorityUrl::parse($target);
 
         throw HttpProblemException::badRequest();
     }
@@ -55,7 +54,7 @@ class HttpUrlFactory
      * @param PathUri $uri
      * @return HttpOriginUrl
      */
-    public static function pathUriAsOriginUrl(PathUri $uri): HttpOriginUrl
+    public static function pathUriAsOrigin(PathUri $uri): HttpOriginUrl
     {
         return new HttpOriginUrl($uri->getPath(), $uri->getQuery(), $uri->getFragment());
     }

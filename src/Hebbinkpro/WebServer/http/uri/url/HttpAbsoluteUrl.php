@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,11 +45,11 @@ class HttpAbsoluteUrl extends HttpOriginUrl implements SchemeUri, AuthorityUri
 
     public static function parse(string $value): HttpAbsoluteUrl
     {
-        /** @var array{scheme: string, host: string, path: string, user?: string, pass?: string, port?: int, query?: string, fragment?: string} $urlParts */
+        /** @var array{scheme: string, host?: string, path?: string, user?: string, pass?: string, port?: int, query?: string, fragment?: string} $urlParts */
         $urlParts = UrlUtils::parseUrlMatches(
             $value,
-            ["scheme", "host", "path"],
-            ["user", "pass", "port", "query", "fragment"]
+            ["scheme"],
+            ["user", "pass", "host", "port", "path", "query", "fragment"]
         );
 
         // validate scheme, should be HTTP or HTTPS
@@ -58,11 +58,11 @@ class HttpAbsoluteUrl extends HttpOriginUrl implements SchemeUri, AuthorityUri
             throw HttpProblemException::badRequest();
         }
 
-        $path = UriPath::parse($urlParts["path"]);
+        $path = UriPath::parse($urlParts["path"] ?? "/");
         $query = UriQuery::parse($urlParts["query"] ?? "");
         $fragment = UriFragment::parse($urlParts["fragment"] ?? "");
 
-        $host = $urlParts["host"];
+        $host = $urlParts["host"] ?? "";
         $port = $urlParts["port"] ?? ($scheme === HttpConstants::HTTP_SCHEME ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
         $user = $urlParts["user"] ?? null;
         $pass = $urlParts["pass"] ?? null;

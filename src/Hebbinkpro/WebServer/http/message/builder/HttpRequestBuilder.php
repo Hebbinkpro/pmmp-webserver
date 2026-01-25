@@ -35,6 +35,7 @@ use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpRequestLine;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
@@ -55,7 +56,6 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
     private string $buffer = "";
     private string $requestLineStr = "";
-    private string $uriTarget = "";
     private string $headerLine = "";
     private int $totalHeaderLength = 0;
 
@@ -210,6 +210,14 @@ class HttpRequestBuilder implements HttpMessageBuilder
             $this->setInvalidProblem($e->getHttpError());
         }
 
+        $method = $this->requestLine->getMethod();
+        $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
+        if (!in_array($method, $supportedMethods)) throw new HttpProblemException(
+            HttpStatusCodes::NOT_IMPLEMENTED,
+            $this->requestLine->getUriTarget(),
+            "Not Implemented"
+        );
+
 
         return true;
     }
@@ -307,8 +315,9 @@ class HttpRequestBuilder implements HttpMessageBuilder
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
 
+        $uriTarget = $this->requestLine->getUriTarget();
         try {
-            $url = HttpUrlFactory::parseRequestTarget($this->uriTarget);
+            $url = HttpUrlFactory::parseRequestTarget($uriTarget);
         } catch (HttpProblemException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }
@@ -317,14 +326,14 @@ class HttpRequestBuilder implements HttpMessageBuilder
             case HttpRequestForm::ASTERISK:
                 // only valid for OPTIONS
                 if ($this->requestLine->getMethod() !== HttpMethod::OPTIONS) {
-                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form: $this->uriTarget");
+                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                 }
                 break;
 
             case HttpRequestForm::AUTHORITY:
                 // only valid for CONNECT
                 if ($this->requestLine->getMethod() !== HttpMethod::CONNECT) {
-                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form: $this->uriTarget");
+                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                 }
                 break;
 
@@ -334,10 +343,10 @@ class HttpRequestBuilder implements HttpMessageBuilder
                 if (!$this->serverInfo->isProxy()) {
                     if ($url instanceof PathUri) {
                         // transform to Origin URL
-                        $this->url = HttpUrlFactory::pathUriAsOriginUrl($url);
+                        $this->url = HttpUrlFactory::pathUriAsOrigin($url);
                     } else {
                         // unknown class
-                        $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form: $this->uriTarget");
+                        $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                     }
                 }
                 break;
