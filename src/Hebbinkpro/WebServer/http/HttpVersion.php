@@ -31,7 +31,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 /**
  * HTTP Version to identify the HTTP request version of the client and to use in the response of the server.
  */
-class HttpVersion
+readonly class HttpVersion
 {
 
 
@@ -39,7 +39,7 @@ class HttpVersion
      * @param int $major major HTTP version
      * @param int $minor minor HTTP version
      */
-    public function __construct(private readonly int $major, private readonly int $minor)
+    public function __construct(private int $major, private int $minor)
     {
     }
 

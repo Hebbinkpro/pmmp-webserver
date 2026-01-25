@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -62,5 +62,22 @@ enum HttpMethod: string
     public function equals(HttpMethod $method): bool
     {
         return $this === $method || $method === HttpMethod::ALL;
+    }
+
+    /**
+     * Parse a method from an HTTP request line to an HttpMethod enum
+     *
+     * Returns null if the method matches ALL, as ALL is not a valid HTTP method.
+     * @param string $method
+     * @return HttpMethod|null
+     */
+    public static function parse(string $method): ?HttpMethod
+    {
+        $res = HttpMethod::tryFrom(strtoupper($method));
+
+        // ignore the ALL case, as its for internal use only
+        if ($res === self::ALL) return null;
+
+        return $res;
     }
 }

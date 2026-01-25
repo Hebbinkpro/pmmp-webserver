@@ -26,7 +26,6 @@
 namespace Hebbinkpro\WebServer\http;
 
 use Hebbinkpro\WebServer\exception\HttpProblemException;
-use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 class HttpRequestLine
@@ -80,7 +79,6 @@ class HttpRequestLine
         // get the different parts
         [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);;
 
-        // first, validate the HTTP version
         $httpVersion = HttpVersion::parse($versionStr);
         if ($httpVersion->getMajorVersion() != HttpConstants::HTTP_VERSION_MAJOR
             || $httpVersion->getMinorVersion() != HttpConstants::HTTP_VERSION_MINOR) {
@@ -91,28 +89,27 @@ class HttpRequestLine
                 "HTTP Version Not Supported"
             );
         }
-
         // ensure it is a valid token
         if (!@preg_match("/^" . HttpParsingRules::TOKEN . "$/", $methodStr)) throw new HttpProblemException(
             HttpStatusCodes::BAD_REQUEST,
-            $target,
+            "/",
             "Malformed Request Method"
         );
 
         // validate the method, also gainst the servers supported methods
-        $method = HttpMethod::tryFrom(strtoupper($methodStr));
-        $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
-        if ($method === null || !in_array($method, $supportedMethods)) throw new HttpProblemException(
+        $method = HttpMethod::parse(strtoupper($methodStr));
+        if ($method === null) throw new HttpProblemException(
             HttpStatusCodes::NOT_IMPLEMENTED,
-            $target,
+            "/",
             "Not Implemented"
         );
+
 
         // allow all visible ascii characters, proper parsing will be done later
         if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
             throw new HttpProblemException(
                 HttpStatusCodes::BAD_REQUEST,
-                $target,
+                "/",
                 "Invalid Request Target");
         }
 
