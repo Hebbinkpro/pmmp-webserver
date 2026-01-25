@@ -28,8 +28,73 @@ namespace Hebbinkpro\WebServer\http\message\header;
 /**
  * Class for managing HTTP headers inside an HTTP request or response message
  */
-class HttpHeader extends BaseHttpHeader
+readonly class HttpHeader
 {
+    public static function normalizeFieldName(string $fieldName): string
+    {
+        return strtolower(trim($fieldName));
+    }
+
+    /**
+     * @param array<string, string[]> $headerFields
+     */
+    private function __construct(private array $headerFields)
+    {
+    }
+
+    /**
+     * Construct a new HttpHeader from a builder
+     * @param HttpHeaderBuilder $builder
+     * @return self
+     */
+    public static function fromBuilder(HttpHeaderBuilder $builder): self
+    {
+        return new self($builder->getHeaderFields());
+    }
+
+    /**
+     * Get the value of a header field
+     * @param string $fieldName the header name
+     * @param string|null $default the default value when the header is not available
+     * @param int $index index of the header value to return in case of multiple header entries, 0 by default
+     * @return string|null
+     */
+    public function getFieldValue(string $fieldName, ?string $default = null, int $index = 0): ?string
+    {
+        $field = $this->headerFields[self::normalizeFieldName($fieldName)] ?? null;
+        if ($field === null) return $default;
+
+        return $field[$index] ?? $default;
+    }
+
+    /**
+     * Get all values of a header field
+     * @param string $fieldName
+     * @return string[] the values or an empty array if the field does not exist
+     */
+    public function getFieldValues(string $fieldName): array
+    {
+        return $this->headerFields[self::normalizeFieldName($fieldName)] ?? [];
+    }
+
+    /**
+     * Check if the field name exists in the header
+     * @param string $fieldName
+     * @return bool
+     */
+    public function fieldExists(string $fieldName): bool
+    {
+        return array_key_exists(self::normalizeFieldName($fieldName), $this->headerFields);
+    }
+
+    /**
+     * Get the header fields
+     * @return array<string, string[]>
+     */
+    public function getHeaderFields(): array
+    {
+        return $this->headerFields;
+    }
 
     /**
      * Encode the request headers

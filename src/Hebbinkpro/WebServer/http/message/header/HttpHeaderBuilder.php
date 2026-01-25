@@ -29,8 +29,15 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use InvalidArgumentException;
 
-class HttpHeaderBuilder extends BaseHttpHeader
+class HttpHeaderBuilder
 {
+
+    private array $headerFields;
+
+    public function __construct()
+    {
+        $this->headerFields = [];
+    }
 
     /**
      * Set a header field and its value
@@ -38,12 +45,12 @@ class HttpHeaderBuilder extends BaseHttpHeader
      * Note: The header will be normalized (trimmed and made lowercase) as a header is case insensitive.
      * @param string $fieldName
      * @param string $value
-     * @return void
+     * @return HttpHeaderBuilder
      */
-    public function setField(string $fieldName, string $value): void
+    public function setField(string $fieldName, string $value): self
     {
         // normalize the field name, such that it is case insensitive
-        $name = self::normalizeFieldName($fieldName);
+        $name = HttpHeader::normalizeFieldName($fieldName);
 
         // validate name
         if (!@preg_match("/^" . HttpParsingRules::TOKEN . "$/", $name)) {
@@ -58,6 +65,7 @@ class HttpHeaderBuilder extends BaseHttpHeader
         // duplicate headers are allowed, just stored in an array
         if (!isset($this->headerFields[$name])) $this->headerFields[$name] = [$value];
         else $this->headerFields[$name][] = $value;
+        return $this;
     }
 
     /**
@@ -65,10 +73,9 @@ class HttpHeaderBuilder extends BaseHttpHeader
      *
      * Validates and parses the field line before the field is set.
      * @param string $fieldLine the field line
-     * @return void
-     * @throws HttpProblemException if the field line is malformed
+     * @return HttpHeaderBuilder
      */
-    public function setFromFieldLine(string $fieldLine): void
+    public function setFromFieldLine(string $fieldLine): self
     {
         // invalid field line, does not match RFC 9110 section 5
         if (!@preg_match("/^" . HttpParsingRules::FIELD_LINE . "$/", $fieldLine)) {
@@ -84,48 +91,52 @@ class HttpHeaderBuilder extends BaseHttpHeader
 
         // trim the value to remove optional whitespace
         $this->setField($parts[0], trim($parts[1]));
+        return $this;
     }
 
     /**
      * Set a field only if the field name is not yet set
      * @param string $fieldName
      * @param string $value
-     * @return void
+     * @return HttpHeaderBuilder
      */
-    public function setFieldIfAbsent(string $fieldName, string $value): void
+    public function setFieldIfAbsent(string $fieldName, string $value): self
     {
-        $name = self::normalizeFieldName($fieldName);
+        $name = HttpHeader::normalizeFieldName($fieldName);
         $this->headerFields[$name] ??= [$value];
+        return $this;
     }
 
     /**
      * Remove a value from a field
      * @param string $fieldName
      * @param int $index the array_splice offset of the value to remove, default is the last element (-1)
-     * @return void
+     * @return HttpHeaderBuilder
      */
-    public function unsetFieldValue(string $fieldName, int $index = -1): void
+    public function unsetFieldValue(string $fieldName, int $index = -1): self
     {
-        $name = self::normalizeFieldName($fieldName);
+        $name = HttpHeader::normalizeFieldName($fieldName);
 
         // does not exist
-        if (!isset($this->headerFields[$name])) return;
+        if (!isset($this->headerFields[$name])) return $this;
 
         // remove the element at the given index, and reindex the array
         $this->headerFields[$name] = array_values(array_splice($this->headerFields[$name], $index, 1));
 
         // check if the field has still values, otherwise remove it
         if (count($this->headerFields[$name]) == 0) unset($this->headerFields[$name]);
+        return $this;
     }
 
     /**
      * Remove an entire field
      * @param string $fieldName
-     * @return void
+     * @return HttpHeaderBuilder
      */
-    public function unsetField(string $fieldName): void
+    public function unsetField(string $fieldName): self
     {
-        unset($this->headerFields[self::normalizeFieldName($fieldName)]);
+        unset($this->headerFields[HttpHeader::normalizeFieldName($fieldName)]);
+        return $this;
     }
 
     /**
@@ -134,17 +145,28 @@ class HttpHeaderBuilder extends BaseHttpHeader
      */
     public function build(): HttpHeader
     {
-        return new HttpHeader($this->headerFields);
+        return HttpHeader::fromBuilder($this);
+    }
+
+
+    /**
+     * Get all set header fields
+     * @return array<string, string[]>
+     */
+    public function getHeaderFields(): array
+    {
+        return $this->headerFields;
     }
 
     /**
      * Create a header builder from a list of field lines
-     * @param string[] $fieldLines encoded header field lines
+     * @param string $header the HTTP header
      * @return HttpHeaderBuilder
-     * @throws HttpProblemException if a header is malformed
      */
-    public static function parse(array $fieldLines): self
+    public static function parse(string $header): self
     {
+        $fieldLines = explode("\r\n", $header);
+
         $headerFields = new HttpHeaderBuilder();
         foreach ($fieldLines as $line) {
             $headerFields->setFromFieldLine($line);
@@ -152,5 +174,6 @@ class HttpHeaderBuilder extends BaseHttpHeader
 
         return $headerFields;
     }
+
 
 }
