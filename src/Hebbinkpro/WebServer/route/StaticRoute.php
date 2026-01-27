@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,14 +55,22 @@ class StaticRoute extends Route
         // construct the parent with a get method, the new path and the action
         parent::__construct(HttpMethod::GET,
             function (HttpRequest $req, HttpResponse $res, mixed ...$params) {
-                $folder = $params[0];
-                $filePath = $req->getSubPath();
-
+                // quick check to make PHPStan happy and to ensure the folder still exists
+                if (!is_string($params[0]) || ($folderPath = realpath($params[0])) === false || !is_dir($folderPath)) {
+                    $res->setStatus(HttpStatusCodes::NOT_F0UND);
+                    $res->sendStatusMessage();
+                    $res->end();
+                    return;
+                }
                 // get the path of the requested file, the uriPath is replaced with the folder path
-                $file = $folder . "/" . $filePath;
+                $reqFilePath = $req->getSubPath();
+                $realFilePath = realpath($folderPath . DIRECTORY_SEPARATOR . $reqFilePath);
 
-                // check if the file exists
-                if (!is_file($file)) {
+                // validate path
+                if ($realFilePath === false
+                    || !str_starts_with($realFilePath, $folderPath . DIRECTORY_SEPARATOR)
+                    || !is_file($realFilePath)) {
+
                     // file does not exist, send 404
                     $res->setStatus(HttpStatusCodes::NOT_F0UND);
                     $res->sendStatusMessage();
@@ -71,7 +79,7 @@ class StaticRoute extends Route
                 }
 
                 // file does exist, send the file
-                $res->sendFile($file);
+                $res->sendFile($realFilePath);
                 $res->end();
             },
             $folder);

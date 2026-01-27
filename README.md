@@ -1,5 +1,10 @@
 # PMMP WebServer
 
+> [!WARNING]
+> A major security vulnerability is present in all versions up to and including v0.5.3.
+> This vulnerability allows an attacker to access files outside the directory configured for a static route.
+> **Please update to v0.5.4 or later immediately.**
+
 A verion for PocketMine-MP plugins to create a simple HTTP/1.1 web server.
 
 ## What is new in version v0.5.0?
