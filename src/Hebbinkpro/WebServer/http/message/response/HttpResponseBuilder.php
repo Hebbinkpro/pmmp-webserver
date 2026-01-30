@@ -254,7 +254,7 @@ class HttpResponseBuilder
     /**
      * Finalize the response such that it is ready to be built
      *
-     * This function will always be called during $build()$, which ensures that everything set here will be part of the response.
+     * This function will always be called during `build()`, which ensures that everything set here will be part of the response.
      * @param HttpClient $client
      * @return void
      */
@@ -274,11 +274,9 @@ class HttpResponseBuilder
             $this->headers->setField(HttpHeaders::SERVER, $serverInfo->getName());
         }
 
-        $connection = $client->isClosed() ? "close" : "keep-alive";
-        $this->headers->setField(HttpHeaders::CONNECTION, $connection);
-
         // if connection is keep-alive, set Keep-Alive header
         if (!$client->isClosed()) {
+            $this->headers->setField(HttpHeaders::CONNECTION, "keep-alive");
             $values = [];
 
             // set timeout
@@ -290,14 +288,15 @@ class HttpResponseBuilder
             // set max
             $keepAliveMax = HttpServer::getInstance()->getServerInfo()->getKeepAliveMax();
             if ($keepAliveMax > 0) {
-                $remaining = $keepAliveMax - $client->getServedRequests();
-                $values[] = "max=" . $remaining;
+                $values[] = "max=" . $keepAliveMax;
             }
 
             // set the keep alive header if a value is set
             if (sizeof($values) > 0) {
                 $this->headers->setField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
             }
+        } else {
+            $this->headers->setField(HttpHeaders::CONNECTION, "close");
         }
     }
 }
