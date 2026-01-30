@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,39 +23,11 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\builder;
+namespace Hebbinkpro\WebServer\http\message\request;
 
-use Hebbinkpro\WebServer\exception\HttpException;
-use Hebbinkpro\WebServer\http\message\HttpMessage;
+use RuntimeException;
 
-interface HttpMessageBuilder
+class HttpRequestBuilderException extends RuntimeException
 {
 
-    /**
-     * Append new data to the builder
-     * @param string $data the data to add to the builder
-     * @return string|null Remaining data
-     * @throws HttpRequestBuilderException if the builder is invalid or already completed
-     * @throws HttpException if the appended data resulted in an invalid HTTP request
-     */
-    function appendData(string $data): ?string;
-
-    /**
-     * Get the current state of the builder
-     * @return HttpBuilderState
-     */
-    function getState(): HttpBuilderState;
-
-    /**
-     * Get if the message is completely parsed
-     * @return bool
-     */
-    function isComplete(): bool;
-
-    /**
-     * Build an HTTP Message from a completely parsed message
-     * @return HttpMessage
-     * @throws HttpRequestBuilderException if the builder is not complete
-     */
-    function build(): HttpMessage;
 }

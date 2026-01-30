@@ -28,9 +28,9 @@ namespace Hebbinkpro\WebServer\http;
 use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
-class HttpRequestLine
+class HttpStartLine
 {
-    public function __construct(private HttpMethod $method, private string $uriTarget, private HttpVersion $version)
+    public function __construct(private HttpMethod $method, private string $target, private HttpVersion $version)
     {
     }
 
@@ -45,9 +45,9 @@ class HttpRequestLine
     /**
      * @return string
      */
-    public function getUriTarget(): string
+    public function getTarget(): string
     {
-        return $this->uriTarget;
+        return $this->target;
     }
 
     /**
@@ -59,9 +59,9 @@ class HttpRequestLine
     }
 
     /**
-     * Parse the request line (the first line) of an HTTP Request
+     * Parse the start line of an HTTP Request
      * @param string $requestLine The request line to parse
-     * @return HttpRequestLine The HTTP request line
+     * @return HttpStartLine The HTTP start line
      * @throws HttpProblemException if the request was invalid
      */
     public static function parse(string $requestLine): self
@@ -72,7 +72,7 @@ class HttpRequestLine
         if ($count != 2) {
             throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST,
                 "/", // is unknown at this point
-                "Malformed request line"
+                "Malformed start line"
             );
         }
 

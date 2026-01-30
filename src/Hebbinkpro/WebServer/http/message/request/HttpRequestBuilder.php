@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\builder;
+namespace Hebbinkpro\WebServer\http\message\request;
 
 use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\exception\HttpProblemException;
@@ -32,7 +32,8 @@ use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\HttpProblem;
-use Hebbinkpro\WebServer\http\HttpRequestLine;
+use Hebbinkpro\WebServer\http\HttpStartLine;
+use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\server\HttpServer;
@@ -51,22 +52,23 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private HttpServerInfo $serverInfo;
     private Logger $logger;
 
-    private HttpBuilderState $state = HttpBuilderState::EMPTY;
+    private HttpRequestBuilderState $state = HttpRequestBuilderState::EMPTY;
     private ?HttpProblem $httpProblem = null;
 
     private string $buffer = "";
-    private string $requestLineStr = "";
-    private string $headerLine = "";
-    private int $totalHeaderLength = 0;
+    private string $startLine = "";
+    private string $headerFieldLine = "";
+    private int $headerLength = 0;
 
-    private HttpRequestLine $requestLine;
+    private HttpStartLine $requestLine;
 
     private HttpUrl $url;
 
     private int $contentLength = 0;
     private int $bodyLength = 0;
 
-    private HttpHeaderBuilder $headers;
+    private HttpHeaderBuilder $headerBuilder;
+    private HttpHeader $header;
     private string $body = "";
 
     public function __construct(HttpServerInfo $serverInfo, Logger $logger)
@@ -75,8 +77,13 @@ class HttpRequestBuilder implements HttpMessageBuilder
         $this->logger = $logger;
     }
 
+
     /**
-     * @inheritDoc
+     * Append new data to the builder
+     * @param string $data the data to add to the builder
+     * @return string|null Remaining data
+     * @throws HttpRequestBuilderException if the builder is invalid or already completed
+     * @throws HttpException if the appended data resulted in an invalid HTTP request
      */
     function appendData(string $data): ?string
     {
@@ -96,62 +103,64 @@ class HttpRequestBuilder implements HttpMessageBuilder
             $previousState = $this->state;
             switch ($this->state) {
                 // throw exceptions in states in which it is impossible to append data
-                case HttpBuilderState::COMPLETE:
+                case HttpRequestBuilderState::COMPLETE:
                     throw new HttpRequestBuilderException("Cannot append data to a completed HTTP Request.");
-                case HttpBuilderState::INVALID:
+                case HttpRequestBuilderState::INVALID:
                     if ($this->httpProblem === null) $this->httpProblem = new HttpProblem(HttpStatusCodes::BAD_REQUEST, "/", null);
                     throw new HttpRequestBuilderException("Cannot append data to an invalid HTTP Request.", previous: new HttpException($this->httpProblem));
 
                 // not yet started
-                case HttpBuilderState::EMPTY:
+                case HttpRequestBuilderState::EMPTY:
                     // update the state and set default values
-                    $this->state = HttpBuilderState::READING_REQUEST_LINE;
-                    $this->requestLineStr = "";
+                    $this->state = HttpRequestBuilderState::READING_START_LINE;
+                    $this->startLine = "";
                     break;
 
                 // Read the request line
-                case HttpBuilderState::READING_REQUEST_LINE:
+                case HttpRequestBuilderState::READING_START_LINE:
                     if (!$this->buildRequestLine()) return null;
 
                     // update the state and set default values
-                    $this->state = HttpBuilderState::READING_HEADERS;
-                    $this->headerLine = "";
-                    $this->headers = new HttpHeaderBuilder();
-                    $this->totalHeaderLength = 0;
+                    $this->state = HttpRequestBuilderState::READING_HEADER;
+                    $this->headerFieldLine = "";
+                    $this->headerBuilder = new HttpHeaderBuilder();
+                    $this->headerLength = 0;
                     break;
 
                 // read all headers
-                case  HttpBuilderState::READING_HEADERS:
-                    if (!$this->buildHeaders()) return null;
+                case  HttpRequestBuilderState::READING_HEADER:
+                    if (!$this->readHeader()) return null;
+
+                    $this->buildHeader();
 
                     // update the state and set default values
                     $this->body = "";
-                    $this->contentLength = intval($this->headers->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
+                    $this->contentLength = intval($this->header->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
-                        $this->state = HttpBuilderState::COMPLETE;
+                        $this->state = HttpRequestBuilderState::COMPLETE;
                     } else if ($this->contentLength > HttpConstants::MAX_BODY_SIZE) {
                         $this->setInvalid(HttpStatusCodes::CONTENT_TOO_LARGE, "Content length is larger then max body size");
                     } else {
-                        $this->state = HttpBuilderState::READING_BODY;
+                        $this->state = HttpRequestBuilderState::READING_BODY;
                     }
                     break;
 
-                case HttpBuilderState::READING_BODY:
+                case HttpRequestBuilderState::READING_BODY:
                     if (!$this->buildBody()) return null;
-                    $this->state = HttpBuilderState::COMPLETE;
+                    $this->state = HttpRequestBuilderState::COMPLETE;
                     break;
 
             }
 
             // ensure we don't loop again if one of these states is reached
-            if (in_array($this->state, [HttpBuilderState::COMPLETE, HttpBuilderState::INVALID], true)) {
+            if (in_array($this->state, [HttpRequestBuilderState::COMPLETE, HttpRequestBuilderState::INVALID], true)) {
                 break;
             }
         }
 
         // Return null when the builder is not complete
-        if ($this->state !== HttpBuilderState::COMPLETE) return null;
+        if ($this->state !== HttpRequestBuilderState::COMPLETE) return null;
 
         // if the builder is complete, return all bytes from the buffer that are left
         return $this->buffer;
@@ -168,7 +177,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private function setInvalid(int $status, ?string $detail): never
     {
         if (!isset($this->requestLine)) $instance = "/";
-        else $instance = $this->requestLine->getUriTarget();
+        else $instance = $this->requestLine->getTarget();
 
         $this->setInvalidProblem(new HttpProblem($status, $instance, $detail));
     }
@@ -182,16 +191,16 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private function setInvalidProblem(HttpProblem $problem): never
     {
         $this->httpProblem = $problem;
-        $this->state = HttpBuilderState::INVALID;
+        $this->state = HttpRequestBuilderState::INVALID;
         $this->logger->debug("[INVALID REQUEST] {$problem->getDetail()}");
         throw new HttpException($this->httpProblem);
     }
 
     private function buildRequestLine(): bool
     {
-        $finished = $this->readBufferUntil($this->requestLineStr, "\r\n");
+        $finished = $this->readBufferUntil($this->startLine, "\r\n");
 
-        $lineSize = strlen($this->requestLineStr);
+        $lineSize = strlen($this->startLine);
 
         // validate the request line length
         if ($lineSize > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
@@ -205,7 +214,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
         // parse the request line and store the values
         try {
-            $this->requestLine = HttpRequestLine::parse($this->requestLineStr);
+            $this->requestLine = HttpStartLine::parse($this->startLine);
         } catch (HttpException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }
@@ -214,7 +223,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
         $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
         if (!in_array($method, $supportedMethods)) throw new HttpProblemException(
             HttpStatusCodes::NOT_IMPLEMENTED,
-            $this->requestLine->getUriTarget(),
+            $this->requestLine->getTarget(),
             "Not Implemented"
         );
 
@@ -266,24 +275,24 @@ class HttpRequestBuilder implements HttpMessageBuilder
         return true;
     }
 
-    private function buildHeaders(): bool
+    private function readHeader(): bool
     {
 
         // loop until all headers have been read
         while (true) {
             // read the next header into $this->headerData
-            $headersAvailable = $this->readBufferUntil($this->headerLine, HttpParsingRules::CRLF);
+            $headersAvailable = $this->readBufferUntil($this->headerFieldLine, HttpParsingRules::CRLF);
 
             // first check buffer sizes, such that we do never read more into the buffer then we are allowed
 
             // current header line is already too long
-            $headerLength = strlen($this->headerLine);
+            $headerLength = strlen($this->headerFieldLine);
             if ($headerLength > HttpConstants::MAX_HEADER_LINE_LENGTH) {
                 $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG, "Max header line length reached");
             }
 
             // add to total header length, and add 2 additional bytes for the linebreak (\r\n)
-            $newTotalLength = $this->totalHeaderLength + $headerLength + 2;
+            $newTotalLength = $this->headerLength + $headerLength + 2;
 
             // the total header length is too large
             if ($newTotalLength > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
@@ -294,28 +303,37 @@ class HttpRequestBuilder implements HttpMessageBuilder
             if (!$headersAvailable) return false;
 
             // write the total header length
-            $this->totalHeaderLength = $newTotalLength;
+            $this->headerLength = $newTotalLength;
 
             // found the double linebreak, headers are complete
             if ($headerLength == 0) break;
 
             // try to set the field from the parsed line
             try {
-                $this->headers->setFromFieldLine($this->headerLine);
+                $this->headerBuilder->setFromFieldLine($this->headerFieldLine);
             } catch (HttpProblemException $e) {
                 $this->setInvalidProblem($e->getHttpError());
             }
 
             // reset header line
-            $this->headerLine = "";
+            $this->headerFieldLine = "";
         }
 
+        return true;
+    }
+
+    private function buildHeader(): void
+    {
+        // --- All header fields have been read, build header and remove the builder ---
+        $this->header = $this->headerBuilder->build();
+        unset($this->headerBuilder);
+
         // host is required for HTTP/1.1
-        if (!$this->headers->fieldExists(HttpHeaders::HOST)) {
+        if (!$this->header->fieldExists(HttpHeaders::HOST)) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
 
-        $uriTarget = $this->requestLine->getUriTarget();
+        $uriTarget = $this->requestLine->getTarget();
         try {
             $url = HttpUrlFactory::parseRequestTarget($uriTarget);
         } catch (HttpProblemException $e) {
@@ -356,7 +374,6 @@ class HttpRequestBuilder implements HttpMessageBuilder
                 break;
         }
 
-        return true;
     }
 
     private function buildBody(): bool
@@ -398,39 +415,43 @@ class HttpRequestBuilder implements HttpMessageBuilder
     }
 
     /**
-     * @inheritDoc
+     * Get the current state of the builder
+     * @return HttpRequestBuilderState
      */
-    function getState(): HttpBuilderState
+    function getState(): HttpRequestBuilderState
     {
         return $this->state;
     }
 
     /**
-     * @inheritDoc
+     * Get if the message is completely parsed
+     * @return bool
      */
     function isComplete(): bool
     {
-        return $this->state === HttpBuilderState::COMPLETE;
+        return $this->state === HttpRequestBuilderState::COMPLETE;
     }
 
     /**
-     * @inheritDoc
+     * Build an HTTP Message from a completely parsed message
+     * @return HttpRequest
+     * @throws HttpRequestBuilderException if the builder is not complete
      */
     function build(): HttpRequest
     {
-        if ($this->state !== HttpBuilderState::COMPLETE) {
+        if ($this->state !== HttpRequestBuilderState::COMPLETE) {
             throw new HttpRequestBuilderException("Cannot build an HttpRequest from an incomplete builder");
         }
 
-        return HttpRequest::withRequestLine($this->requestLine, $this->url, $this->headers->build(), $this->body);
+        return HttpRequest::withRequestLine($this->requestLine, $this->url, $this->header, $this->body);
     }
 
     /**
-     * @phpstan-assert-if-true HttpBuilderState::INVALID $this->state
+     * @phpstan-assert-if-true HttpRequestBuilderState::INVALID $this->state
      * @phpstan-assert-if-true HttpProblem $this->httpProblem
      */
     public function isInvalid(): bool
     {
-        return $this->state === HttpBuilderState::INVALID;
+        return $this->state === HttpRequestBuilderState::INVALID;
     }
 }

@@ -29,9 +29,10 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpRequestLine;
+use Hebbinkpro\WebServer\http\HttpStartLine;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
+use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\PathUri;
@@ -103,6 +104,7 @@ class HttpRequest implements HttpMessage
      * @param HttpServerInfo $serverInfo
      * @return HttpRequest the parsed HttpRequest
      * @throws HttpProblemException when something went wrong while parsing the request
+     * @deprecated To be replaced by HttpRequestBuilder
      */
     public static function parse(string $data, HttpServerInfo $serverInfo): HttpRequest
     {
@@ -131,12 +133,15 @@ class HttpRequest implements HttpMessage
 
         // parse the request line and return if we get an error code
         $requestLine = self::parseRequestLine($lines[0]);
-        $target = $requestLine->getUriTarget();
+        $target = $requestLine->getTarget();
 
         $httpUrl = HttpUrlFactory::parseRequestTarget($target);
 
-        $headers = HttpHeader::parse(array_slice($lines, 1));
-        if ($headers === null) throw HttpProblemException::badRequest($target, "Malformed headers");
+        $headerBuilder = new HttpHeaderBuilder();
+        foreach ($lines as $line) {
+            $headerBuilder->setFromFieldLine($line);
+        }
+        $headers = $headerBuilder->build();
 
         if (!$headers->fieldExists(HttpHeaders::HOST)) {
             throw HttpProblemException::badRequest($target, "Missing header: host");
@@ -158,16 +163,16 @@ class HttpRequest implements HttpMessage
     /**
      * Parse the request line (the first line) of an HTTP Request
      * @param string $requestLine The request line to parse
-     * @return HttpRequestLine The HTTP request line
+     * @return HttpStartLine The HTTP start line
      * @throws HttpProblemException if the request was invalid
      * @deprecated Use <code>HttpRequestLine::parse()</code> instead
      */
-    public static function parseRequestLine(string $requestLine): HttpRequestLine
+    public static function parseRequestLine(string $requestLine): HttpStartLine
     {
-        return HttpRequestLine::parse($requestLine);
+        return HttpStartLine::parse($requestLine);
     }
 
-    public static function withRequestLine(HttpRequestLine $requestLine, HttpUrl $uri, HttpHeader $headers, string $body): HttpRequest
+    public static function withRequestLine(HttpStartLine $requestLine, HttpUrl $uri, HttpHeader $headers, string $body): HttpRequest
     {
         return new self($requestLine->getMethod(), $uri, $requestLine->getVersion(), $headers, $body);
     }

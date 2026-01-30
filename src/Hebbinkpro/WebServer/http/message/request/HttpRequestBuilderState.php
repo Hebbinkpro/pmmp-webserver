@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,13 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\http\message\builder;
+namespace Hebbinkpro\WebServer\http\message\request;
 
-enum HttpBuilderState
+enum HttpRequestBuilderState
 {
     case EMPTY;
-    case READING_REQUEST_LINE;
-    case READING_HEADERS;
+    case READING_START_LINE;
+    case READING_HEADER;
     case READING_BODY;
     case COMPLETE;
     case INVALID;
