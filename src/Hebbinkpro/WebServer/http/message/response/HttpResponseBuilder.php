@@ -129,12 +129,13 @@ class HttpResponseBuilder
      *
      * If this is a no-content response, the body will be ignored
      * @param HttpMessageBody|null $body the body
-     * @return void
+     * @return $this
      */
-    public function setBody(?HttpMessageBody $body): void
+    public function setBody(?HttpMessageBody $body): HttpResponseBuilder
     {
-        if ($this->sendNoContent && $body !== null) return;
+        if ($this->sendNoContent && $body !== null) return $this;
         $this->body = $body;
+        return $this;
     }
 
     /**
