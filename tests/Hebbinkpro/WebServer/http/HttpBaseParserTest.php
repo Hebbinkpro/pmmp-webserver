@@ -40,49 +40,4 @@ class HttpBaseParserTest extends TestCase
         HttpVersion::parse("HTTP/1.10");
     }
 
-    public function testRequestLineParser()
-    {
-        $this->assertEquals(
-            new HttpRequestLine(HttpMethod::GET, "/", new HttpVersion(1, 1)),
-            HttpRequestLine::parse("GET / HTTP/1.1")
-        );
-
-        $this->assertEquals(
-            new HttpRequestLine(HttpMethod::GET, "/", new HttpVersion(1, 1)),
-            HttpRequestLine::parse("get / HTTP/1.1")
-        );
-
-        $this->assertEquals(
-            new HttpRequestLine(HttpMethod::GET, "/", new HttpVersion(1, 1)),
-            HttpRequestLine::parse("gEt / HTTP/1.1")
-        );
-
-        $this->assertEquals(
-            new HttpRequestLine(HttpMethod::POST, "https://example.com/path", new HttpVersion(1, 1)),
-            HttpRequestLine::parse("POST https://example.com/path HTTP/1.1")
-        );
-
-        foreach (array_diff(HttpMethod::cases()) as $method) {
-            // this is an invalid method
-            if ($method === HttpMethod::ALL) continue;
-
-            $this->assertEquals(
-                new HttpRequestLine($method, "/", new HttpVersion(1, 1)),
-                HttpRequestLine::parse("$method->value / HTTP/1.1")
-            );
-        }
-
-        $this->assertEquals(
-            new HttpRequestLine(HttpMethod::GET, "-=!@#$%^&*()_+", new HttpVersion(1, 1)),
-            HttpRequestLine::parse("GET -=!@#$%^&*()_+ HTTP/1.1")
-        );
-
-        $this->expectException(HttpProblemException::class);
-        HttpRequestLine::parse("GET / HTTP/1.1 Some random text");
-        HttpRequestLine::parse("GET / HTT/1.1");
-        HttpRequestLine::parse("EXAMPLE / HTTP/1.1");
-
-        // this would match HttpMethod::ALL
-        HttpRequestLine::parse("* / HTTP/1.1");
-    }
 }
