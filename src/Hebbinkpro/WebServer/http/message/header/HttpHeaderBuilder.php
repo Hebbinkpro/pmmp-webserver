@@ -145,7 +145,7 @@ class HttpHeaderBuilder implements Header
      */
     public function build(): HttpHeader
     {
-        return HttpHeader::fromBuilder($this);
+        return new HttpHeader($this->headerFields);
     }
 
 
