@@ -243,11 +243,11 @@ class HttpResponseBuilder
         return $this;
     }
 
-    public function build(HttpClient $client): HttpStreamResponse
+    public function build(HttpClient $client): HttpResponse
     {
         $this->finalize($client);
         $headers = $this->headers->build();
-        return new HttpStreamResponse($client, $this->status, $headers, $this->body);
+        return new HttpResponse($client, $this->status, $headers, $this->body);
     }
 
 

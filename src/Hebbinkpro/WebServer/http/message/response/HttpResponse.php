@@ -32,7 +32,7 @@ use Hebbinkpro\WebServer\http\message\HttpStreamMessage;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 
-class HttpStreamResponse implements HttpStreamMessage
+readonly class HttpResponse implements HttpStreamMessage
 {
     private HttpClient $client;
     private HttpStatus $status;
