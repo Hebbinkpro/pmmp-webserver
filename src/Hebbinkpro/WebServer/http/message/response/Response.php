@@ -26,7 +26,7 @@
 namespace Hebbinkpro\WebServer\http\message\response;
 
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\HttpHeader;
+use Hebbinkpro\WebServer\http\message\header\Header;
 use Hebbinkpro\WebServer\http\message\HttpMessageBody;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 
@@ -44,9 +44,9 @@ interface Response
     public function getVersion(): HttpVersion;
 
     /**
-     * @return HttpHeader
+     * @return Header
      */
-    public function getHeader(): HttpHeader;
+    public function getHeader(): Header;
 
     /**
      * @return HttpMessageBody|null

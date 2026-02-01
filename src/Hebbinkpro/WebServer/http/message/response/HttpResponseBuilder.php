@@ -31,7 +31,6 @@ use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpMessageBody;
 use Hebbinkpro\WebServer\http\server\HttpClient;
@@ -72,26 +71,17 @@ class HttpResponseBuilder implements Response
     }
 
     /**
-     * Get the header builder of the response
      * @return HttpHeaderBuilder
      */
-    public function getHeaderBuilder(): HttpHeaderBuilder
+    public function getHeader(): HttpHeaderBuilder
     {
         return $this->headers;
     }
 
     /**
-     * @return HttpHeader
-     */
-    public function getHeader(): HttpHeader
-    {
-        return $this->headers->build();
-    }
-
-    /**
      * Set a response header
      *
-     * Equivalent to `$builder->getHeaders()->setHeader($header, $value)`
+     * Equivalent to `$builder->getHeaders()->setField($header, $value)`
      * @param string $header the header name
      * @param string $value the header value
      * @return $this

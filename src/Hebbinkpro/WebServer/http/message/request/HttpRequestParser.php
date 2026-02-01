@@ -128,7 +128,7 @@ class HttpRequestParser
 
                     // update the state and set default values
                     $this->body = "";
-                    $this->contentLength = intval($this->builder->getHeaderBuilder()->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
+                    $this->contentLength = intval($this->builder->getHeader()->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
                         $this->state = HttpRequestParserState::COMPLETE;
@@ -326,7 +326,7 @@ class HttpRequestParser
 
             // try to set the field from the parsed line
             try {
-                $this->builder->getHeaderBuilder()->setFromFieldLine($this->headerFieldLine);
+                $this->builder->getHeader()->setFromFieldLine($this->headerFieldLine);
             } catch (HttpProblemException $e) {
                 $this->setInvalidProblem($e->getHttpError());
             }
@@ -342,7 +342,7 @@ class HttpRequestParser
     {
 
         // host is required for HTTP/1.1
-        if (!$this->builder->getHeaderBuilder()->fieldExists(HttpHeaders::HOST)) {
+        if (!$this->builder->getHeader()->fieldExists(HttpHeaders::HOST)) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
 

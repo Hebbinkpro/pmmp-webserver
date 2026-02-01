@@ -27,7 +27,7 @@ namespace Hebbinkpro\WebServer\http\message\request;
 
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\HttpHeader;
+use Hebbinkpro\WebServer\http\message\header\Header;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 
 interface Request
@@ -49,9 +49,9 @@ interface Request
     public function getHttpVersion(): HttpVersion;
 
     /**
-     * @return HttpHeader
+     * @return Header
      */
-    public function getHeader(): HttpHeader;
+    public function getHeader(): Header;
 
     /**
      * @return mixed

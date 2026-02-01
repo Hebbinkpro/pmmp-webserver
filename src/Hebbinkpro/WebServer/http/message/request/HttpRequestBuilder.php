@@ -29,7 +29,6 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -118,17 +117,9 @@ class HttpRequestBuilder implements Request
     /**
      * @return HttpHeaderBuilder
      */
-    public function getHeaderBuilder(): HttpHeaderBuilder
+    public function getHeader(): HttpHeaderBuilder
     {
         return $this->header;
-    }
-
-    /**
-     * @return HttpHeader
-     */
-    public function getHeader(): HttpHeader
-    {
-        return $this->header->build();
     }
 
     /**
