@@ -41,19 +41,38 @@ class HttpHeaderTest extends TestCase
         $this->assertEquals([], $builder->getHeaderFields());
         $this->assertEquals([], $builder->build()->getHeaderFields());
 
+        // test set
         $builder->setField("Content-Type", "text/html");
         $builder->setField("Content-Length", "123");
         $builder->setField("Server", "Hebbinkpro/WebServer");
-        $this->assertEquals(["content-type" => ["text/html"], "content-length" => ["123"], "server" => ["Hebbinkpro/WebServer"]], $builder->getHeaderFields());
 
+        $this->assertEquals(["content-type" => ["text/html"], "content-length" => ["123"], "server" => ["Hebbinkpro/WebServer"]], $builder->getHeaderFields());
         $this->assertEquals($builder->getHeaderFields(), $builder->build()->getHeaderFields());
-        self::assertEquals("text/html", $builder->build()->getFieldValue("Content-Type"));
+        $this->assertEquals("text/html", $builder->build()->getFieldValue("Content-Type"));
 
         $builder->setFromFieldLine("Content-Type: text/plain");
-        self::assertEquals(["text/html", "text/plain"], $builder->build()->getFieldValues("Content-Type"));
+        $this->assertEquals(["text/html", "text/plain"], $builder->build()->getField("Content-Type"));
 
         $header = "content-type: text/html\r\ncontent-type: text/plain\r\ncontent-length: 123\r\nserver: Hebbinkpro/WebServer\r\n";
-        self::assertEquals($header, $builder->build()->toString());
+        $this->assertEquals($header, $builder->build()->toString());
+
+        // test add to existing field
+        $builder->addField("Content-Length", "456");
+        $this->assertEquals(["123", "456"], $builder->build()->getField("Content-Length"));
+
+        // test get field value at other index
+        $this->assertEquals("456", $builder->build()->getFieldValue("Content-Length", index: 1));
+
+
+        // test get default value for unknown field
+        $this->assertEquals(404, $builder->build()->getFieldValue("ABC", default: 404));
+        // test get default value for unknown index
+        $this->assertEquals(404, $builder->build()->getFieldValue("Content-Length", default: 404, index: 50));
+
+        // test set overwriting field
+        $builder->setField("Content-Length", "789");
+        $this->assertEquals(["789"], $builder->build()->getField("Content-Length"));
+
 
         $this->expectException(HttpProblemException::class);
         $builder->setFromFieldLine("Content-Type : text/plain");
