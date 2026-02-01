@@ -78,19 +78,6 @@ class HttpResponseBuilder implements Response
         return $this->headers;
     }
 
-    /**
-     * Set a response header
-     *
-     * Equivalent to `$builder->getHeaders()->setField($header, $value)`
-     * @param string $header the header name
-     * @param string $value the header value
-     * @return $this
-     */
-    public function setHeaders(string $header, string $value): HttpResponseBuilder
-    {
-        $this->headers->setField($header, $value);
-        return $this;
-    }
 
     /**
      * Send a string as plain text
