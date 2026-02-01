@@ -25,7 +25,7 @@
 
 namespace Hebbinkpro\WebServer\http\message\request;
 
-enum HttpRequestBuilderState
+enum HttpRequestParserState
 {
     case EMPTY;
     case READING_START_LINE;

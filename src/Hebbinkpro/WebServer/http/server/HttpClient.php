@@ -30,9 +30,9 @@ use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpProblem;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\request\HttpRequestBuilderException;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\request\HttpRequestParser;
+use Hebbinkpro\WebServer\http\message\request\HttpRequestParserException;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\socket\SocketBufferOverflowException;
 use Hebbinkpro\WebServer\socket\SocketClient;
@@ -136,7 +136,7 @@ class HttpClient extends SocketClient
             // the HTTP request was invalid
             $this->reject($e->getHttpError());
             return;
-        } catch (HttpRequestBuilderException $e) {
+        } catch (HttpRequestParserException $e) {
             // this should never happen if the builder is properly used
             $this->logger->error("Error while parsing request: " . $e->getMessage());
             $this->reject(new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage()));
@@ -212,7 +212,7 @@ class HttpClient extends SocketClient
     private function validateHttpConnection(HttpRequest $req): bool
     {
         // if Connection: close, close the connection after handling the request
-        if ($req->getHeaders()->getFieldValue(HttpHeaders::CONNECTION, "keep-alive") === "close") {
+        if ($req->getHeader()->getFieldValue(HttpHeaders::CONNECTION, "keep-alive") === "close") {
             return true;
         }
 

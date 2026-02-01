@@ -27,7 +27,7 @@ namespace Hebbinkpro\WebServer\http\message\request;
 
 use RuntimeException;
 
-class HttpRequestBuilderException extends RuntimeException
+class HttpRequestParserException extends RuntimeException
 {
 
 }

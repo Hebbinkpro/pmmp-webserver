@@ -52,7 +52,7 @@ class HttpRequestParser
     private HttpServerInfo $serverInfo;
     private Logger $logger;
 
-    private HttpRequestBuilderState $state = HttpRequestBuilderState::EMPTY;
+    private HttpRequestParserState $state = HttpRequestParserState::EMPTY;
     private ?HttpProblem $httpProblem = null;
 
     private string $buffer = "";
@@ -84,7 +84,7 @@ class HttpRequestParser
      * Append new data to the builder
      * @param string $data the data to add to the builder
      * @return string|null Remaining data
-     * @throws HttpRequestBuilderException if the builder is invalid or already completed
+     * @throws HttpRequestParserException if the builder is invalid or already completed
      * @throws HttpException if the appended data resulted in an invalid HTTP request
      */
     function appendData(string $data): ?string
@@ -105,32 +105,32 @@ class HttpRequestParser
             $previousState = $this->state;
             switch ($this->state) {
                 // throw exceptions in states in which it is impossible to append data
-                case HttpRequestBuilderState::COMPLETE:
-                    throw new HttpRequestBuilderException("Cannot append data to a completed HTTP Request.");
-                case HttpRequestBuilderState::INVALID:
+                case HttpRequestParserState::COMPLETE:
+                    throw new HttpRequestParserException("Cannot append data to a completed HTTP Request.");
+                case HttpRequestParserState::INVALID:
                     if ($this->httpProblem === null) $this->httpProblem = new HttpProblem(HttpStatusCodes::BAD_REQUEST, "/", null);
-                    throw new HttpRequestBuilderException("Cannot append data to an invalid HTTP Request.", previous: new HttpException($this->httpProblem));
+                    throw new HttpRequestParserException("Cannot append data to an invalid HTTP Request.", previous: new HttpException($this->httpProblem));
 
                 // not yet started
-                case HttpRequestBuilderState::EMPTY:
+                case HttpRequestParserState::EMPTY:
                     // update the state and set default values
-                    $this->state = HttpRequestBuilderState::READING_START_LINE;
+                    $this->state = HttpRequestParserState::READING_START_LINE;
                     $this->startLine = "";
                     break;
 
                 // Read the request line
-                case HttpRequestBuilderState::READING_START_LINE:
+                case HttpRequestParserState::READING_START_LINE:
                     if (!$this->buildRequestLine()) return null;
 
                     // update the state and set default values
-                    $this->state = HttpRequestBuilderState::READING_HEADER;
+                    $this->state = HttpRequestParserState::READING_HEADER;
                     $this->headerFieldLine = "";
                     $this->headerBuilder = new HttpHeaderBuilder();
                     $this->headerLength = 0;
                     break;
 
                 // read all headers
-                case  HttpRequestBuilderState::READING_HEADER:
+                case  HttpRequestParserState::READING_HEADER:
                     if (!$this->readHeader()) return null;
 
                     $this->buildHeader();
@@ -140,29 +140,29 @@ class HttpRequestParser
                     $this->contentLength = intval($this->header->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
-                        $this->state = HttpRequestBuilderState::COMPLETE;
+                        $this->state = HttpRequestParserState::COMPLETE;
                     } else if ($this->contentLength > HttpConstants::MAX_BODY_SIZE) {
                         $this->setInvalid(HttpStatusCodes::CONTENT_TOO_LARGE, "Content length is larger then max body size");
                     } else {
-                        $this->state = HttpRequestBuilderState::READING_BODY;
+                        $this->state = HttpRequestParserState::READING_BODY;
                     }
                     break;
 
-                case HttpRequestBuilderState::READING_BODY:
+                case HttpRequestParserState::READING_BODY:
                     if (!$this->buildBody()) return null;
-                    $this->state = HttpRequestBuilderState::COMPLETE;
+                    $this->state = HttpRequestParserState::COMPLETE;
                     break;
 
             }
 
             // ensure we don't loop again if one of these states is reached
-            if (in_array($this->state, [HttpRequestBuilderState::COMPLETE, HttpRequestBuilderState::INVALID], true)) {
+            if (in_array($this->state, [HttpRequestParserState::COMPLETE, HttpRequestParserState::INVALID], true)) {
                 break;
             }
         }
 
         // Return null when the builder is not complete
-        if ($this->state !== HttpRequestBuilderState::COMPLETE) return null;
+        if ($this->state !== HttpRequestParserState::COMPLETE) return null;
 
         // if the builder is complete, return all bytes from the buffer that are left
         return $this->buffer;
@@ -193,7 +193,7 @@ class HttpRequestParser
     private function setInvalidProblem(HttpProblem $problem): never
     {
         $this->httpProblem = $problem;
-        $this->state = HttpRequestBuilderState::INVALID;
+        $this->state = HttpRequestParserState::INVALID;
         $this->logger->debug("[INVALID REQUEST] {$problem->getDetail()}");
         throw new HttpException($this->httpProblem);
     }
@@ -450,9 +450,9 @@ class HttpRequestParser
 
     /**
      * Get the current state of the builder
-     * @return HttpRequestBuilderState
+     * @return HttpRequestParserState
      */
-    function getState(): HttpRequestBuilderState
+    function getState(): HttpRequestParserState
     {
         return $this->state;
     }
@@ -463,7 +463,7 @@ class HttpRequestParser
      */
     function isComplete(): bool
     {
-        return $this->state === HttpRequestBuilderState::COMPLETE;
+        return $this->state === HttpRequestParserState::COMPLETE;
     }
 
     /**
@@ -473,19 +473,19 @@ class HttpRequestParser
      */
     function build(HttpClient $client): HttpRequest
     {
-        if ($this->state !== HttpRequestBuilderState::COMPLETE) {
-            throw new HttpRequestBuilderException("Cannot build an HttpRequest from an incomplete builder");
+        if ($this->state !== HttpRequestParserState::COMPLETE) {
+            throw new HttpRequestParserException("Cannot build an HttpRequest from an incomplete builder");
         }
 
         return new HttpRequest($client, $this->method, $this->targetUrl, $this->httpVersion, $this->header, $this->body);
     }
 
     /**
-     * @phpstan-assert-if-true HttpRequestBuilderState::INVALID $this->state
+     * @phpstan-assert-if-true HttpRequestParserState::INVALID $this->state
      * @phpstan-assert-if-true HttpProblem $this->httpProblem
      */
     public function isInvalid(): bool
     {
-        return $this->state === HttpRequestBuilderState::INVALID;
+        return $this->state === HttpRequestParserState::INVALID;
     }
 }
