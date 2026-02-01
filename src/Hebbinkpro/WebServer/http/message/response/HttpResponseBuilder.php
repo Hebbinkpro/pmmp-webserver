@@ -30,6 +30,8 @@ use DateTimeInterface;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
+use Hebbinkpro\WebServer\http\HttpVersion;
+use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpMessageBody;
 use Hebbinkpro\WebServer\http\server\HttpClient;
@@ -40,7 +42,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
 use JsonException;
 use LogicException;
 
-class HttpResponseBuilder
+class HttpResponseBuilder implements Response
 {
     private HttpStatus $status;
     private HttpHeaderBuilder $headers;
@@ -73,9 +75,17 @@ class HttpResponseBuilder
      * Get the header builder of the response
      * @return HttpHeaderBuilder
      */
-    public function getHeaders(): HttpHeaderBuilder
+    public function getHeaderBuilder(): HttpHeaderBuilder
     {
         return $this->headers;
+    }
+
+    /**
+     * @return HttpHeader
+     */
+    public function getHeader(): HttpHeader
+    {
+        return $this->headers->build();
     }
 
     /**
@@ -299,4 +309,20 @@ class HttpResponseBuilder
             $this->headers->setField(HttpHeaders::CONNECTION, "close");
         }
     }
+
+    public function getStatus(): HttpStatus
+    {
+        return $this->status;
+    }
+
+    public function getVersion(): HttpVersion
+    {
+        return HttpVersion::getDefault();
+    }
+
+    public function getBody(): ?HttpMessageBody
+    {
+        return $this->body;
+    }
+
 }

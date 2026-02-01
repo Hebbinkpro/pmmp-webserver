@@ -29,7 +29,7 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use InvalidArgumentException;
 
-class HttpHeaderBuilder
+class HttpHeaderBuilder implements Header
 {
 
     private array $headerFields;
@@ -175,5 +175,38 @@ class HttpHeaderBuilder
         return $headerFields;
     }
 
+    /**
+     * Get the value of a header field
+     * @param string $fieldName the header name
+     * @param string|null $default the default value when the header is not available
+     * @param int $index index of the header value to return in case of multiple header entries, 0 by default
+     * @return string|null
+     */
+    public function getFieldValue(string $fieldName, ?string $default = null, int $index = 0): ?string
+    {
+        $field = $this->headerFields[HttpHeader::normalizeFieldName($fieldName)] ?? null;
+        if ($field === null) return $default;
 
+        return $field[$index] ?? $default;
+    }
+
+    /**
+     * Get all values of a header field
+     * @param string $fieldName
+     * @return string[] the values or an empty array if the field does not exist
+     */
+    public function getFieldValues(string $fieldName): array
+    {
+        return $this->headerFields[HttpHeader::normalizeFieldName($fieldName)] ?? [];
+    }
+
+    /**
+     * Check if the field name exists in the header
+     * @param string $fieldName
+     * @return bool
+     */
+    public function fieldExists(string $fieldName): bool
+    {
+        return array_key_exists(HttpHeader::normalizeFieldName($fieldName), $this->headerFields);
+    }
 }

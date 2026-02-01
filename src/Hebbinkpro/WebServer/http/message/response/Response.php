@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ * Copyright (c) 2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,69 +28,29 @@ namespace Hebbinkpro\WebServer\http\message\response;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\HttpMessageBody;
-use Hebbinkpro\WebServer\http\message\HttpStreamMessage;
-use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 
-readonly class HttpResponse implements HttpStreamMessage
+interface Response
 {
-    private HttpClient $client;
-    private HttpStatus $status;
-    private HttpHeader $headers;
-
-    private ?HttpMessageBody $body;
-
-    /**
-     * @param HttpClient $client
-     * @param HttpStatus $status
-     * @param HttpHeader $headers
-     * @param HttpMessageBody|null $body
-     */
-    public function __construct(HttpClient $client, HttpStatus $status, HttpHeader $headers, ?HttpMessageBody $body)
-    {
-        $this->client = $client;
-        $this->status = $status;
-        $this->headers = $headers;
-        $this->body = $body;
-    }
-
-    /**
-     * @return HttpClient
-     */
-    public function getClient(): HttpClient
-    {
-        return $this->client;
-    }
 
     /**
      * @return HttpStatus
      */
-    public function getStatus(): HttpStatus
-    {
-        return $this->status;
-    }
+    public function getStatus(): HttpStatus;
 
     /**
      * @return HttpVersion
      */
-    public function getVersion(): HttpVersion
-    {
-        return HttpVersion::getDefault();
-    }
+    public function getVersion(): HttpVersion;
 
     /**
      * @return HttpHeader
      */
-    public function getHeaders(): HttpHeader
-    {
-        return $this->headers;
-    }
+    public function getHeader(): HttpHeader;
 
     /**
      * @return HttpMessageBody|null
      */
-    public function getBody(): ?HttpMessageBody
-    {
-        return $this->body;
-    }
+    public function getBody(): ?HttpMessageBody;
+
 }

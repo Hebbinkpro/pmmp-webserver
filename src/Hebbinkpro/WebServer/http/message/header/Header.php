@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ * Copyright (c) 2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,22 +25,13 @@
 
 namespace Hebbinkpro\WebServer\http\message\header;
 
-/**
- * Class for managing HTTP headers inside an HTTP request or response message
- */
-readonly class HttpHeader implements Header
+interface Header
 {
-    public static function normalizeFieldName(string $fieldName): string
-    {
-        return strtolower(trim($fieldName));
-    }
-
     /**
-     * @param array<string, string[]> $headerFields
+     * Get all set header fields
+     * @return array<string, string[]>
      */
-    public function __construct(private array $headerFields)
-    {
-    }
+    public function getHeaderFields(): array;
 
     /**
      * Get the value of a header field
@@ -49,57 +40,20 @@ readonly class HttpHeader implements Header
      * @param int $index index of the header value to return in case of multiple header entries, 0 by default
      * @return string|null
      */
-    public function getFieldValue(string $fieldName, ?string $default = null, int $index = 0): ?string
-    {
-        $field = $this->headerFields[self::normalizeFieldName($fieldName)] ?? null;
-        if ($field === null) return $default;
-
-        return $field[$index] ?? $default;
-    }
+    public function getFieldValue(string $fieldName, ?string $default = null, int $index = 0): ?string;
 
     /**
      * Get all values of a header field
      * @param string $fieldName
      * @return string[] the values or an empty array if the field does not exist
      */
-    public function getFieldValues(string $fieldName): array
-    {
-        return $this->headerFields[self::normalizeFieldName($fieldName)] ?? [];
-    }
+    public function getFieldValues(string $fieldName): array;
 
     /**
      * Check if the field name exists in the header
      * @param string $fieldName
      * @return bool
      */
-    public function fieldExists(string $fieldName): bool
-    {
-        return array_key_exists(self::normalizeFieldName($fieldName), $this->headerFields);
-    }
+    public function fieldExists(string $fieldName): bool;
 
-    /**
-     * Get the header fields
-     * @return array<string, string[]>
-     */
-    public function getHeaderFields(): array
-    {
-        return $this->headerFields;
-    }
-
-    /**
-     * Encode the request headers
-     * @return string
-     */
-    public function toString(): string
-    {
-        $res = "";
-        foreach ($this->headerFields as $name => $values) {
-            // apply all values in-order
-            foreach ($values as $value) {
-                $res .= $name . ": " . $value . "\r\n";
-            }
-        }
-
-        return $res;
-    }
 }
