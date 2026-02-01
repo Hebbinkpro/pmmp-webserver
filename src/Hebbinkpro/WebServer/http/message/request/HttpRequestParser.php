@@ -33,15 +33,12 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\HttpHeader;
-use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
 use Hebbinkpro\WebServer\http\uri\PathUri;
-use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 use InvalidArgumentException;
 use Logger;
@@ -55,28 +52,23 @@ class HttpRequestParser
     private HttpRequestParserState $state = HttpRequestParserState::EMPTY;
     private ?HttpProblem $httpProblem = null;
 
+    private HttpRequestBuilder $builder;
+
     private string $buffer = "";
     private string $startLine = "";
     private string $headerFieldLine = "";
     private int $headerLength = 0;
 
-    private ?HttpMethod $method = null;
     private string $requestTarget = "";
-    private ?HttpVersion $httpVersion = null;
-
-    private HttpUrl $targetUrl;
-
     private int $contentLength = 0;
     private int $bodyLength = 0;
-
-    private HttpHeaderBuilder $headerBuilder;
-    private HttpHeader $header;
     private string $body = "";
 
     public function __construct(HttpServerInfo $serverInfo, Logger $logger)
     {
         $this->serverInfo = $serverInfo;
         $this->logger = $logger;
+        $this->builder = new HttpRequestBuilder();
     }
 
 
@@ -125,7 +117,6 @@ class HttpRequestParser
                     // update the state and set default values
                     $this->state = HttpRequestParserState::READING_HEADER;
                     $this->headerFieldLine = "";
-                    $this->headerBuilder = new HttpHeaderBuilder();
                     $this->headerLength = 0;
                     break;
 
@@ -137,7 +128,7 @@ class HttpRequestParser
 
                     // update the state and set default values
                     $this->body = "";
-                    $this->contentLength = intval($this->header->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
+                    $this->contentLength = intval($this->builder->getHeaderBuilder()->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
                         $this->state = HttpRequestParserState::COMPLETE;
@@ -217,23 +208,14 @@ class HttpRequestParser
         // check if the request line contains exactly 2 spaces
         $count = substr_count($this->startLine, " ");
         if ($count != 2) {
-            throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST,
-                "/", // is unknown at this point
-                "Malformed start line"
-            );
+            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Malformed start line");
         }
 
         // get the different parts
         [$methodStr, $target, $versionStr] = explode(" ", $this->startLine, 3);;
 
         try {
-            $this->httpVersion = HttpVersion::parse($versionStr);
-
-            if ($this->httpVersion->getMajorVersion() != HttpConstants::HTTP_VERSION_MAJOR
-                || $this->httpVersion->getMinorVersion() != HttpConstants::HTTP_VERSION_MINOR) {
-
-                $this->setInvalid(HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP Version");
-            }
+            $this->builder->setHttpVersion(HttpVersion::parse($versionStr));
         } catch (HttpException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }
@@ -245,11 +227,11 @@ class HttpRequestParser
         }
 
         // validate the method, also gainst the servers supported methods
-        $this->method = HttpMethod::parse(strtoupper($methodStr));
-        if ($this->method === null) {
+        $method = HttpMethod::parse(strtoupper($methodStr));
+        if ($method === null) {
             $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
         }
-
+        $this->builder->setMethod($method);
 
         // allow all visible ascii characters, proper parsing will be done later
         if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
@@ -257,9 +239,8 @@ class HttpRequestParser
         }
         $this->requestTarget = $target;
 
-
         $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
-        if (!in_array($this->method, $supportedMethods)) {
+        if (!in_array($method, $supportedMethods)) {
             $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
         }
 
@@ -345,7 +326,7 @@ class HttpRequestParser
 
             // try to set the field from the parsed line
             try {
-                $this->headerBuilder->setFromFieldLine($this->headerFieldLine);
+                $this->builder->getHeaderBuilder()->setFromFieldLine($this->headerFieldLine);
             } catch (HttpProblemException $e) {
                 $this->setInvalidProblem($e->getHttpError());
             }
@@ -359,12 +340,9 @@ class HttpRequestParser
 
     private function buildHeader(): void
     {
-        // --- All header fields have been read, build header and remove the builder ---
-        $this->header = $this->headerBuilder->build();
-        unset($this->headerBuilder);
 
         // host is required for HTTP/1.1
-        if (!$this->header->fieldExists(HttpHeaders::HOST)) {
+        if (!$this->builder->getHeaderBuilder()->fieldExists(HttpHeaders::HOST)) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
 
@@ -377,14 +355,14 @@ class HttpRequestParser
         switch ($url->getRequestForm()) {
             case HttpRequestForm::ASTERISK:
                 // only valid for OPTIONS
-                if ($this->method !== HttpMethod::OPTIONS) {
+                if ($this->builder->getMethod() !== HttpMethod::OPTIONS) {
                     $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                 }
                 break;
 
             case HttpRequestForm::AUTHORITY:
                 // only valid for CONNECT
-                if ($this->method !== HttpMethod::CONNECT) {
+                if ($this->builder->getMethod() !== HttpMethod::CONNECT) {
                     $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                 }
                 break;
@@ -395,7 +373,7 @@ class HttpRequestParser
                 if (!$this->serverInfo->isProxy()) {
                     if ($url instanceof PathUri) {
                         // transform to Origin URL
-                        $this->targetUrl = HttpUrlFactory::pathUriAsOrigin($url);
+                        $this->builder->setTarget(HttpUrlFactory::pathUriAsOrigin($url));
                     } else {
                         // unknown class
                         $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
@@ -404,7 +382,7 @@ class HttpRequestParser
                 break;
 
             case HttpRequestForm::ORIGIN:
-                $this->targetUrl = $url;
+                $this->builder->setTarget($url);
                 break;
         }
 
@@ -477,7 +455,7 @@ class HttpRequestParser
             throw new HttpRequestParserException("Cannot build an HttpRequest from an incomplete builder");
         }
 
-        return new HttpRequest($client, $this->method, $this->targetUrl, $this->httpVersion, $this->header, $this->body);
+        return $this->builder->build($client);
     }
 
     /**

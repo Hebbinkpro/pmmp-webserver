@@ -28,75 +28,33 @@ namespace Hebbinkpro\WebServer\http\message\request;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
-use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 
-readonly class HttpRequest implements Request
+interface Request
 {
-    private HttpClient $client;
-    private HttpMethod $method;
-    private HttpUrl $target;
-    private HttpVersion $httpVersion;
-    private HttpHeader $header;
-    private mixed $body;
-
-    public function __construct(HttpClient $client, HttpMethod $method, HttpUrl $target, HttpVersion $httpVersion, HttpHeader $header, mixed $body)
-    {
-        $this->client = $client;
-        $this->method = $method;
-        $this->target = $target;
-        $this->httpVersion = $httpVersion;
-        $this->header = $header;
-        $this->body = $body;
-    }
-
-    /**
-     * @return HttpClient
-     */
-    public function getClient(): HttpClient
-    {
-        return $this->client;
-    }
 
     /**
      * @return HttpMethod
      */
-    public function getMethod(): HttpMethod
-    {
-        return $this->method;
-    }
+    public function getMethod(): HttpMethod;
 
     /**
      * @return HttpUrl
      */
-    public function getTarget(): HttpUrl
-    {
-        return $this->target;
-    }
+    public function getTarget(): HttpUrl;
 
     /**
      * @return HttpVersion
      */
-    public function getHttpVersion(): HttpVersion
-    {
-        return $this->httpVersion;
-    }
+    public function getHttpVersion(): HttpVersion;
 
     /**
      * @return HttpHeader
      */
-    public function getHeader(): HttpHeader
-    {
-        return $this->header;
-    }
+    public function getHeader(): HttpHeader;
 
     /**
      * @return mixed
      */
-    public function getBody(): mixed
-    {
-        return $this->body;
-    }
-
-
+    public function getBody(): mixed;
 }
