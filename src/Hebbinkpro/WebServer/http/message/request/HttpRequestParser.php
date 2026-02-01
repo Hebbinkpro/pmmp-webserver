@@ -32,10 +32,10 @@ use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\HttpProblem;
-use Hebbinkpro\WebServer\http\HttpStartLine;
+use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -46,7 +46,7 @@ use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 use InvalidArgumentException;
 use Logger;
 
-class HttpRequestBuilder implements HttpMessageBuilder
+class HttpRequestParser
 {
 
     private HttpServerInfo $serverInfo;
@@ -60,9 +60,11 @@ class HttpRequestBuilder implements HttpMessageBuilder
     private string $headerFieldLine = "";
     private int $headerLength = 0;
 
-    private HttpStartLine $requestLine;
+    private ?HttpMethod $method = null;
+    private string $requestTarget = "";
+    private ?HttpVersion $httpVersion = null;
 
-    private HttpUrl $url;
+    private HttpUrl $targetUrl;
 
     private int $contentLength = 0;
     private int $bodyLength = 0;
@@ -212,21 +214,54 @@ class HttpRequestBuilder implements HttpMessageBuilder
             return false;
         }
 
-        // parse the request line and store the values
+        // check if the request line contains exactly 2 spaces
+        $count = substr_count($this->startLine, " ");
+        if ($count != 2) {
+            throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST,
+                "/", // is unknown at this point
+                "Malformed start line"
+            );
+        }
+
+        // get the different parts
+        [$methodStr, $target, $versionStr] = explode(" ", $this->startLine, 3);;
+
         try {
-            $this->requestLine = HttpStartLine::parse($this->startLine);
+            $this->httpVersion = HttpVersion::parse($versionStr);
+
+            if ($this->httpVersion->getMajorVersion() != HttpConstants::HTTP_VERSION_MAJOR
+                || $this->httpVersion->getMinorVersion() != HttpConstants::HTTP_VERSION_MINOR) {
+
+                $this->setInvalid(HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP Version");
+            }
         } catch (HttpException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }
 
-        $method = $this->requestLine->getMethod();
-        $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
-        if (!in_array($method, $supportedMethods)) throw new HttpProblemException(
-            HttpStatusCodes::NOT_IMPLEMENTED,
-            $this->requestLine->getTarget(),
-            "Not Implemented"
-        );
 
+        // ensure it is a valid token
+        if (!@preg_match("/^" . HttpParsingRules::TOKEN . "$/", $methodStr)) {
+            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Malformed Request Method");
+        }
+
+        // validate the method, also gainst the servers supported methods
+        $this->method = HttpMethod::parse(strtoupper($methodStr));
+        if ($this->method === null) {
+            $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
+        }
+
+
+        // allow all visible ascii characters, proper parsing will be done later
+        if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
+            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid Request Target");
+        }
+        $this->requestTarget = $target;
+
+
+        $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
+        if (!in_array($this->method, $supportedMethods)) {
+            $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
+        }
 
         return true;
     }
@@ -333,9 +368,8 @@ class HttpRequestBuilder implements HttpMessageBuilder
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
 
-        $uriTarget = $this->requestLine->getTarget();
         try {
-            $url = HttpUrlFactory::parseRequestTarget($uriTarget);
+            $url = HttpUrlFactory::parseRequestTarget($this->requestTarget);
         } catch (HttpProblemException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }
@@ -343,14 +377,14 @@ class HttpRequestBuilder implements HttpMessageBuilder
         switch ($url->getRequestForm()) {
             case HttpRequestForm::ASTERISK:
                 // only valid for OPTIONS
-                if ($this->requestLine->getMethod() !== HttpMethod::OPTIONS) {
+                if ($this->method !== HttpMethod::OPTIONS) {
                     $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                 }
                 break;
 
             case HttpRequestForm::AUTHORITY:
                 // only valid for CONNECT
-                if ($this->requestLine->getMethod() !== HttpMethod::CONNECT) {
+                if ($this->method !== HttpMethod::CONNECT) {
                     $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
                 }
                 break;
@@ -361,7 +395,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
                 if (!$this->serverInfo->isProxy()) {
                     if ($url instanceof PathUri) {
                         // transform to Origin URL
-                        $this->url = HttpUrlFactory::pathUriAsOrigin($url);
+                        $this->targetUrl = HttpUrlFactory::pathUriAsOrigin($url);
                     } else {
                         // unknown class
                         $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
@@ -370,7 +404,7 @@ class HttpRequestBuilder implements HttpMessageBuilder
                 break;
 
             case HttpRequestForm::ORIGIN:
-                $this->url = $url;
+                $this->targetUrl = $url;
                 break;
         }
 
@@ -434,16 +468,16 @@ class HttpRequestBuilder implements HttpMessageBuilder
 
     /**
      * Build an HTTP Message from a completely parsed message
+     * @param HttpClient $client
      * @return HttpRequest
-     * @throws HttpRequestBuilderException if the builder is not complete
      */
-    function build(): HttpRequest
+    function build(HttpClient $client): HttpRequest
     {
         if ($this->state !== HttpRequestBuilderState::COMPLETE) {
             throw new HttpRequestBuilderException("Cannot build an HttpRequest from an incomplete builder");
         }
 
-        return HttpRequest::withRequestLine($this->requestLine, $this->url, $this->header, $this->body);
+        return new HttpRequest($client, $this->method, $this->targetUrl, $this->httpVersion, $this->header, $this->body);
     }
 
     /**

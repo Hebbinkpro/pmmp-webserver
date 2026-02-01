@@ -31,8 +31,8 @@ use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\request\HttpRequestBuilder;
 use Hebbinkpro\WebServer\http\message\request\HttpRequestBuilderException;
+use Hebbinkpro\WebServer\http\message\request\HttpRequestParser;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\socket\SocketBufferOverflowException;
 use Hebbinkpro\WebServer\socket\SocketClient;
@@ -48,7 +48,7 @@ class HttpClient extends SocketClient
 
     private bool $closed = false;
 
-    private ?HttpRequestBuilder $requestBuilder = null;
+    private ?HttpRequestParser $requestBuilder = null;
 
     /** @var int The time when the client was last active (unix time in seconds) */
     private int $lastActivity;
@@ -83,10 +83,10 @@ class HttpClient extends SocketClient
 
     /**
      * Set a new request builder
-     * @param HttpRequestBuilder $builder
+     * @param HttpRequestParser $builder
      * @return void
      */
-    public function setRequestBuilder(HttpRequestBuilder $builder): void
+    public function setRequestBuilder(HttpRequestParser $builder): void
     {
         if ($this->requestBuilder !== null) {
             throw new LogicException("Cannot set a RequestBuilder when the previous builder is still active!");
@@ -157,7 +157,7 @@ class HttpClient extends SocketClient
         }
 
         // build the HTTP Request from the parsed result
-        $req = $builder->build();
+        $req = $builder->build($this);
 
         // reset request builder
         $this->requestBuilder = null;
@@ -193,12 +193,12 @@ class HttpClient extends SocketClient
 
     /**
      * Returns the HttpRequestBuilder of the client or creates one
-     * @return HttpRequestBuilder
+     * @return HttpRequestParser
      */
-    public function getOrCreateRequestBuilder(): HttpRequestBuilder
+    public function getOrCreateRequestBuilder(): HttpRequestParser
     {
         if ($this->requestBuilder === null || $this->requestBuilder->isInvalid()) {
-            $this->requestBuilder = new HttpRequestBuilder(HttpServer::getInstance()->getServerInfo(), $this->logger);
+            $this->requestBuilder = new HttpRequestParser(HttpServer::getInstance()->getServerInfo(), $this->logger);
         }
 
         return $this->requestBuilder;
