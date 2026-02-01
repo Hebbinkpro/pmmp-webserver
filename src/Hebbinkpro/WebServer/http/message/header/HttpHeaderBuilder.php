@@ -40,14 +40,14 @@ class HttpHeaderBuilder implements Header
     }
 
     /**
-     * Set a header field and its value
+     * Add a value to a field
      *
      * Note: The header will be normalized (trimmed and made lowercase) as a header is case insensitive.
      * @param string $fieldName
      * @param string $value
      * @return HttpHeaderBuilder
      */
-    public function setField(string $fieldName, string $value): self
+    public function addField(string $fieldName, string $value): self
     {
         // normalize the field name, such that it is case insensitive
         $name = HttpHeader::normalizeFieldName($fieldName);
@@ -90,21 +90,36 @@ class HttpHeaderBuilder implements Header
         }
 
         // trim the value to remove optional whitespace
-        $this->setField($parts[0], trim($parts[1]));
+        $this->addField($parts[0], trim($parts[1]));
         return $this;
     }
 
     /**
      * Set a field only if the field name is not yet set
+     *
      * @param string $fieldName
      * @param string $value
      * @return HttpHeaderBuilder
      */
     public function setFieldIfAbsent(string $fieldName, string $value): self
     {
-        $name = HttpHeader::normalizeFieldName($fieldName);
-        $this->headerFields[$name] ??= [$value];
+        if (!$this->fieldExists($fieldName)) {
+            $this->addField($fieldName, $value);
+        }
         return $this;
+    }
+
+    /**
+     * Set a field and its name.
+     *
+     * Ensures that all previously set values for the field are removed.
+     * @param string $fieldName
+     * @param string $value the new value
+     * @return $this
+     */
+    public function setField(string $fieldName, string $value): self
+    {
+        return $this->unsetField($fieldName)->addField($fieldName, $value);
     }
 
     /**
@@ -120,10 +135,10 @@ class HttpHeaderBuilder implements Header
         // does not exist
         if (!isset($this->headerFields[$name])) return $this;
 
-        // remove the element at the given index, and reindex the array
+        // remove the element at the given index and reindex the array
         $this->headerFields[$name] = array_values(array_splice($this->headerFields[$name], $index, 1));
 
-        // check if the field has still values, otherwise remove it
+        // check if the field has values, otherwise remove it
         if (count($this->headerFields[$name]) == 0) unset($this->headerFields[$name]);
         return $this;
     }
@@ -176,10 +191,10 @@ class HttpHeaderBuilder implements Header
     }
 
     /**
-     * Get the value of a header field
+     * Get a specific value of a header field
      * @param string $fieldName the header name
-     * @param string|null $default the default value when the header is not available
-     * @param int $index index of the header value to return in case of multiple header entries, 0 by default
+     * @param string|null $default the returned value when the header does not exist
+     * @param int $index index of the header value to return, 0 by default
      * @return string|null
      */
     public function getFieldValue(string $fieldName, ?string $default = null, int $index = 0): ?string
@@ -193,9 +208,9 @@ class HttpHeaderBuilder implements Header
     /**
      * Get all values of a header field
      * @param string $fieldName
-     * @return string[] the values or an empty array if the field does not exist
+     * @return string[] the field values or an empty array if the field does not exist
      */
-    public function getFieldValues(string $fieldName): array
+    public function getField(string $fieldName): array
     {
         return $this->headerFields[HttpHeader::normalizeFieldName($fieldName)] ?? [];
     }

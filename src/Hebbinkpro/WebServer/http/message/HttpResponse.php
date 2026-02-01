@@ -73,8 +73,8 @@ class HttpResponse implements HttpMessage
 
         // set some default headers
         // TODO this overrides any custom headers set by the user, maybe add an override option?
-        $this->headers->setField(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_HTML);
-        $this->headers->setField(HttpHeaders::CONTENT_ENCODING, "utf-8");
+        $this->headers->addField(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_HTML);
+        $this->headers->addField(HttpHeaders::CONTENT_ENCODING, "utf-8");
 
     }
 
@@ -210,7 +210,7 @@ class HttpResponse implements HttpMessage
      */
     public function sendStatusMessage(): void
     {
-        $this->headers->setField(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
+        $this->headers->addField(HttpHeaders::CONTENT_TYPE, HttpContentType::TEXT_PLAIN);
         $this->body = $this->status->getMessage();
     }
 
@@ -316,7 +316,7 @@ class HttpResponse implements HttpMessage
      */
     public function setContentType(string $contentType): void
     {
-        $this->headers->setField(HttpHeaders::CONTENT_TYPE, $contentType);
+        $this->headers->addField(HttpHeaders::CONTENT_TYPE, $contentType);
     }
 
     /**
@@ -334,7 +334,7 @@ class HttpResponse implements HttpMessage
         $this->ended = true;
 
         // set the content length to the body size
-        $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
+        $this->headers->addField(HttpHeaders::CONTENT_LENGTH, strval(strlen($this->body)));
 
         // check if head was used
         if ($this->head) {
@@ -351,21 +351,21 @@ class HttpResponse implements HttpMessage
         $serverInfo = HttpServer::getInstance()->getServerInfo();
 
         // set the date header
-        $this->headers->setField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+        $this->headers->addField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
 
         // set the server name if it is set
         if (($serverName = $serverInfo->getName()) !== null) {
-            $this->headers->setField(HttpHeaders::SERVER, $serverName);
+            $this->headers->addField(HttpHeaders::SERVER, $serverName);
         }
 
 
         // set the correct header
         if ($this->client->isClosed()) {
             // set close if client has closed the connection
-            $this->headers->setField(HttpHeaders::CONNECTION, "close");
+            $this->headers->addField(HttpHeaders::CONNECTION, "close");
         } else if (!$this->headers->fieldExists(HttpHeaders::CONNECTION)) {
             // set keep-alive if no header was set
-            $this->headers->setField(HttpHeaders::CONNECTION, "keep-alive");
+            $this->headers->addField(HttpHeaders::CONNECTION, "keep-alive");
         }
 
         // if connection is keep-alive, set Keep-Alive header
@@ -387,7 +387,7 @@ class HttpResponse implements HttpMessage
 
             // set the keep alive header if a value is set
             if (sizeof($values) > 0) {
-                $this->headers->setField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
+                $this->headers->addField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
             }
         }
 

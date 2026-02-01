@@ -62,7 +62,7 @@ readonly class HttpHeader implements Header
      * @param string $fieldName
      * @return string[] the values or an empty array if the field does not exist
      */
-    public function getFieldValues(string $fieldName): array
+    public function getField(string $fieldName): array
     {
         return $this->headerFields[self::normalizeFieldName($fieldName)] ?? [];
     }

@@ -47,7 +47,7 @@ interface Header
      * @param string $fieldName
      * @return string[] the values or an empty array if the field does not exist
      */
-    public function getFieldValues(string $fieldName): array;
+    public function getField(string $fieldName): array;
 
     /**
      * Check if the field name exists in the header

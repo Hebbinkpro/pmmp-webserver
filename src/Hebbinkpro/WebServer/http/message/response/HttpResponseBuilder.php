@@ -46,17 +46,17 @@ class HttpResponseBuilder implements Response
     private HttpStatus $status;
     private HttpHeaderBuilder $headers;
     private ?HttpMessageBody $body;
-    private bool $sendNoContent;
+    private bool $headOnly;
 
     /**
-     * @param bool $sendNoContent if true, only the response headers can be set, the body will be null
+     * @param bool $headOnly if true, only the response headers will be set in the final HttpResponse
      */
-    public function __construct(bool $sendNoContent = false)
+    public function __construct(bool $headOnly = false)
     {
         $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::OK);
         $this->headers = new HttpHeaderBuilder();
         $this->body = null;
-        $this->sendNoContent = $sendNoContent;
+        $this->headOnly = $headOnly;
     }
 
     /**
@@ -114,13 +114,11 @@ class HttpResponseBuilder implements Response
     /**
      * Set the body stream of the response
      *
-     * If this is a no-content response, the body will be ignored
      * @param HttpMessageBody|null $body the body
      * @return $this
      */
     public function setBody(?HttpMessageBody $body): HttpResponseBuilder
     {
-        if ($this->sendNoContent && $body !== null) return $this;
         $this->body = $body;
         return $this;
     }
@@ -234,7 +232,10 @@ class HttpResponseBuilder implements Response
     {
         $this->finalize($client);
         $headers = $this->headers->build();
-        return new HttpResponse($client, $this->status, $headers, $this->body);
+
+        // set body to null if head only
+        $body = $this->headOnly ? null : $this->body;
+        return new HttpResponse($client, $this->status, $headers, $body);
     }
 
 
@@ -300,6 +301,15 @@ class HttpResponseBuilder implements Response
     public function getBody(): ?HttpMessageBody
     {
         return $this->body;
+    }
+
+    /**
+     * Get if the response is a head only response
+     * @return bool
+     */
+    public function isHeadOnly(): bool
+    {
+        return $this->headOnly;
     }
 
 }
