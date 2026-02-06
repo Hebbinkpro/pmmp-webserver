@@ -27,7 +27,7 @@ namespace Hebbinkpro\WebServer\http\message\response;
 
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\Header;
-use Hebbinkpro\WebServer\http\message\HttpMessageBody;
+use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 
 interface Response
@@ -51,6 +51,6 @@ interface Response
     /**
      * @return HttpMessageBody|null
      */
-    public function getBody(): ?HttpMessageBody;
+    public function getBody(): ?HttpBody;
 
 }

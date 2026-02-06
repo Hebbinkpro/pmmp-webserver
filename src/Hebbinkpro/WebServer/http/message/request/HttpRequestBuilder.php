@@ -30,9 +30,11 @@ use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
+use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
+use RuntimeException;
 
 class HttpRequestBuilder implements Request
 {
@@ -40,7 +42,7 @@ class HttpRequestBuilder implements Request
     private HttpUrl $target;
     private HttpVersion $httpVersion;
     private HttpHeaderBuilder $header;
-    private mixed $body;
+    private ?HttpBody $body;
 
     public function __construct()
     {
@@ -134,23 +136,30 @@ class HttpRequestBuilder implements Request
 
     public function build(HttpClient $client): HttpRequest
     {
+        if (!isset($this->method) || !isset($this->target) || !isset($this->httpVersion)) {
+            throw new RuntimeException("Cannot build request without method, target and/or http version");
+        }
+
+        if ($this->body?->getLength() === 0) $this->body = null;
+
+
         $header = $this->header->build();
         return new HttpRequest($client, $this->method, $this->target, $this->httpVersion, $header, $this->body);
     }
 
     /**
-     * @return mixed
+     * @return HttpBody|null
      */
-    public function getBody(): mixed
+    public function getBody(): ?HttpBody
     {
         return $this->body;
     }
 
     /**
-     * @param mixed $body
+     * @param HttpBody $body
      * @return HttpRequestBuilder
      */
-    public function setBody(mixed $body): self
+    public function setBody(HttpBody $body): self
     {
         $this->body = $body;
         return $this;

@@ -32,7 +32,7 @@ use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
-use Hebbinkpro\WebServer\http\message\HttpMessageBody;
+use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
@@ -45,7 +45,8 @@ class HttpResponseBuilder implements Response
 {
     private HttpStatus $status;
     private HttpHeaderBuilder $headers;
-    private ?HttpMessageBody $body;
+    /** @var resource|null */
+    private mixed $body;
     private bool $headOnly;
 
     /**
@@ -106,7 +107,7 @@ class HttpResponseBuilder implements Response
         fwrite($stream, $data);
         rewind($stream);
 
-        $this->setBody(new HttpMessageBody($stream, strlen($data)));
+        $this->setBody(new HttpBody($stream));
         $this->setContentType($contentType);
         return $this;
     }
@@ -114,10 +115,10 @@ class HttpResponseBuilder implements Response
     /**
      * Set the body stream of the response
      *
-     * @param HttpMessageBody|null $body the body
+     * @param HttpBody|null $body the body
      * @return $this
      */
-    public function setBody(?HttpMessageBody $body): HttpResponseBuilder
+    public function setBody(?HttpBody $body): HttpResponseBuilder
     {
         $this->body = $body;
         return $this;
@@ -188,17 +189,25 @@ class HttpResponseBuilder implements Response
     /**
      * Send a file as a response
      *
-     * Creates a file stream using `fopen()` and determines the file size using `filesize()`.
+     * - Creates a file stream using `fopen()`
+     * - By enabling `$textModeTranslation`, \n will be translated into \r\n when reading the file. Refer to PHP's `fopen` documentation for more information.
      * @param string $filename the name of the file to send
      * @param string|null $contentType the content type of the file. If null, `mime_content_type()` is used
+     * @param bool $textModeTranslation if true, the file is opened in text mode, otherwise in binary mode. Defaults to false.
      * @return $this
      * @throws FileNotFoundException if the file does not exist
+     * @link https://www.php.net/manual/en/function.fopen.php
      */
-    public function sendFile(string $filename, ?string $contentType = null): HttpResponseBuilder
+    public function sendFile(string $filename, ?string $contentType = null, bool $textModeTranslation = false): HttpResponseBuilder
     {
 
         if (!file_exists($filename)) throw new FileNotFoundException($filename);
-        $stream = fopen($filename, "rb");
+
+        if ($textModeTranslation) {
+            $stream = fopen($filename, "rt");
+        } else {
+            $stream = fopen($filename, "rb");
+        }
 
         if ($contentType === null) {
             // determine the mimetype, otherwise default to octet-stream
@@ -212,18 +221,31 @@ class HttpResponseBuilder implements Response
             throw new LogicException("Could not determine file size of $filename");
         }
 
-        return $this->sendStream($stream, $length, $contentType);
+        return $this->sendStream($stream, $contentType);
     }
 
     /**
-     * Send a file stream as a response
+     * Send an octet stream as a response
+     * - Warning: If `$copyStream` is false, the response will assume that it has complete ownership over the stream. Using the provided stream after calling this function is therefore not recommended as it can lead to unexpected behaviour.
+     * - If `$copyStream` is true, a copy of the stream will be stored in a temporary file and lets the response use the created temp file instead of the original stream. `stream_copy_to_stream($stream, $tmp)` is used to the to the temp file.
      * @param resource $stream the stream to send
      * @param string $contentType the content type of the stream, defaults to octet-stream
+     * @param bool $copyStream if true, the stream will be copied to a temporary file. Defaults to false.
      * @return $this
      */
-    public function sendStream(mixed $stream, int $length, string $contentType = HttpContentType::APPLICATION_OCTET_STREAM): HttpResponseBuilder
+    public function sendStream(mixed $stream, string $contentType = HttpContentType::APPLICATION_OCTET_STREAM, bool $copyStream = false): HttpResponseBuilder
     {
-        $this->setBody(new HttpMessageBody($stream, $length));
+
+        if (!$copyStream) {
+            // use the stream
+            $this->setBody(new HttpBody($stream));
+        } else {
+            // copy the stream to a temporary file and use the temp file
+            $tempStream = fopen("php://temp", "r+");
+            stream_copy_to_stream($stream, $tempStream);
+            $this->setBody(new HttpBody($tempStream));
+        }
+
         $this->setContentType($contentType);
         return $this;
     }
@@ -298,7 +320,7 @@ class HttpResponseBuilder implements Response
         return HttpVersion::getDefault();
     }
 
-    public function getBody(): ?HttpMessageBody
+    public function getBody(): ?HttpBody
     {
         return $this->body;
     }

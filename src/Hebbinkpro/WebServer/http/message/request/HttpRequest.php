@@ -28,6 +28,7 @@ namespace Hebbinkpro\WebServer\http\message\request;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
+use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 
@@ -38,9 +39,9 @@ readonly class HttpRequest implements Request
     private HttpUrl $target;
     private HttpVersion $httpVersion;
     private HttpHeader $header;
-    private mixed $body;
+    private ?HttpBody $body;
 
-    public function __construct(HttpClient $client, HttpMethod $method, HttpUrl $target, HttpVersion $httpVersion, HttpHeader $header, mixed $body)
+    public function __construct(HttpClient $client, HttpMethod $method, HttpUrl $target, HttpVersion $httpVersion, HttpHeader $header, ?HttpBody $body)
     {
         $this->client = $client;
         $this->method = $method;
@@ -91,9 +92,9 @@ readonly class HttpRequest implements Request
     }
 
     /**
-     * @return mixed
+     * @return HttpBody|null
      */
-    public function getBody(): mixed
+    public function getBody(): ?HttpBody
     {
         return $this->body;
     }

@@ -27,7 +27,7 @@ namespace Hebbinkpro\WebServer\http\message\response;
 
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
-use Hebbinkpro\WebServer\http\message\HttpMessageBody;
+use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\message\HttpStreamMessage;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
@@ -38,15 +38,15 @@ readonly class HttpResponse implements HttpStreamMessage
     private HttpStatus $status;
     private HttpHeader $headers;
 
-    private ?HttpMessageBody $body;
+    private ?HttpBody $body;
 
     /**
      * @param HttpClient $client
      * @param HttpStatus $status
      * @param HttpHeader $headers
-     * @param HttpMessageBody|null $body
+     * @param HttpBody|null $body
      */
-    public function __construct(HttpClient $client, HttpStatus $status, HttpHeader $headers, ?HttpMessageBody $body)
+    public function __construct(HttpClient $client, HttpStatus $status, HttpHeader $headers, ?HttpBody $body)
     {
         $this->client = $client;
         $this->status = $status;
@@ -87,9 +87,9 @@ readonly class HttpResponse implements HttpStreamMessage
     }
 
     /**
-     * @return HttpMessageBody|null
+     * @return HttpBody|null
      */
-    public function getBody(): ?HttpMessageBody
+    public function getBody(): ?HttpBody
     {
         return $this->body;
     }

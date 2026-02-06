@@ -33,6 +33,7 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpVersion;
+use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
@@ -280,6 +281,7 @@ class HttpRequestParser
     {
 
         // host is required for HTTP/1.1
+        // TODO: RFC/9112 Ignore HOST if ABSOLUTE target is provided
         if (!$this->builder->getHeader()->fieldExists(HttpHeaders::HOST)) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
@@ -338,14 +340,17 @@ class HttpRequestParser
         if ($this->bodyLength < $this->contentLength) {
             // need more data
             return false;
-        } else if ($this->bodyLength === $this->contentLength) {
-            // complete
-            return true;
-        } else {
+        }
+
+        if ($this->bodyLength > $this->contentLength) {
             // something went horribly wrong
             $this->logger->emergency("[INVALID REQUEST] Body is larger then the given content length");
             $this->setInvalid(HttpStatusCodes::INTERNAL_SERVER_ERROR, null);
         }
+
+        // complete
+        $this->builder->setBody(new HttpBody($this->body));
+        return true;
     }
 
     /**
