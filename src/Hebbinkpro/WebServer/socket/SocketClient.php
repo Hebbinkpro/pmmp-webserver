@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 namespace Hebbinkpro\WebServer\socket;
 
 use Exception;
+use Hebbinkpro\WebServer\utils\Buffer;
 
 /**
  * Generic SocketClient class for sockets accepted by a stream_socket_server
@@ -33,7 +34,7 @@ use Exception;
 class SocketClient
 {
     protected int $maxClientBufferSize = 65536; // 64KB
-    protected string $buffer = "";
+    protected Buffer $buffer;
     private string $host;
     private int $port;
     /** @var resource */
@@ -49,6 +50,7 @@ class SocketClient
         $this->host = $host;
         $this->port = $port;
         $this->socket = $socket;
+        $this->buffer = new Buffer();
     }
 
 
@@ -169,16 +171,13 @@ class SocketClient
         }
 
         try {
-            $data = fread($this->socket, $bytes);
+            $bytesCopied = $this->buffer->copyFromStream($this->socket, $bytes);
         } catch (Exception $e) {
             throw new SocketException("Failed to read from socket {$this->getName()}", 0, $e);
         }
 
-        // no data
-        if ($data === false || strlen($data) <= 0) return false;
-
-        // write data to the buffer
-        $this->writeBuffer($data);
+        // no data copied
+        if ($bytesCopied <= 0) return false;
 
         return true;
     }
@@ -191,23 +190,11 @@ class SocketClient
      */
     public function writeBuffer(string $data): void
     {
-        $bufferSize = strlen($this->buffer) + strlen($data);
+        $bufferSize = $this->buffer->getSize() + strlen($data);
         if ($bufferSize > $this->maxClientBufferSize) {
             throw new SocketBufferOverflowException("Client Buffer cannot exceed " . $this->maxClientBufferSize . " bytes.");
         }
 
-        $this->buffer .= $data;
+        $this->buffer->write($data);
     }
-
-    /**
-     * Get the data from the buffer, this will clear the buffer
-     * @return string the data from the buffer
-     */
-    public function readBuffer(): string
-    {
-        $data = $this->buffer;
-        $this->buffer = "";
-        return $data;
-    }
-
 }

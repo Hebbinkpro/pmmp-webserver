@@ -127,7 +127,7 @@ class HttpRequest implements HttpMessage
         $lines = explode("\r\n", $head);
         if (sizeof($lines) == 0) throw HttpProblemException::badRequest();
 
-        if (strlen($lines[0]) > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
+        if (strlen($lines[0]) > HttpConstants::MAX_START_LINE_LENGTH) {
             throw HttpProblemException::blankInstance(HttpStatusCodes::URI_TOO_LONG);
         }
 

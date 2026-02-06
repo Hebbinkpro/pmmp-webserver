@@ -34,7 +34,6 @@ use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\request\HttpRequestParser;
 use Hebbinkpro\WebServer\http\message\request\HttpRequestParserException;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
-use Hebbinkpro\WebServer\socket\SocketBufferOverflowException;
 use Hebbinkpro\WebServer\socket\SocketClient;
 use Hebbinkpro\WebServer\socket\SocketException;
 use Logger;
@@ -126,62 +125,75 @@ class HttpClient extends SocketClient
         }
 
         $serverInfo = HttpServer::getInstance()->getServerInfo();
-        $builder = $this->getOrCreateRequestBuilder();
         $router = $serverInfo->getRouter();
 
-        // append the client buffer to the builder
-        try {
-            $remaining = $builder->appendData($this->readBuffer());
-        } catch (HttpException $e) {
-            // the HTTP request was invalid
-            $this->reject($e->getHttpError());
-            return;
-        } catch (HttpRequestParserException $e) {
-            // this should never happen if the builder is properly used
-            $this->logger->error("Error while parsing request: " . $e->getMessage());
-            $this->reject(new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage()));
-            return;
+        // serve all requests until an incomplete request was received
+        $dataSent = false;
+        while (true) {
+            $parser = $this->getOrCreateRequestParser();
+
+            // append the client buffer to the builder
+            try {
+                $success = $parser->readFromBuffer();
+            } catch (HttpException $e) {
+                // the HTTP request was invalid
+                $this->reject($e->getHttpError());
+                break;
+            } catch (HttpRequestParserException $e) {
+                // this should never happen if the builder is properly used
+                $this->logger->error("Error while parsing request: " . $e->getMessage());
+                $this->reject(new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage()));
+                break;
+            }
+
+            // the request is not complete
+            if (!$success) break;
+
+//        try {
+//            // write remaining data back to the client buffer
+//            $this->writeBuffer($remaining ?? "");
+//        } catch (SocketBufferOverflowException $e) {
+//            // too much data in the buffer, this shouldn't even be possible since the builder buffer has the same size
+//            $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
+//            $this->reject($problem, LogLevel::ERROR);
+//            return;
+//        }
+
+            // build the HTTP Request from the parsed result
+            $req = $parser->build($this);
+
+            // reset request builder
+            $this->requestBuilder = null;
+
+            // we are serving a new request, so increment the counter
+            $this->servedRequests++;
+
+            // if not already closed, validate the http connection using the headers
+            if (!$this->closed) $this->closed = $this->validateHttpConnection($req);
+
+            // handle the request
+            try {
+                $router->handleRequest($this, $req);
+            } catch (Exception $e) {
+                // log the error but don't reject the connection as it's unavailable
+                $this->logger->logException($e);
+            }
+
+            $dataSent = true;
         }
 
-        // the request is not complete
-        if (!$builder->isComplete()) return;
+        if ($dataSent) {
+            // ensure all data is sent to the client
+            try {
+                $this->flush();
+            } catch (SocketException) {
+                // ignore exception, can already be closing
+            }
 
-        try {
-            // write remaining data back to the client buffer
-            $this->writeBuffer($remaining ?? "");
-        } catch (SocketBufferOverflowException $e) {
-            // too much data in the buffer, this shouldn't even be possible since the builder buffer has the same size
-            $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
-            $this->reject($problem, LogLevel::ERROR);
-            return;
+            // compact the buffer to free up memory
+            $this->buffer->cleanup();
         }
 
-        // build the HTTP Request from the parsed result
-        $req = $builder->build($this);
-
-        // reset request builder
-        $this->requestBuilder = null;
-
-        // we are serving a new request, so increment the counter
-        $this->servedRequests++;
-
-        // if not already closed, validate the http connection using the headers
-        if (!$this->closed) $this->closed = $this->validateHttpConnection($req);
-
-        // handle the request
-        try {
-            $router->handleRequest($this, $req);
-        } catch (Exception $e) {
-            // log the error but don't reject the connection as it's unavailable
-            $this->logger->logException($e);
-        }
-
-        // ensure all data is flushed
-        try {
-            $this->flush();
-        } catch (SocketException) {
-            // ignore exception, can already be closing
-        }
     }
 
     private function reject(HttpProblem $problem, string $level = LogLevel::DEBUG): void
@@ -195,10 +207,10 @@ class HttpClient extends SocketClient
      * Returns the HttpRequestBuilder of the client or creates one
      * @return HttpRequestParser
      */
-    public function getOrCreateRequestBuilder(): HttpRequestParser
+    public function getOrCreateRequestParser(): HttpRequestParser
     {
         if ($this->requestBuilder === null || $this->requestBuilder->isInvalid()) {
-            $this->requestBuilder = new HttpRequestParser(HttpServer::getInstance()->getServerInfo(), $this->logger);
+            $this->requestBuilder = new HttpRequestParser($this->buffer, HttpServer::getInstance()->getServerInfo(), $this->logger);
         }
 
         return $this->requestBuilder;

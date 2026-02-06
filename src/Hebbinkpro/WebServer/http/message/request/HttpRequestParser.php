@@ -40,7 +40,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
 use Hebbinkpro\WebServer\http\uri\PathUri;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
-use InvalidArgumentException;
+use Hebbinkpro\WebServer\utils\Buffer;
 use Logger;
 
 class HttpRequestParser
@@ -54,18 +54,19 @@ class HttpRequestParser
 
     private HttpRequestBuilder $builder;
 
-    private string $buffer = "";
-    private string $startLine = "";
-    private string $headerFieldLine = "";
+    private Buffer $buffer;
     private int $headerLength = 0;
 
     private string $requestTarget = "";
     private int $contentLength = 0;
     private int $bodyLength = 0;
-    private string $body = "";
 
-    public function __construct(HttpServerInfo $serverInfo, Logger $logger)
+    /** @var resource */
+    private mixed $body;
+
+    public function __construct(Buffer $buffer, HttpServerInfo $serverInfo, Logger $logger)
     {
+        $this->buffer = $buffer;
         $this->serverInfo = $serverInfo;
         $this->logger = $logger;
         $this->builder = new HttpRequestBuilder();
@@ -73,23 +74,11 @@ class HttpRequestParser
 
 
     /**
-     * Append new data to the builder
-     * @param string $data the data to add to the builder
-     * @return string|null Remaining data
-     * @throws HttpRequestParserException if the builder is invalid or already completed
-     * @throws HttpException if the appended data resulted in an invalid HTTP request
+     * Parse new data from the buffer and update the builder accordingly.
+     * @return bool if the builder is complete, false if more data is needed
      */
-    function appendData(string $data): ?string
+    function readFromBuffer(): bool
     {
-        // check if the buffer will exceed the maximum size
-        if (strlen($this->buffer) + strlen($data) > HttpConstants::MAX_CLIENT_BUFFER_SIZE) {
-            // this shouldn't be possible if the request was valid
-            $this->logger->debug("[INVALID REQUEST] Max client buffer size reached");
-            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Max client buffer size reached");
-        }
-
-        // append the new data to the buffer
-        $this->buffer .= $data;
 
         $previousState = null;
         // loop until the states don't change anymore
@@ -107,27 +96,25 @@ class HttpRequestParser
                 case HttpRequestParserState::EMPTY:
                     // update the state and set default values
                     $this->state = HttpRequestParserState::READING_START_LINE;
-                    $this->startLine = "";
                     break;
 
                 // Read the request line
                 case HttpRequestParserState::READING_START_LINE:
-                    if (!$this->buildRequestLine()) return null;
+                    if (!$this->parseStartLine()) return false;
 
                     // update the state and set default values
                     $this->state = HttpRequestParserState::READING_HEADER;
-                    $this->headerFieldLine = "";
                     $this->headerLength = 0;
                     break;
 
                 // read all headers
                 case  HttpRequestParserState::READING_HEADER:
-                    if (!$this->readHeader()) return null;
+                    if (!$this->readHeader()) return false;
 
-                    $this->buildHeader();
+                    $this->parseHeader();
 
                     // update the state and set default values
-                    $this->body = "";
+                    $this->body = fopen("php://temp", "r+");
                     $this->contentLength = intval($this->builder->getHeader()->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength == 0) {
@@ -140,7 +127,7 @@ class HttpRequestParser
                     break;
 
                 case HttpRequestParserState::READING_BODY:
-                    if (!$this->buildBody()) return null;
+                    if (!$this->parseBody()) return false;
                     $this->state = HttpRequestParserState::COMPLETE;
                     break;
 
@@ -153,10 +140,9 @@ class HttpRequestParser
         }
 
         // Return null when the builder is not complete
-        if ($this->state !== HttpRequestParserState::COMPLETE) return null;
+        if ($this->state !== HttpRequestParserState::COMPLETE) return false;
 
-        // if the builder is complete, return all bytes from the buffer that are left
-        return $this->buffer;
+        return true;
     }
 
     /**
@@ -189,30 +175,32 @@ class HttpRequestParser
         throw new HttpException($this->httpProblem);
     }
 
-    private function buildRequestLine(): bool
+    private function parseStartLine(): bool
     {
-        $finished = $this->readBufferUntil($this->startLine, "\r\n");
+        $startLine = $this->buffer->readLine(HttpConstants::MAX_START_LINE_LENGTH);
+        if ($startLine === null) return false;
 
-        $lineSize = strlen($this->startLine);
+
+        $lineSize = strlen($startLine);
 
         // validate the request line length
-        if ($lineSize > HttpConstants::MAX_REQUEST_LINE_LENGTH) {
+        if ($lineSize >= HttpConstants::MAX_START_LINE_LENGTH) {
             $this->setInvalid(HttpStatusCodes::URI_TOO_LONG, "Max request line length reached");
         }
 
         // needs more data, or got an empty line
-        if (!$finished || $lineSize == 0) {
+        if ($lineSize == 0) {
             return false;
         }
 
         // check if the request line contains exactly 2 spaces
-        $count = substr_count($this->startLine, " ");
+        $count = substr_count($startLine, " ");
         if ($count != 2) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Malformed start line");
         }
 
         // get the different parts
-        [$methodStr, $target, $versionStr] = explode(" ", $this->startLine, 3);;
+        [$methodStr, $target, $versionStr] = explode(" ", $startLine, 3);;
 
         try {
             $this->builder->setHttpVersion(HttpVersion::parse($versionStr));
@@ -247,63 +235,19 @@ class HttpRequestParser
         return true;
     }
 
-    /**
-     * Read all bytes upto the $until string
-     * @param string $into The variable into which the read data should be stored
-     * @param string $until Until where the buffer should be read, THIS IS EXCLUSIVE
-     * @return bool If the until string was encountered, if this value is FALSE, no value is written to $into
-     */
-    private function readBufferUntil(string &$into, string $until): bool
-    {
-        $untilSize = strlen($until);
-        if ($untilSize == 0) throw new InvalidArgumentException('$until cannot be empty');
-
-        $bufferSize = strlen($this->buffer);
-        $pos = strpos($this->buffer, $until);
-
-        // partial write to into if the until string was not found
-        if ($pos === false) {
-            // keep the last bytes in the buffer, in the case they are part of $until
-            $keep = $untilSize - 1;
-
-            // skip substr calls when only the keep bytes are in the buffer
-            if ($bufferSize > $keep) {
-                // flush all other data to $into
-                $into .= substr($this->buffer, 0, $bufferSize - $keep);
-                // put the keep bytes back into the buffer
-                $this->buffer = substr($this->buffer, -$keep);
-            }
-            return false;
-        }
-
-        // skip substr calls when all data that needs to be written is in the buffer
-        if ($bufferSize > $pos + $untilSize) {
-            // read until the pos of the until string
-            $into .= substr($this->buffer, 0, $pos);
-            // remove the data and until string from the buffer
-            $this->buffer = substr($this->buffer, $pos + $untilSize);
-        } else {
-            // cut off the until part from the end of the string
-            $into .= substr($this->buffer, 0, -$untilSize);
-            $this->buffer = "";
-        }
-
-        return true;
-    }
-
     private function readHeader(): bool
     {
 
         // loop until all headers have been read
         while (true) {
-            // read the next header into $this->headerData
-            $headersAvailable = $this->readBufferUntil($this->headerFieldLine, HttpParsingRules::CRLF);
+            $headerFieldLine = $this->buffer->readLine(HttpConstants::MAX_HEADER_LINE_LENGTH);
+            if ($headerFieldLine === null) return false;
 
             // first check buffer sizes, such that we do never read more into the buffer then we are allowed
 
             // current header line is already too long
-            $headerLength = strlen($this->headerFieldLine);
-            if ($headerLength > HttpConstants::MAX_HEADER_LINE_LENGTH) {
+            $headerLength = strlen($headerFieldLine);
+            if ($headerLength >= HttpConstants::MAX_HEADER_LINE_LENGTH) {
                 $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG, "Max header line length reached");
             }
 
@@ -311,12 +255,9 @@ class HttpRequestParser
             $newTotalLength = $this->headerLength + $headerLength + 2;
 
             // the total header length is too large
-            if ($newTotalLength > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
+            if ($newTotalLength >= HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
                 $this->setInvalid(HttpStatusCodes::REQUEST_HEADER_FIELDS_TOO_LONG, "Max total header length reached");
             }
-
-            // incomplete header, wait for more data
-            if (!$headersAvailable) return false;
 
             // write the total header length
             $this->headerLength = $newTotalLength;
@@ -326,19 +267,16 @@ class HttpRequestParser
 
             // try to set the field from the parsed line
             try {
-                $this->builder->getHeader()->setFromFieldLine($this->headerFieldLine);
+                $this->builder->getHeader()->setFromFieldLine($headerFieldLine);
             } catch (HttpProblemException $e) {
                 $this->setInvalidProblem($e->getHttpError());
             }
-
-            // reset header line
-            $this->headerFieldLine = "";
         }
 
         return true;
     }
 
-    private function buildHeader(): void
+    private function parseHeader(): void
     {
 
         // host is required for HTTP/1.1
@@ -388,22 +326,14 @@ class HttpRequestParser
 
     }
 
-    private function buildBody(): bool
+    private function parseBody(): bool
     {
         $remaining = $this->contentLength - $this->bodyLength;
-        $bufferSize = strlen($this->buffer);
+        $bufferSize = $this->buffer->getSize();
 
-        // append the complete buffer
-        if ($remaining >= $bufferSize) {
-            $this->body .= $this->buffer;
-            $this->buffer = "";
-            $this->bodyLength += $bufferSize;
-        } else {
-            $bodyData = substr($this->buffer, 0, $remaining);
-            $this->buffer = substr($this->buffer, $remaining);
-            $this->body .= $bodyData;
-            $this->bodyLength += strlen($bodyData);
-        }
+        // append the remaining bytes or the entire buffer
+        $copied = $this->buffer->copyToStream($this->body, min($remaining, $bufferSize));
+        $this->bodyLength += $copied;
 
         if ($this->bodyLength < $this->contentLength) {
             // need more data

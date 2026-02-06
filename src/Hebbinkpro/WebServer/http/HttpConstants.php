@@ -37,7 +37,7 @@ final class HttpConstants
     public const MAX_STREAM_READ_LENGTH = 8192; // 8KB
 
     /** @var int Max length for the request line (in Bytes) */
-    public const MAX_REQUEST_LINE_LENGTH = 8192; // 8KB
+    public const MAX_START_LINE_LENGTH = 8192; // 8KB
 
     /** @var int Max length of a header line (in Bytes) */
     public const MAX_HEADER_LINE_LENGTH = 4096; // 4KB
