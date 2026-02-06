@@ -26,14 +26,17 @@
 namespace Hebbinkpro\WebServer\socket;
 
 use Exception;
+use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\utils\Buffer;
+use OverflowException;
 
 /**
  * Generic SocketClient class for sockets accepted by a stream_socket_server
  */
 class SocketClient
 {
-    protected int $maxClientBufferSize = 65536; // 64KB
+    protected int $maxClientBufferSize = HttpConstants::MAX_CLIENT_BUFFER_SIZE; // 64KB
+
     protected Buffer $buffer;
     private string $host;
     private int $port;
@@ -50,7 +53,7 @@ class SocketClient
         $this->host = $host;
         $this->port = $port;
         $this->socket = $socket;
-        $this->buffer = new Buffer();
+        $this->buffer = new Buffer($this->maxClientBufferSize);
     }
 
 
@@ -86,6 +89,7 @@ class SocketClient
     public function close(): void
     {
         try {
+            $this->buffer->close();
             stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
             fclose($this->socket);
         } catch (Exception $e) {
@@ -156,45 +160,24 @@ class SocketClient
 
     /**
      * Read data from the client and append it to the buffer
-     * @param int<1, max> $bytes
-     * @return bool if data was added to the buffer
+     * @param int<1, max> $length the maximum number of bytes to read
+     * @return bool if data was written into the buffer
      * @throws SocketClosedException when the socket is closed
      * @throws SocketException when an unexpected exception happened
-     * @throws SocketBufferOverflowException when too much data is put into the buffer
+     * @throws OverflowException when the buffer cannot hold at least `$bytes` bytes
      */
-    public function read(int $bytes): bool
+    public function read(int $length): bool
     {
-
         // we cannot read from a closed socket
         if (!$this->isAvailable()) {
             throw new SocketClosedException("Cannot read from closed socket {$this->getName()}");
         }
 
-        try {
-            $bytesCopied = $this->buffer->copyFromStream($this->socket, $bytes);
-        } catch (Exception $e) {
-            throw new SocketException("Failed to read from socket {$this->getName()}", 0, $e);
-        }
+        $bytesCopied = $this->buffer->copyFromStream($this->socket, $length);
 
         // no data copied
         if ($bytesCopied <= 0) return false;
 
         return true;
-    }
-
-    /**
-     * Write data to the buffer
-     * @param string $data data to write
-     * @return void
-     * @throws SocketBufferOverflowException when too much data is put into the buffer
-     */
-    public function writeBuffer(string $data): void
-    {
-        $bufferSize = $this->buffer->getSize() + strlen($data);
-        if ($bufferSize > $this->maxClientBufferSize) {
-            throw new SocketBufferOverflowException("Client Buffer cannot exceed " . $this->maxClientBufferSize . " bytes.");
-        }
-
-        $this->buffer->write($data);
     }
 }

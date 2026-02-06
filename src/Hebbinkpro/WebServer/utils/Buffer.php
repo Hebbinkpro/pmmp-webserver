@@ -25,10 +25,12 @@
 
 namespace Hebbinkpro\WebServer\utils;
 
+use Exception;
 use Hebbinkpro\WebServer\http\HttpConstants;
+use OverflowException;
 
 /**
- * A buffer to store temporary data
+ * A buffer to store data temporary which can only be read once
  */
 class Buffer
 {
@@ -37,16 +39,32 @@ class Buffer
 
     private int $readPosition;
 
+    private int $maxBufferSize;
 
-    public function __construct()
+    public function __construct(int $maxBufferSize = HttpConstants::MAX_CLIENT_BUFFER_SIZE)
     {
+        $this->maxBufferSize = $maxBufferSize;
         $this->stream = fopen("php://temp", "r+");
         $this->readPosition = 0;
     }
 
+    /**
+     * Close the buffer freeing all resources
+     * @return void
+     */
+    public function close(): void
+    {
+        $this->readPosition = -1;
+        try {
+            fclose($this->stream);
+        } catch (Exception $e) {
+            // already closed
+        }
+    }
+
     public function __destruct()
     {
-        fclose($this->stream);
+        $this->close();
     }
 
     /**
@@ -54,11 +72,12 @@ class Buffer
      * @param resource $from the stream to copy from
      * @param int<1, max> $length the maximum number of bytes to copy
      * @return int the number of bytes copied
+     * @throws OverflowException if the buffer cannot hold at most `$length` bytes
      */
     public function copyFromStream(mixed $from, int $length): int
     {
         // move position to the end of the buffer
-        fseek($this->stream, 0, SEEK_END);
+        $this->prepareForWrite($length);
         return stream_copy_to_stream($from, $this->stream, $length);
     }
 
@@ -72,7 +91,7 @@ class Buffer
     public function copyToStream(mixed $to, int $length): int
     {
         // move position to the beginning of the unread data
-        fseek($this->stream, $this->readPosition);
+        $this->moveToRead();
         $copied = stream_copy_to_stream($this->stream, $to, $length);
 
         // Advance source read position
@@ -84,10 +103,11 @@ class Buffer
      * Write data to the buffer
      * @param string $data the data to be written
      * @return int the number of bytes written
+     * @throws OverflowException if the data is too large for the buffer
      */
     public function write(string $data): int
     {
-        fseek($this->stream, 0, SEEK_END);
+        $this->prepareForWrite(strlen($data));
         return fwrite($this->stream, $data);
     }
 
@@ -98,25 +118,27 @@ class Buffer
      */
     public function read(int $length): string
     {
-        fseek($this->stream, $this->readPosition);
+        $this->moveToRead();
         $data = fread($this->stream, $length);
         $this->readPosition += strlen($data);
         return $data;
     }
 
     /**
-     * Cleanup the buffer by moving all remaining data to the beginning of the buffer
+     * Cleanup the buffer by moving all unread data to the beginning of the buffer
+     * - This copies all unread data to a new temp file and closes the old one
      * @return void
      */
     public function cleanup(): void
     {
-        $newBuffer = fopen("php://temp", "r+");
-
         // go to the read position and copy all remaining data to the new buffer
-        fseek($this->stream, $this->readPosition);
+        $this->moveToRead();
+
+        // create a new temp file and copy all unread data
+        $newBuffer = fopen("php://temp", "r+");
         stream_copy_to_stream($this->stream, $newBuffer);
 
-        // close the old buffer and set the new one
+        // close the old file and set the new one
         fclose($this->stream);
         $this->stream = $newBuffer;
 
@@ -133,7 +155,7 @@ class Buffer
      */
     public function readLine(int $maxLength = HttpConstants::MAX_STREAM_READ_LENGTH): ?string
     {
-        fseek($this->stream, $this->readPosition);
+        $this->moveToRead();
         $line = stream_get_line($this->stream, $maxLength, "\r\n");
         if ($line === false) return null;
 
@@ -167,5 +189,49 @@ class Buffer
     public function getReadPosition(): int
     {
         return $this->readPosition;
+    }
+
+    /**
+     * Validate that the buffer can hold at least `$length` bytes before writing
+     * @param int $length
+     * @return void
+     * @throws OverflowException if the buffer cannot hold at most `$length` bytes
+     */
+    protected function prepareForWrite(int $length): void
+    {
+        // check buffer size
+        if ($this->getSize() + $length > $this->maxBufferSize) {
+            throw new OverflowException("Buffer cannot exceed " . $this->maxBufferSize . " bytes.");
+        }
+
+        // move position to the end of the buffer
+        $this->moveToEnd();
+    }
+
+    /**
+     * Move the read position to the end of the buffer
+     * @return void
+     */
+    protected function moveToEnd(): void
+    {
+        fseek($this->stream, 0, SEEK_END);
+    }
+
+    /**
+     * Move the read position to the beginning of the unread data
+     * @return void
+     */
+    protected function moveToRead(): void
+    {
+        fseek($this->stream, $this->readPosition);
+    }
+
+    /**
+     * Get if the buffer is closed
+     * @return bool
+     */
+    public function isClosed(): bool
+    {
+        return $this->readPosition < 0;
     }
 }
