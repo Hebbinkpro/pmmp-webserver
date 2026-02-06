@@ -35,7 +35,7 @@ final class StreamUtils
      */
     public static function isReadable(mixed $stream): bool
     {
-        return self::hasMode($stream, "r");
+        return self::hasMode($stream, "r") || self::isReadableAndWritable($stream);
     }
 
     /**
@@ -69,17 +69,17 @@ final class StreamUtils
      */
     public static function isWritable(mixed $stream): bool
     {
-        return self::hasMode($stream, "w");
+        return self::hasMode($stream, "w") || self::isReadableAndWritable($stream);
     }
 
     /**
-     * Get if the resource is a seekable stream
+     * Get if the resource is readable and writable stream
      * @param mixed $stream
      * @return bool
      * @phpstan-assert-if-true resource $stream
      */
-    public static function isSeekable(mixed $stream): bool
+    public static function isReadableAndWritable(mixed $stream): bool
     {
-        return self::hasMode($stream, "r+");
+        return self::hasMode($stream, "r+") || self::hasMode($stream, "w+");
     }
 }
