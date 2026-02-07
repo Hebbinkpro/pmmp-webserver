@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,7 @@ final class HttpStatusCodes
     public const UNAUTHORIZED = 401;
     public const PAYMENT_REQUIRED = 402;
     public const FORBIDDEN = 403;
-    public const NOT_F0UND = 404;
+    public const NOT_FOUND = 404;
     public const METHOD_NOT_ALLOWED = 405;
     public const NOT_ACCEPTABLE = 406;
     public const PROXY_AUTHENTICATION_REQUIRED = 407;
