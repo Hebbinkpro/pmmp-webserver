@@ -116,14 +116,19 @@ class UriAuthority implements UriElement
             $authority .= "@";
         }
 
-
-        $authority .= $this->host;
-
-        // omit if port is the default port
-        if ($this->port !== HttpConstants::DEFAULT_HTTP_PORT && $this->port !== HttpConstants::DEFAULT_HTTPS_PORT) {
-            $authority .= ':' . $this->port;
-        }
+        $authority .= $this->getHostString();
 
         return $authority;
+    }
+
+    public function getHostString(): string
+    {
+        $hostStr = $this->host;
+
+        if ($this->port !== HttpConstants::DEFAULT_HTTP_PORT && $this->port !== HttpConstants::DEFAULT_HTTPS_PORT) {
+            $hostStr .= ':' . $this->port;
+        }
+
+        return $hostStr;
     }
 }

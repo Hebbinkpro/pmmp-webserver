@@ -30,7 +30,6 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\HttpBody;
@@ -38,6 +37,7 @@ use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\uri\AuthorityUri;
 use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
 use Hebbinkpro\WebServer\http\uri\PathUri;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
@@ -101,7 +101,9 @@ class HttpRequestParser
 
                 // Read the request line
                 case HttpRequestParserState::READING_START_LINE:
-                    if (!$this->parseStartLine()) return false;
+                    if (!$this->parseRequestLine()) return false;
+
+                    $this->parseRequestTarget();
 
                     // update the state and set default values
                     $this->state = HttpRequestParserState::READING_HEADER;
@@ -110,9 +112,9 @@ class HttpRequestParser
 
                 // read all headers
                 case  HttpRequestParserState::READING_HEADER:
-                    if (!$this->readHeader()) return false;
+                    if (!$this->parseHeader()) return false;
 
-                    $this->parseHeader();
+                    $this->parseHostHeader();
 
                     // update the state and set default values
                     $this->body = fopen("php://temp", "r+");
@@ -176,13 +178,13 @@ class HttpRequestParser
         throw new HttpException($this->httpProblem);
     }
 
-    private function parseStartLine(): bool
+    private function parseRequestLine(): bool
     {
-        $startLine = $this->buffer->readLine(HttpConstants::MAX_START_LINE_LENGTH);
-        if ($startLine === null) return false;
+        $requestLine = $this->buffer->readLine(HttpConstants::MAX_START_LINE_LENGTH);
+        if ($requestLine === null) return false;
 
 
-        $lineSize = strlen($startLine);
+        $lineSize = strlen($requestLine);
 
         // validate the request line length
         if ($lineSize >= HttpConstants::MAX_START_LINE_LENGTH) {
@@ -195,24 +197,18 @@ class HttpRequestParser
         }
 
         // check if the request line contains exactly 2 spaces
-        $count = substr_count($startLine, " ");
+        $count = substr_count($requestLine, " ");
         if ($count != 2) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Malformed start line");
         }
 
         // get the different parts
-        [$methodStr, $target, $versionStr] = explode(" ", $startLine, 3);;
+        [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);;
 
         try {
             $this->builder->setHttpVersion(HttpVersion::parse($versionStr));
         } catch (HttpException $e) {
             $this->setInvalidProblem($e->getHttpError());
-        }
-
-
-        // ensure it is a valid token
-        if (!@preg_match("/^" . HttpParsingRules::TOKEN . "$/", $methodStr)) {
-            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Malformed Request Method");
         }
 
         // validate the method, also gainst the servers supported methods
@@ -222,10 +218,6 @@ class HttpRequestParser
         }
         $this->builder->setMethod($method);
 
-        // allow all visible ascii characters, proper parsing will be done later
-        if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
-            $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid Request Target");
-        }
         $this->requestTarget = $target;
 
         $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
@@ -236,7 +228,50 @@ class HttpRequestParser
         return true;
     }
 
-    private function readHeader(): bool
+    private function parseRequestTarget(): void
+    {
+        try {
+            $url = HttpUrlFactory::parseRequestTarget($this->requestTarget);
+        } catch (HttpProblemException $e) {
+            $this->setInvalidProblem($e->getHttpError());
+        }
+
+        switch ($url->getRequestForm()) {
+            case HttpRequestForm::ASTERISK:
+                // only valid for OPTIONS
+                if ($this->builder->getMethod() !== HttpMethod::OPTIONS) {
+                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
+                }
+                break;
+
+            case HttpRequestForm::AUTHORITY:
+                // only valid for CONNECT
+                if ($this->builder->getMethod() !== HttpMethod::CONNECT) {
+                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
+                }
+                break;
+
+            case HttpRequestForm::ABSOLUTE:
+
+                // if the server is not a proxy, convert to ORIGIN
+                if (!$this->serverInfo->isProxy()) {
+                    if ($url instanceof PathUri) {
+                        // transform to Origin URL
+                        $this->builder->setTarget(HttpUrlFactory::pathUriAsOrigin($url));
+                    } else {
+                        // unknown class
+                        $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
+                    }
+                }
+                break;
+
+            case HttpRequestForm::ORIGIN:
+                $this->builder->setTarget($url);
+                break;
+        }
+    }
+
+    private function parseHeader(): bool
     {
 
         // loop until all headers have been read
@@ -277,55 +312,28 @@ class HttpRequestParser
         return true;
     }
 
-    private function parseHeader(): void
+    /**
+     * Parses the correct host header as specified in RFC 9112 section 3.2
+     */
+    private function parseHostHeader(): void
     {
-
-        // host is required for HTTP/1.1
-        // TODO: RFC/9112 Ignore HOST if ABSOLUTE target is provided
+        // host header must be included in all HTTP/1.1 request (RFC 9112 - 3.2)
         if (!$this->builder->getHeader()->fieldExists(HttpHeaders::HOST)) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Missing header: host");
         }
 
-        try {
-            $url = HttpUrlFactory::parseRequestTarget($this->requestTarget);
-        } catch (HttpProblemException $e) {
-            $this->setInvalidProblem($e->getHttpError());
+        $target = $this->builder->getTarget();
+        if ($target instanceof AuthorityUri) {
+            // all request forms with an authority field should use the authority as host
+            // absolute-form: ignore host header if url is in absolute form (RFC 9112 - 3.2.2)
+            // authority-form: use host and port from the authority field (RFC 9112 - 3.2.3)
+            $host = $target->getAuthority()->getHostString();
+        } else {
+            $host = $this->builder->getHeader()->getFieldValue(HttpHeaders::HOST);
         }
 
-        switch ($url->getRequestForm()) {
-            case HttpRequestForm::ASTERISK:
-                // only valid for OPTIONS
-                if ($this->builder->getMethod() !== HttpMethod::OPTIONS) {
-                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
-                }
-                break;
-
-            case HttpRequestForm::AUTHORITY:
-                // only valid for CONNECT
-                if ($this->builder->getMethod() !== HttpMethod::CONNECT) {
-                    $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
-                }
-                break;
-
-            case HttpRequestForm::ABSOLUTE:
-
-                // if the server is not a proxy, convert to ORIGIN
-                if (!$this->serverInfo->isProxy()) {
-                    if ($url instanceof PathUri) {
-                        // transform to Origin URL
-                        $this->builder->setTarget(HttpUrlFactory::pathUriAsOrigin($url));
-                    } else {
-                        // unknown class
-                        $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Invalid request form");
-                    }
-                }
-                break;
-
-            case HttpRequestForm::ORIGIN:
-                $this->builder->setTarget($url);
-                break;
-        }
-
+        // set the host which should be used by the server by replacing it in the header
+        $this->builder->getHeader()->setField(HttpHeaders::HOST, $host);
     }
 
     private function parseBody(): bool

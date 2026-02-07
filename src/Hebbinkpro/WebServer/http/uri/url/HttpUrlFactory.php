@@ -26,6 +26,8 @@
 namespace Hebbinkpro\WebServer\http\uri\url;
 
 use Hebbinkpro\WebServer\exception\HttpProblemException;
+use Hebbinkpro\WebServer\http\HttpParsingRules;
+use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\PathUri;
 use Hebbinkpro\WebServer\utils\UrlUtils;
 
@@ -39,6 +41,11 @@ class HttpUrlFactory
     public static function parseRequestTarget(string $target): HttpUrl
     {
         if ($target === "*") return new HttpAsteriskUrl();
+
+        // allow only visible ascii characters
+        if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
+            throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "/", "Invalid Request Target");
+        }
 
         // some very simple check to determine which type of URL we should parse
         $targetParts = UrlUtils::parseUrl($target);
