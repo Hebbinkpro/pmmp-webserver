@@ -49,15 +49,17 @@ class HttpResponseBuilder implements Response
     private mixed $body;
     private bool $headOnly;
 
+    private bool $locked;
+
     /**
      * @param bool $headOnly if true, only the response headers will be set in the final HttpResponse
      */
     public function __construct(bool $headOnly = false)
     {
-        $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::OK);
         $this->headers = new HttpHeaderBuilder();
         $this->body = null;
         $this->headOnly = $headOnly;
+        $this->locked = false;
     }
 
     /**
@@ -67,6 +69,8 @@ class HttpResponseBuilder implements Response
      */
     public function setStatus(HttpStatus|int $status): HttpResponseBuilder
     {
+        if ($this->locked) throw new LogicException("Cannot set status after the response has been built");
+
         $this->status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
         return $this;
     }
@@ -120,6 +124,8 @@ class HttpResponseBuilder implements Response
      */
     public function setBody(?HttpBody $body): HttpResponseBuilder
     {
+        if ($this->locked) throw new LogicException("Cannot set body after the response has been built");
+
         $this->body = $body;
         return $this;
     }
@@ -133,6 +139,8 @@ class HttpResponseBuilder implements Response
      */
     public function setContentType(string $contentType): HttpResponseBuilder
     {
+        if ($this->locked) throw new LogicException("Cannot set body after the response has been built");
+
         $this->headers->setField(HttpHeaders::CONTENT_TYPE, $contentType);
         return $this;
     }
@@ -272,6 +280,16 @@ class HttpResponseBuilder implements Response
     {
         $serverInfo = HttpServer::getInstance()->getServerInfo();
 
+        // set status to 204 if head only
+        if ($this->headOnly) {
+            $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::NO_CONTENT);
+        }
+
+        // set status to 200 OK if not set
+        if (!isset($this->status)) {
+            $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::OK);
+        }
+
         // set the final content length
         $contentLength = $this->body?->getLength() ?? 0;
         $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval($contentLength));
@@ -334,4 +352,30 @@ class HttpResponseBuilder implements Response
         return $this->headOnly;
     }
 
+    /**
+     * Sets the body to a string containing the status message with a content type of text/plain
+     * @return void
+     */
+    public function sendStatusMessage(): void
+    {
+        $this->text($this->status->getMessage());
+    }
+
+    /**
+     * Lock the response builder so that it cannot be modified anymore.
+     * @return void
+     */
+    public function lock(): void
+    {
+        $this->locked = true;
+    }
+
+    /**
+     * Get if the response builder is locked.
+     * @return bool
+     */
+    public function isLocked(): bool
+    {
+        return $this->locked;
+    }
 }
