@@ -124,6 +124,8 @@ class HttpClient extends SocketClient
             return;
         }
 
+        $this->updateLastActivity();
+
         $serverInfo = HttpServer::getInstance()->getServerInfo();
         $router = $serverInfo->getRouter();
 
@@ -148,16 +150,6 @@ class HttpClient extends SocketClient
 
             // the request is not complete
             if (!$success) break;
-
-//        try {
-//            // write remaining data back to the client buffer
-//            $this->writeBuffer($remaining ?? "");
-//        } catch (SocketBufferOverflowException $e) {
-//            // too much data in the buffer, this shouldn't even be possible since the builder buffer has the same size
-//            $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
-//            $this->reject($problem, LogLevel::ERROR);
-//            return;
-//        }
 
             // build the HTTP Request from the parsed result
             $req = $parser->build($this);
