@@ -5,14 +5,14 @@
   "type": "library",
   "require": {
     "pocketmine/pocketmine-mp": "^5.0.0",
-    "php": "^8.2"
+    "php": "^8.4"
   },
   "require-dev": {
     "laravel/serializable-closure": "v1.3.0",
-    "phpstan/phpstan": "^1.12.0",
-    "phpstan/phpstan-strict-rules": "^1.6.0",
+    "phpstan/phpstan": "^2.2.0",
+    "phpstan/phpstan-strict-rules": "^2.0.0",
     "phpstan/extension-installer": "^1.4.0",
-    "phpunit/phpunit": "11"
+    "phpunit/phpunit": "13"
   },
   "autoload": {
     "psr-4": {
