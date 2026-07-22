@@ -43,27 +43,34 @@ class FileRoute extends Route
 
     /**
      * @param string $file the file path
+     * @param string|null $contentType the content type of the file, if null it will be determined automatically
      * @param string|null $default default value used when the file does not exist, if null a 404 will be sent instead
      * @param string|null $defaultContentType the content type of the default value, if null text/html will be used
      * @throws FileNotFoundException
      */
-    public function __construct(string $file, ?string $default = null, string $defaultContentType = null)
+    public function __construct(string $file, ?string $contentType = null, ?string $default = null, ?string $defaultContentType = null)
     {
         if (!file_exists($file) && $default === null) throw new FileNotFoundException($file);
 
         $this->file = $file;
 
         parent::__construct(HttpMethod::GET,
-            function (HttpRequest $req, HttpResponseBuilder $res, mixed $file = "", mixed $default = null, string $defaultContentType = null, mixed ...$params) {
-                if (!is_string($file) || ($default !== null && !is_string($default))) {
+            function (HttpRequest $req, HttpResponseBuilder $res, mixed $file = "", ?string $contentType = null, ?string $default = null, ?string $defaultContentType = null, mixed ...$params) {
+                // for PHPStan, validate that the given file is a proper string, which should always be the case
+                if (!is_string($file)) {
                     $res->setStatus(HttpStatusCodes::NOT_FOUND);
                     $res->sendStatusMessage();
                     return;
                 }
 
-                $res->sendFileOrDefault($file, $default, $defaultContentType ?? HttpContentType::TEXT_HTML);
+                if ($default === null) {
+                    $res->sendFile($file, $contentType);
+                } else {
+                    $res->sendFileOrDefault($file, $default, $defaultContentType ?? HttpContentType::TEXT_HTML);
+                }
+
             },
-            $file, $default, $defaultContentType
+            $file, $contentType, $default, $defaultContentType
         );
     }
 

@@ -28,7 +28,6 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\router;
 
 use Closure;
-use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\exception\RouteExistsException;
 use Hebbinkpro\WebServer\exception\RouteInUseException;
@@ -233,13 +232,14 @@ class Router extends ThreadSafe implements RouterInterface
      * Add a FileRoute to the router
      * @param string $path
      * @param string $file the path of the file
+     * @param string|null $contentType the content type of the file
      * @param string|null $default default value used when the file does not exist
+     * @param string|null $defaultContentType the content type of the default value
      * @return void
-     * @throws FileNotFoundException|RouteExistsException|RouteInUseException
      */
-    public function getFile(string $path, string $file, ?string $default = null): void
+    public function getFile(string $path, string $file, ?string $contentType = null, ?string $default = null, ?string $defaultContentType = null): void
     {
-        $this->addRoute($path, new FileRoute($file, $default));
+        $this->addRoute($path, new FileRoute($file, default: $default));
     }
 
     /**
