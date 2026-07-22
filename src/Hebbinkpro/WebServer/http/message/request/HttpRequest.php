@@ -40,6 +40,7 @@ readonly class HttpRequest implements Request
     private HttpVersion $httpVersion;
     private HttpHeader $header;
     private ?HttpBody $body;
+    private RequestRouteInfo $routeInfo;
 
     public function __construct(HttpClient $client, HttpMethod $method, HttpUrl $target, HttpVersion $httpVersion, HttpHeader $header, ?HttpBody $body)
     {
@@ -49,6 +50,7 @@ readonly class HttpRequest implements Request
         $this->httpVersion = $httpVersion;
         $this->header = $header;
         $this->body = $body;
+        $this->routeInfo = new RequestRouteInfo();
     }
 
     /**
@@ -99,5 +101,11 @@ readonly class HttpRequest implements Request
         return $this->body;
     }
 
-
+    /**
+     * @return RequestRouteInfo
+     */
+    public function getRouteInfo(): RequestRouteInfo
+    {
+        return $this->routeInfo;
+    }
 }
