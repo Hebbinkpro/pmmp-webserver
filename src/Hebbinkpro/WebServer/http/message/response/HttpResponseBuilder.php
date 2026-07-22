@@ -42,6 +42,7 @@ use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
+use Hebbinkpro\WebServer\utils\StreamUtils;
 use JsonException;
 use LogicException;
 
@@ -111,10 +112,7 @@ class HttpResponseBuilder implements Response
     public function sendString(string $data, string $contentType): HttpResponseBuilder
     {
 
-        $stream = @fopen("php://temp", "r+");
-        if ($stream === false) {
-            throw new StreamException("Unable to open temp stream.");
-        }
+        $stream = StreamUtils::openTempStream();
 
         try {
             fwrite($stream, $data);
@@ -226,18 +224,13 @@ class HttpResponseBuilder implements Response
 
         // try to get the filesize
         $length = @filesize($filename);
-        if ($length === false) {
-            throw new LogicException("Could not determine file size of $filename");
-        }
+        if ($length === false) throw new LogicException("Could not determine file size of $filename");
+
 
         if ($textModeTranslation) {
-            $stream = @fopen($filename, "rt");
+            $stream = StreamUtils::openStream($filename, "rt");
         } else {
-            $stream = @fopen($filename, "rb");
-        }
-
-        if ($stream === false) {
-            throw new StreamException("Unable to open temp stream.");
+            $stream = StreamUtils::openStream($filename, "rb");
         }
 
         if ($contentType === null) {
@@ -266,12 +259,9 @@ class HttpResponseBuilder implements Response
             $this->setBody(new HttpBody($stream));
         } else {
             // copy the stream to a temporary file and use the temp file
-            $tempStream = @fopen("php://temp", "r+");
-            if ($tempStream === false) {
-                throw new StreamException("Unable to open temp stream.");
-            }
+            $tempStream = StreamUtils::openTempStream();
 
-            stream_copy_to_stream($stream, $tempStream);
+            StreamUtils::streamCopyToStream($stream, $tempStream);
             $this->setBody(new HttpBody($tempStream));
         }
 

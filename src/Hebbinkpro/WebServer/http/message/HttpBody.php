@@ -28,8 +28,6 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\http\message;
 
 
-use Exception;
-use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\utils\StreamUtils;
 use InvalidArgumentException;
 use ValueError;
@@ -62,11 +60,7 @@ readonly class HttpBody
      */
     public function getLength(): int
     {
-        $stat = fstat($this->stream);
-        if ($stat === false) {
-            throw new StreamException("Unable to get information about the stream.");
-        }
-
+        $stat = StreamUtils::streamStat($this->stream);
         return $stat['size'];
     }
 
@@ -77,13 +71,7 @@ readonly class HttpBody
      */
     public function read(int $length): string
     {
-        $data = fread($this->stream, $length);
-
-        if ($data === false) {
-            throw new StreamException("Unable to read the stream.");
-        }
-
-        return $data;
+        return StreamUtils::readStream($this->stream, $length);
     }
 
     /**
@@ -108,11 +96,7 @@ readonly class HttpBody
      */
     public function close(): void
     {
-        try {
-            fclose($this->stream);
-        } catch (Exception $e) {
-            // already closed
-        }
+        fclose($this->stream);
     }
 
     /**
@@ -135,11 +119,7 @@ readonly class HttpBody
      */
     public function tell(): int
     {
-        $pos = ftell($this->stream);
-        if ($pos === false) {
-            throw new StreamException("Unable to get the current position of the stream.");
-        }
-        return $pos;
+        return StreamUtils::tellStream($this->stream);
     }
 
     /**
@@ -157,7 +137,7 @@ readonly class HttpBody
      */
     public function readAll(): string
     {
-        return stream_get_contents($this->stream);
+        return StreamUtils::streamGetContents($this->stream);
     }
 
     /**
@@ -168,7 +148,7 @@ readonly class HttpBody
      */
     public function seek(int $offset, int $whence = SEEK_SET): void
     {
-        fseek($this->stream, $offset, $whence);
+        StreamUtils::seekStream($this->stream, $offset, $whence);
     }
 
     /**

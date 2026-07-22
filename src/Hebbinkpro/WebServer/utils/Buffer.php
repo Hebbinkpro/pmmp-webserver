@@ -61,11 +61,7 @@ class Buffer
     public function close(): void
     {
         $this->readPosition = -1;
-        try {
-            StreamUtils::closeStream($this->stream);
-        } catch (StreamException) {
-            // already closed
-        }
+        fclose($this->stream);
     }
 
     public function __destruct()

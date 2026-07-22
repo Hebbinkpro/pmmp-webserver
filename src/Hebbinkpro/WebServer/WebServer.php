@@ -107,7 +107,7 @@ class WebServer
         // the cert or pem is not yet set
         if ($cert === null || $pem === null) {
             // search for the first certificate
-            $files = scandir($certFolder);
+            $files = @scandir($certFolder);
             if ($files === false) return false;
 
             $certs = [];

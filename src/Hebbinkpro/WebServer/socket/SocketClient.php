@@ -28,8 +28,10 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\socket;
 
 use Exception;
+use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\utils\Buffer;
+use Hebbinkpro\WebServer\utils\StreamUtils;
 use OverflowException;
 
 /**
@@ -94,8 +96,8 @@ class SocketClient
         try {
             $this->buffer->close();
             stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
-            fclose($this->socket);
-        } catch (Exception $e) {
+            StreamUtils::closeStream($this->socket);
+        } catch (StreamException $e) {
             throw new SocketException("Could not close socket {$this->getName()}.", 0, $e);
         }
     }

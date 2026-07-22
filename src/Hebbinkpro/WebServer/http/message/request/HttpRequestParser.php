@@ -29,7 +29,6 @@ namespace Hebbinkpro\WebServer\http\message\request;
 
 use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\exception\HttpProblemException;
-use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
@@ -45,6 +44,7 @@ use Hebbinkpro\WebServer\http\uri\HttpRequestForm;
 use Hebbinkpro\WebServer\http\uri\PathUri;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 use Hebbinkpro\WebServer\utils\Buffer;
+use Hebbinkpro\WebServer\utils\StreamUtils;
 use Logger;
 
 class HttpRequestParser
@@ -120,10 +120,7 @@ class HttpRequestParser
                     $this->parseHostHeader();
 
                     // update the state and set default values
-                    $body = @fopen("php://temp", "r+");
-                    if ($body === false) throw new StreamException("Unable to open temp file.");
-
-                    $this->body = $body;
+                    $this->body = StreamUtils::openTempStream();
                     $this->contentLength = intval($this->builder->getHeader()->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
                     if ($this->contentLength === 0) {

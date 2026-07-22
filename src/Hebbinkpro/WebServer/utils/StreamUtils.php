@@ -103,9 +103,7 @@ final class StreamUtils
     public static function openStream(string $filename, string $mode, bool $use_include_path = false, mixed $context = null): mixed
     {
         $stream = @fopen($filename, $mode, $use_include_path, $context);
-        if ($stream === false) {
-            throw new StreamException("Unable to open temp stream");
-        }
+        if ($stream === false) throw new StreamException("Unable to open temp stream");
         return $stream;
     }
 
@@ -241,5 +239,40 @@ final class StreamUtils
     {
         $success = @fclose($stream);
         if ($success === false) throw new StreamException("Unable to close stream");
+    }
+
+    /**
+     * Reads remainder of a stream into a string
+     *
+     * Wrapper around <code>stream_get_contents</code>
+     * @param resource $stream
+     * @param int<1, max>|null $length
+     * @param int $offset
+     * @return string
+     * @throws StreamException on failure
+     * @see stream_get_contents for parameter descriptions
+     */
+    public static function streamGetContents(mixed $stream, ?int $length = null, int $offset = -1): string
+    {
+        $data = @stream_get_contents($stream, $length, $offset);
+        if ($data === false) throw new StreamException("Unable to get stream contents");
+        return $data;
+    }
+
+
+    /**
+     * Returns the current position of the file read/write pointer
+     *
+     * Wrapper around <code>ftell</code>
+     * @param resource $stream
+     * @return int
+     * @throws StreamException on failure
+     * @see ftell for parameter descriptions
+     */
+    public static function tellStream(mixed $stream): int
+    {
+        $pos = @ftell($stream);
+        if ($pos === false) throw new StreamException("Unable to get the current position of the stream.");
+        return $pos;
     }
 }
