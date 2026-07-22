@@ -181,16 +181,17 @@ class HttpResponseBuilder implements Response
      * The content type is required to determine the content type of the default value.
      * @param string $filename the name of the file to send
      * @param string $default the default value to send if the file does not exist
-     * @param string $contentType the content type of the file and default value
+     * @param string $defaultContentType the content type of the file and default value
+     * @param bool $forceContentType if true, the content type of the default value will also be used for the file
      * @return $this
      */
-    public function sendFileOrDefault(mixed $filename, string $default, string $contentType): HttpResponseBuilder
+    public function sendFileOrDefault(mixed $filename, string $default, string $defaultContentType, bool $forceContentType = false): HttpResponseBuilder
     {
         try {
-            return $this->sendFile($filename, $contentType);
+            return $this->sendFile($filename, $forceContentType ? $defaultContentType : null);
         } catch (FileNotFoundException) {
             // file does not exist, send the default value
-            return $this->sendString($default, $contentType);
+            return $this->sendString($default, $defaultContentType);
         }
     }
 
