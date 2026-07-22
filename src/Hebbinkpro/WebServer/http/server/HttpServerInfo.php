@@ -120,7 +120,7 @@ class HttpServerInfo extends ThreadSafe
      *       For the TCP address, use getSocketBindAddress() instead!
      * @return string scheme://host[:port]
      */
-    public function getAddress(string $host = null): string
+    public function getAddress(?string $host = null): string
     {
         // provided host should contain host[:port]
         if ($host !== null) {

@@ -25,9 +25,9 @@
 
 declare(strict_types=1);
 
-namespace Hebuse Hebbinkpro\WebServer\exception\HttpProblemException;
+namespace Hebbinkpro\WebServer\utils;
 
-on\HttpProblemException;
+use Hebbinkpro\WebServer\exception\HttpProblemException;
 
 final class UrlUtils
 {
@@ -48,12 +48,12 @@ final class UrlUtils
         $combinedKeys = array_merge($requiredKeys, array_flip($optional));
 
         // if strict, throw error when there are other keys present in the urlParts then listed in required and optional
-        if ($strict && sizeof(array_diff_key($urlParts, $combinedKeys)) > 0) {
+        if ($strict && count(array_diff_key($urlParts, $combinedKeys)) > 0) {
             throw HttpProblemException::badRequest();
         }
 
         $matches = array_intersect_key($urlParts, $combinedKeys);
-        if (sizeof(array_intersect_key($matches, $requiredKeys)) != sizeof($requiredKeys)) {
+        if (count(array_intersect_key($matches, $requiredKeys)) !== count($requiredKeys)) {
             throw HttpProblemException::badRequest();
         }
 

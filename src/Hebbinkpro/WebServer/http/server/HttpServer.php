@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@ use LogicException;
 use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
+
 
 class HttpServer extends Thread
 {
@@ -122,7 +123,7 @@ class HttpServer extends Thread
 
         // if there is no socket created, throw the exception with the error.
         if (!is_resource($socket)) {
-            throw new SocketNotCreatedException($eMsg);
+            throw new SocketNotCreatedException($eMsg ?? "Socket could not be created.");
         }
 
         self::$socket = $socket;

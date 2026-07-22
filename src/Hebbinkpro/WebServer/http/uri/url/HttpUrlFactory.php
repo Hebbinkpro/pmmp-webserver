@@ -31,6 +31,7 @@ use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\PathUri;
+use Hebbinkpro\WebServer\utils\RegexUtils;
 use Hebbinkpro\WebServer\utils\UrlUtils;
 
 class HttpUrlFactory
@@ -45,7 +46,7 @@ class HttpUrlFactory
         if ($target === "*") return new HttpAsteriskUrl();
 
         // allow only visible ascii characters
-        if (!@preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
+        if (!RegexUtils::has_preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
             throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "/", "Invalid Request Target");
         }
 

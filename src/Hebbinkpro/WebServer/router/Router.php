@@ -137,7 +137,7 @@ class Router extends ThreadSafe implements RouterInterface
         $splitRoutePath = explode("/", $routePath);
 
         // the request path is smaller than the route path, which isn't possible
-        if (sizeof($splitReqPath) < sizeof($splitRoutePath)) return false;
+        if (count($splitReqPath) < count($splitRoutePath)) return false;
 
         // loop through all sub paths of the route
         foreach ($splitReqPath as $i => $reqSubPath) {
@@ -167,7 +167,7 @@ class Router extends ThreadSafe implements RouterInterface
         $res->setStatus($status);
         $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
 
-        if (strlen($body) == 0) $body = $res->getStatus()->toString();
+        if (strlen($body) === 0) $body = $res->getStatus()->toString();
         $res->text($body);
 
         $res->build($client);

@@ -30,6 +30,7 @@ namespace Hebbinkpro\WebServer\router;
 use Closure;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -59,7 +60,7 @@ interface RouterInterface
     /**
      * Add a GET route to the router
      * @param string $path
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
+     * @param Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void $action
      * @param mixed ...$params
      * @return void
      */
@@ -68,7 +69,7 @@ interface RouterInterface
     /**
      * Add a POST route to the router
      * @param string $path
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
+     * @param Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -77,7 +78,7 @@ interface RouterInterface
     /**
      * Add a HEAD route to the router
      * @param string $path
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
+     * @param Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -86,7 +87,7 @@ interface RouterInterface
     /**
      * Add a PUT route to the router
      * @param string $path
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
+     * @param Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -95,7 +96,7 @@ interface RouterInterface
     /**
      * Add a DELETE route to the router
      * @param string $path
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
+     * @param Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */
@@ -106,7 +107,7 @@ interface RouterInterface
      *
      * This route will listen to any method using the given path.
      * @param string $path
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void $action
+     * @param Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void $action
      * @param mixed $params
      * @return void
      */

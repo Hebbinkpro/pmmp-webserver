@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ * Copyright (c) 2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,41 +25,9 @@
 
 declare(strict_types=1);
 
-namespace Hebbinkpro\WebServer\http\uri;
+namespace Hebbinkpro\WebServer\exception;
 
-class UriFragment implements UriElement
+class StreamException extends WebServerException
 {
-    public function __construct(private ?string $fragment)
-    {
-    }
 
-    /**
-     * @inheritDoc
-     */
-    public static function parse(string $value): self
-    {
-        if (strlen($value) === 0) return new self(null);
-
-        $value = trim($value, "#");
-        $fragment = urldecode($value);
-        return new self($fragment);
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getFragment(): string|null
-    {
-        return $this->fragment;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function toString(): string
-    {
-        if ($this->fragment === null) return "";
-
-        return "#" . urlencode($this->fragment);
-    }
 }

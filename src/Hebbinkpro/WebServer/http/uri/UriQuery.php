@@ -38,7 +38,7 @@ class UriQuery implements UriElement
 
     public static function parse(string $value): self
     {
-        if (strlen($value) == 0) {
+        if (strlen($value) === 0) {
             return new self([]);
         }
 
@@ -54,7 +54,7 @@ class UriQuery implements UriElement
 
     public function toString(): string
     {
-        if (sizeof($this->query) == 0) return "";
+        if (count($this->query) === 0) return "";
 
         $query = "?";
         foreach ($this->query as $key => $value) {

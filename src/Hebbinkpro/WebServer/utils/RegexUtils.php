@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ * Copyright (c) 2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,41 +25,28 @@
 
 declare(strict_types=1);
 
-namespace Hebbinkpro\WebServer\http\uri;
+namespace Hebbinkpro\WebServer\utils;
 
-class UriFragment implements UriElement
+final class RegexUtils
 {
-    public function __construct(private ?string $fragment)
-    {
-    }
-
     /**
-     * @inheritDoc
+     * Perform a regular expression match and only return wether a match was found.
+     *
+     * @param string $pattern
+     * @param string $subject
+     * @param array<mixed>|null $matches
+     * @param int $flags
+     * @param int $offset
+     * @return bool true if there is a match, false otherwise
+     * @param-out array<mixed> $matches
+     * @see preg_match for parameter descriptions
      */
-    public static function parse(string $value): self
+    public static function has_preg_match(string $pattern, string $subject, ?array &$matches = null, int $flags = 0, int $offset = 0): bool
     {
-        if (strlen($value) === 0) return new self(null);
 
-        $value = trim($value, "#");
-        $fragment = urldecode($value);
-        return new self($fragment);
-    }
+        // @phpstan-ignore-next-line
+        $match = @preg_match($pattern, $subject, $matches, $flags, $offset);
+        return $match !== false && $match > 0;
 
-    /**
-     * @return string|null
-     */
-    public function getFragment(): string|null
-    {
-        return $this->fragment;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function toString(): string
-    {
-        if ($this->fragment === null) return "";
-
-        return "#" . urlencode($this->fragment);
     }
 }

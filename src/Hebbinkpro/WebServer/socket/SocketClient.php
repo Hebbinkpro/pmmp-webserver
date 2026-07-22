@@ -37,6 +37,7 @@ use OverflowException;
  */
 class SocketClient
 {
+    /** @var int<1, max> Maximum buffer size of a single client */
     protected int $maxClientBufferSize = HttpConstants::MAX_CLIENT_BUFFER_SIZE; // 64KB
 
     protected Buffer $buffer;

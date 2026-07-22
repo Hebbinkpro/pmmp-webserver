@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,12 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\exception;
 
-use Exception;
+use RuntimeException;
 
 /**
  * Exception thrown when someone tries to break the web server
  */
-abstract class WebServerException extends Exception
+abstract class WebServerException extends RuntimeException
 {
 
 }

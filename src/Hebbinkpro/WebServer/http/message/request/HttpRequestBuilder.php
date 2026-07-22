@@ -104,8 +104,9 @@ class HttpRequestBuilder implements Request
     {
         $this->httpVersion = $httpVersion;
 
-        if ($this->httpVersion->getMajorVersion() != HttpConstants::HTTP_VERSION_MAJOR
-            || $this->httpVersion->getMinorVersion() != HttpConstants::HTTP_VERSION_MINOR) {
+        // TODO change the hardcoded constants
+        if ($this->httpVersion->getMajorVersion() !== HttpConstants::HTTP_VERSION_MAJOR
+            || $this->httpVersion->getMinorVersion() !== HttpConstants::HTTP_VERSION_MINOR) {
 
             throw new HttpProblemException(
                 HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED,

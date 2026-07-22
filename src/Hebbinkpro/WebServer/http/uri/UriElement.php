@@ -25,9 +25,9 @@
 
 declare(strict_types=1);
 
-namespace Hebbinkpro\WebServer\http\uuse Hebbinkpro\WebServer\exception\HttpException;
+namespace Hebbinkpro\WebServer\http\uri;
 
-on;
+use Hebbinkpro\WebServer\exception\HttpException;
 
 /**
  * Base implementation for a URI element

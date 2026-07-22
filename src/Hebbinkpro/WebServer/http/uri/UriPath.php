@@ -36,7 +36,7 @@ use pmmp\thread\ThreadSafeArray;
  */
 class UriPath extends ThreadSafe implements UriElement
 {
-    /** @var ThreadSafeArray<string[]> */
+    /** @var ThreadSafeArray<string> */
     private ThreadSafeArray $path;
 
     /**
@@ -61,7 +61,7 @@ class UriPath extends ThreadSafe implements UriElement
     public static function parse(string $value): self
     {
         $value = trim($value, "/");
-        if (strlen($value) == 0) return new self([]);
+        if (strlen($value) === 0) return new self([]);
 
         // split at / and decode each value
         $path = array_map("rawurldecode", explode("/", $value));
@@ -83,6 +83,7 @@ class UriPath extends ThreadSafe implements UriElement
      */
     public function asArray(): array
     {
+        /** @phpstan-ignore-next-line */
         return ThreadSafeUtils::unwrapThreadSafeArray($this->path);
     }
 
@@ -99,7 +100,7 @@ class UriPath extends ThreadSafe implements UriElement
     public function toString(): string
     {
         // root path
-        if ($this->path->count() == 0) return "/";
+        if ($this->path->count() === 0) return "/";
 
         // encode each value and create a path
         $path = "";
@@ -132,7 +133,7 @@ class UriPath extends ThreadSafe implements UriElement
         $pathArray = $path->asArray();
         $pathSize = $path->getLength();
 
-        if ($pathSize == 0) return true;
+        if ($pathSize === 0) return true;
         else if ($this->getLength() < $pathSize) return false;
 
         $pathIdx = 0;
@@ -157,6 +158,10 @@ class UriPath extends ThreadSafe implements UriElement
 
                 $nextIdx = $pathIdx;
                 do {
+                    /**
+                     * @var string $nextValue
+                     * @phpstan-assert string $nextValue
+                     */
                     $nextValue = $this->path[$nextIdx++];
                 } while ($nextIdx < $this->getLength() && !$this->pathPartMatches($nextMatch, $nextValue, false));
 

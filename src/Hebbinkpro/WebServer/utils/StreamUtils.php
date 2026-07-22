@@ -28,6 +28,7 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\utils;
 
 use Hebbinkpro\WebServer\exception\StreamException;
+use LogicException;
 
 final class StreamUtils
 {
@@ -54,7 +55,7 @@ final class StreamUtils
 
     /**
      * Get if a resource is a stream
-     * @param resource $stream the resource to check
+     * @param mixed $stream the resource to check
      * @return bool if the provided resource is a stream
      * @phpstan-assert-if-true resource $stream
      */
@@ -135,6 +136,8 @@ final class StreamUtils
         $bytes = @stream_copy_to_stream($from, $to, $length, $offset);
         if ($bytes === false) throw new StreamException("Unable to copy stream to stream");
 
+        if ($bytes < 0) throw new LogicException("Copied a negative number of bytes to the stream");
+
         return $bytes;
     }
 
@@ -180,7 +183,7 @@ final class StreamUtils
      * @param resource $stream
      * @param int<1,max> $length
      * @param string $ending
-     * @return mixed
+     * @return string
      * @throws StreamException on failure
      * @see stream_get_line for parameter descriptions
      */
@@ -213,7 +216,7 @@ final class StreamUtils
      *
      * Wrapper around <code>fstat</code>
      * @param resource $stream
-     * @return array<string,mixed>
+     * @return array<int|string, int>
      * @throws StreamException on failure
      * @see fstat for parameter descriptions
      */

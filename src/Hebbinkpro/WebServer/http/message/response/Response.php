@@ -51,7 +51,7 @@ interface Response
     public function getHeader(): Header;
 
     /**
-     * @return HttpMessageBody|null
+     * @return HttpBody|null
      */
     public function getBody(): ?HttpBody;
 

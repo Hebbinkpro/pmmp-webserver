@@ -29,6 +29,7 @@ namespace Hebbinkpro\WebServer\http\message;
 
 
 use Exception;
+use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\utils\StreamUtils;
 use InvalidArgumentException;
 use ValueError;
@@ -61,17 +62,28 @@ readonly class HttpBody
      */
     public function getLength(): int
     {
-        return fstat($this->stream)['size'];
+        $stat = fstat($this->stream);
+        if ($stat === false) {
+            throw new StreamException("Unable to get information about the stream.");
+        }
+
+        return $stat['size'];
     }
 
     /**
      * Read a chunk of the body
-     * @param int $length
+     * @param int<1,max> $length
      * @return string
      */
     public function read(int $length): string
     {
-        return fread($this->stream, $length);
+        $data = fread($this->stream, $length);
+
+        if ($data === false) {
+            throw new StreamException("Unable to read the stream.");
+        }
+
+        return $data;
     }
 
     /**
@@ -123,7 +135,11 @@ readonly class HttpBody
      */
     public function tell(): int
     {
-        return ftell($this->stream);
+        $pos = ftell($this->stream);
+        if ($pos === false) {
+            throw new StreamException("Unable to get the current position of the stream.");
+        }
+        return $pos;
     }
 
     /**
@@ -157,7 +173,7 @@ readonly class HttpBody
 
     /**
      * Decodes the body as JSON using `json_decode`
-     * @param int $depth User specified recursion depth
+     * @param int<1, max> $depth User specified recursion depth
      * @param int $flags Bitmask of JSON decode options
      * @return mixed the decoded body or `null` on failure
      */

@@ -49,8 +49,8 @@ interface HttpStreamMessage
 
     /**
      * Get the HTTP body as a stream
-     * @return resource
+     * @return HttpBody|null
      */
-    public function getBody(): mixed;
+    public function getBody(): ?HttpBody;
 
 }

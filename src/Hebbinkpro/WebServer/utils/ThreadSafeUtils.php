@@ -25,9 +25,15 @@
 
 declare(strict_types=1);
 
-namespace Hebuse pmmp\thread\NonThreadSafeValueError;use pmmp\thread\ThreadSafe;use pmmp\thread\ThreadSafeArray;use pocketmine\thread\NonThreadSafeValue;
+namespace Hebbinkpro\WebServer\utils;
 
-read\NonThreadSafeValue;
+use Exception;
+use Iterator;
+use pmmp\thread\NonThreadSafeValueError;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
+use pocketmine\thread\NonThreadSafeValue;
+use RuntimeException;
 
 /**
  * Utility functions for working with thread-safe values and arrays.
@@ -114,14 +120,21 @@ final class ThreadSafeUtils
      * Recursively unwrap a ThreadSafeArray to a native PHP array.
      *
      * @param ThreadSafeArray $tsa
-     * @return array<mixed,mixed>
+     * @return array<int|string,mixed>
      */
     public static function unwrapThreadSafeArray(ThreadSafeArray $tsa): array
     {
         $array = [];
 
-        foreach ($tsa->getIterator() as $k => $v) {
-            /** @var null|int|float|string|bool|ThreadSafe $v */
+        try {
+            /** @var Iterator<int|string, null|int|float|string|bool|ThreadSafe> $iterator */
+            $iterator = $tsa->getIterator();
+        } catch (Exception $e) {
+            // I've no clue why this exception would be thrown, but PHPStorm really wanted this try catch
+            throw new RuntimeException($e->getMessage());
+        }
+
+        foreach ($iterator as $k => $v) {
             $array[$k] = self::unwrapThreadSafe($v);
         }
 

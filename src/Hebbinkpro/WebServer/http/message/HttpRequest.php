@@ -92,7 +92,7 @@ class HttpRequest implements HttpMessage
         // content limit is exceeded
         if ($bodyLength > $contentLength) return 2;
         // request is only completed when the body has the same length
-        else if ($bodyLength == $contentLength) {
+        else if ($bodyLength === $contentLength) {
             $this->completed = true;
             return 1;
         }
@@ -117,7 +117,7 @@ class HttpRequest implements HttpMessage
         $parts = explode("\r\n\r\n", trim($data), 2);
 
         // data does not contain a double line break
-        if (sizeof($parts) == 0) throw HttpProblemException::badRequest();
+        if (count($parts) === 0) throw HttpProblemException::badRequest();
 
         $head = $parts[0];
         if (strlen($head) > HttpConstants::MAX_TOTAL_HEADERS_LENGTH) {
@@ -127,7 +127,7 @@ class HttpRequest implements HttpMessage
         $body = $parts[1] ?? "";
 
         $lines = explode("\r\n", $head);
-        if (sizeof($lines) == 0) throw HttpProblemException::badRequest();
+        if (count($lines) === 0) throw HttpProblemException::badRequest();
 
         if (strlen($lines[0]) > HttpConstants::MAX_START_LINE_LENGTH) {
             throw HttpProblemException::blankInstance(HttpStatusCodes::URI_TOO_LONG);
@@ -253,7 +253,7 @@ class HttpRequest implements HttpMessage
         if (!$this->url instanceof PathUri) return "";
         $path = $this->url->getPath();
 
-        if (sizeof($path->getPath()) == 0) return $path->toString();
+        if (count($path->getPath()) === 0) return $path->toString();
 
         // a/b/c => c
         $parts = substr_count($this->routePath, "/");

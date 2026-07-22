@@ -141,6 +141,18 @@ final class HttpStatusRegistry
         return $this->statusCodes[$statusCode] ?? null;
     }
 
+
+    /**
+     * Get an HTTP status from its code
+     * @param int $statusCode
+     * @param string $fallbackMessage the message used when an unknown status code was given
+     * @return HttpStatus
+     */
+    public function getOrDefault(int $statusCode, string $fallbackMessage = "Unknown Status Code"): HttpStatus
+    {
+        return $this->statusCodes[$statusCode] ?? new HttpStatus($statusCode, $fallbackMessage);
+    }
+
     /**
      *  Parse an HTTP Status from an integer or itself. If the status could not be parsed, a "Custom Status" is created.
      * @param int|HttpStatus $status the status to parse

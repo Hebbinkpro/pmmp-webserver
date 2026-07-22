@@ -71,7 +71,8 @@ class HttpProblem
             "status" => $status->getCode(),
             "detail" => $this->detail ?? $status->getMessage(),
             "instance" => $this->instance,
-        ], HttpContentType::APPLICATION_PROBLEM_JSON);
+        ]);
+        $res->setContentType(HttpContentType::APPLICATION_PROBLEM_JSON);
 
         return $res;
     }

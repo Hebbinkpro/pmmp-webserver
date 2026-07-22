@@ -29,6 +29,7 @@ namespace Hebbinkpro\WebServer\http;
 
 use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\utils\RegexUtils;
 
 /**
  * HTTP Version to identify the HTTP request version of the client and to use in the response of the server.
@@ -48,13 +49,13 @@ readonly class HttpVersion
     /**
      * Decode an http version
      * @param string $version
-     * @return HttpVersion|null
+     * @return HttpVersion
      * @throws HttpProblemException if the version string was malformed
      */
-    public static function parse(string $version): ?HttpVersion
+    public static function parse(string $version): HttpVersion
     {
         // invalid http version
-        if (!@preg_match("/^" . HttpParsingRules::HTTP_VERSION . "$/", $version)) {
+        if (!RegexUtils::has_preg_match("/^" . HttpParsingRules::HTTP_VERSION . "$/", $version)) {
             throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "Malformed HTTP Version");
         }
 

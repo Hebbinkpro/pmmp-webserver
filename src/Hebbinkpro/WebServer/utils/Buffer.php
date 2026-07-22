@@ -29,6 +29,7 @@ namespace Hebbinkpro\WebServer\utils;
 
 use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpConstants;
+use LogicException;
 use OverflowException;
 
 /**
@@ -43,6 +44,9 @@ class Buffer
     /** @var int<1, max> */
     private int $maxBufferSize;
 
+    /**
+     * @param int<1,max> $maxBufferSize
+     */
     public function __construct(int $maxBufferSize = HttpConstants::MAX_CLIENT_BUFFER_SIZE)
     {
         $this->maxBufferSize = $maxBufferSize;
@@ -109,7 +113,11 @@ class Buffer
      */
     public function write(string $data): int
     {
-        $this->prepareForWrite(strlen($data));
+        $dataLength = strlen($data);
+        // no data given, so there is nothing to write
+        if ($dataLength === 0) return 0;
+
+        $this->prepareForWrite($dataLength);
         return StreamUtils::writeStream($this->stream, $data);
     }
 
@@ -152,14 +160,18 @@ class Buffer
      * Read a line from the buffer
      *
      * On failure the read position will not be changed.
-     * @param int $maxLength the maximum number of bytes to read
+     * @param int<1, max> $maxLength the maximum number of bytes to read
      * @return string|null the read line, or null on failure
      */
     public function readLine(int $maxLength = HttpConstants::MAX_STREAM_READ_LENGTH): ?string
     {
         $this->moveToRead();
-        $line = StreamUtils::streamGetLine($this->stream, $maxLength, "\r\n");
-        if ($line === false) return null;
+
+        try {
+            $line = StreamUtils::streamGetLine($this->stream, $maxLength, "\r\n");
+        } catch (StreamException) {
+            return null;
+        }
 
         $bufferSize = $this->getSize();
         $lineLength = strlen($line);
@@ -177,11 +189,19 @@ class Buffer
 
     /**
      * Get the number of unread bytes in the buffer
-     * @return int
+     * @return int<0, max>
      */
     public function getSize(): int
     {
-        return StreamUtils::streamStat($this->stream)["size"] - $this->readPosition;
+        /** @var int<0, max> $streamSize */
+        $streamSize = StreamUtils::streamStat($this->stream)["size"];
+
+        $bufferSize = $streamSize - $this->readPosition;
+        if ($bufferSize < 0) {
+            throw new LogicException("Buffer size cannot be negative");
+        }
+
+        return $bufferSize;
     }
 
     /**
@@ -194,8 +214,8 @@ class Buffer
     }
 
     /**
-     * Validate that the buffer can hold at least `$length` bytes before writing
-     * @param int $length
+     * Validate that the buffer can hold at least `$length` bytes before writing and move pointer to end of the buffer.
+     * @param int<1, max> $length
      * @return void
      * @throws OverflowException if the buffer cannot hold at most `$length` bytes
      */

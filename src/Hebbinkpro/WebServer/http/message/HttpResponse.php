@@ -144,7 +144,7 @@ class HttpResponse implements HttpMessage
     {
         $data = $this->version->toString() . " " . $this->status->toString() . "\r\n";
         $data .= $this->headers->build()->toString() . "\r\n";
-        $data .= strlen($this->body) == 0 ? "" : $this->body . "\r\n";
+        $data .= strlen($this->body) === 0 ? "" : $this->body . "\r\n";
 
         return $data;
     }
@@ -388,7 +388,7 @@ class HttpResponse implements HttpMessage
             }
 
             // set the keep alive header if a value is set
-            if (sizeof($values) > 0) {
+            if (count($values) > 0) {
                 $this->headers->addField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
             }
         }

@@ -29,7 +29,9 @@ namespace Hebbinkpro\WebServer\http\message\response;
 
 use DateTime;
 use DateTimeInterface;
+use Exception;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
+use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
@@ -47,8 +49,7 @@ class HttpResponseBuilder implements Response
 {
     private HttpStatus $status;
     private HttpHeaderBuilder $headers;
-    /** @var resource|null */
-    private mixed $body;
+    private ?HttpBody $body;
     private bool $headOnly;
 
     private bool $locked;
@@ -109,9 +110,18 @@ class HttpResponseBuilder implements Response
      */
     public function sendString(string $data, string $contentType): HttpResponseBuilder
     {
-        $stream = fopen("php://temp", "r+");
-        fwrite($stream, $data);
-        rewind($stream);
+
+        $stream = @fopen("php://temp", "r+");
+        if ($stream === false) {
+            throw new StreamException("Unable to open temp stream.");
+        }
+
+        try {
+            fwrite($stream, $data);
+            rewind($stream);
+        } catch (Exception) {
+            throw new StreamException("Unable to write data to temp stream.");
+        }
 
         $this->setBody(new HttpBody($stream));
         $this->setContentType($contentType);
@@ -166,7 +176,7 @@ class HttpResponseBuilder implements Response
      * Encodes the JSON data using `json_encode($json, $flags | JSON_THROW_ON_ERROR)`
      *
      * Alias: `sendString($encoded_json, HttpContentType::APPLICATION_JSON);`
-     * @param array $data the JSON data to send
+     * @param array<mixed> $data the JSON data to send
      * @param int $flags the `json_encode` flags to use when encoding the JSON data
      * @return $this
      * @throws JsonException if the JSON data is invalid
@@ -214,22 +224,26 @@ class HttpResponseBuilder implements Response
 
         if (!file_exists($filename)) throw new FileNotFoundException($filename);
 
+        // try to get the filesize
+        $length = @filesize($filename);
+        if ($length === false) {
+            throw new LogicException("Could not determine file size of $filename");
+        }
+
         if ($textModeTranslation) {
-            $stream = fopen($filename, "rt");
+            $stream = @fopen($filename, "rt");
         } else {
-            $stream = fopen($filename, "rb");
+            $stream = @fopen($filename, "rb");
+        }
+
+        if ($stream === false) {
+            throw new StreamException("Unable to open temp stream.");
         }
 
         if ($contentType === null) {
             // determine the mimetype, otherwise default to octet-stream
             $contentType = @mime_content_type($filename);
             if ($contentType === false) $contentType = HttpContentType::APPLICATION_OCTET_STREAM;
-        }
-
-        // try to get the filesize
-        $length = @filesize($filename);
-        if ($length === false) {
-            throw new LogicException("Could not determine file size of $filename");
         }
 
         return $this->sendStream($stream, $contentType);
@@ -252,7 +266,11 @@ class HttpResponseBuilder implements Response
             $this->setBody(new HttpBody($stream));
         } else {
             // copy the stream to a temporary file and use the temp file
-            $tempStream = fopen("php://temp", "r+");
+            $tempStream = @fopen("php://temp", "r+");
+            if ($tempStream === false) {
+                throw new StreamException("Unable to open temp stream.");
+            }
+
             stream_copy_to_stream($stream, $tempStream);
             $this->setBody(new HttpBody($tempStream));
         }
@@ -285,12 +303,12 @@ class HttpResponseBuilder implements Response
 
         // set status to 204 if head only
         if ($this->headOnly) {
-            $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::NO_CONTENT);
+            $this->status = HttpStatusRegistry::getInstance()->getOrDefault(HttpStatusCodes::NO_CONTENT);
         }
 
         // set status to 200 OK if not set
         if (!isset($this->status)) {
-            $this->status = HttpStatusRegistry::getInstance()->get(HttpStatusCodes::OK);
+            $this->status = HttpStatusRegistry::getInstance()->getOrDefault(HttpStatusCodes::OK);
         }
 
         // set the final content length
@@ -298,7 +316,7 @@ class HttpResponseBuilder implements Response
         $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval($contentLength));
 
         // set server headers
-        $this->headers->setField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
+        $this->headers->setField(HttpHeaders::DATE, new DateTime()->format(DateTimeInterface::RFC7231));
 
         // set the server name if it is set
         if ($serverInfo->getName() !== null) {
@@ -323,7 +341,7 @@ class HttpResponseBuilder implements Response
             }
 
             // set the keep alive header if a value is set
-            if (sizeof($values) > 0) {
+            if (count($values) > 0) {
                 $this->headers->setField(HttpHeaders::KEEP_ALIVE, implode(",", $values));
             }
         } else {

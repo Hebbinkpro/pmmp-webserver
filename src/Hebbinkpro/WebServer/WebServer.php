@@ -38,9 +38,9 @@ use pocketmine\VersionInfo;
 
 class WebServer
 {
-    public const VERSION_NAME = "PMMP-WebServer";
-    public const VERSION = "1.0.0-dev";
-    public const PREFIX = "WebServer";
+    public const string VERSION_NAME = "PMMP-WebServer";
+    public const string VERSION = "1.0.0-dev";
+    public const string PREFIX = "WebServer";
     private PluginBase $plugin;
     private HttpServerInfo $serverInfo;
 
@@ -85,7 +85,7 @@ class WebServer
      * @param string|null $ciphers The ciphers to use for SSL connections (See: Hebbinkpro\WebServer\http\server\SslSettings)
      * @return bool true if SSL is detected, false otherwise
      */
-    public function detectSSL(string $domain = null, string $folder = "cert", ?string $passphrase = null, ?string $ciphers = null): bool
+    public function detectSSL(?string $domain = null, string $folder = "cert", ?string $passphrase = null, ?string $ciphers = null): bool
     {
         $certFolder = $this->plugin->getDataFolder() . $folder;
 
@@ -121,14 +121,14 @@ class WebServer
                 else if (str_ends_with($file, ".pem")) $pems[substr($file, 0, -4)] = $filePath;
             }
 
-            if (sizeof($certs) == 0) return false;
+            if (count($certs) === 0) return false;
 
             if ($cert === null) {
                 $domain = array_key_first($certs);
                 $cert = $certs[$domain];
             }
 
-            if ($pem === null && sizeof($pems) > 0) {
+            if (count($pems) > 0) {
                 $pem = $pems[$domain] ?? $pems[array_key_first($pems)] ?? null;
             }
         }

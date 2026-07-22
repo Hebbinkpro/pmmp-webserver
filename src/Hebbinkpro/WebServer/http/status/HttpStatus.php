@@ -38,7 +38,7 @@ class HttpStatus extends ThreadSafe
     private string $message;
     private ?string $uriReference;
 
-    public function __construct(int $code, string $message, string $uriReference = null)
+    public function __construct(int $code, string $message, ?string $uriReference = null)
     {
         $this->code = $code;
         $this->message = $message;

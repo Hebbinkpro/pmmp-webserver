@@ -29,6 +29,7 @@ namespace Hebbinkpro\WebServer\http\message\request;
 
 use Hebbinkpro\WebServer\exception\HttpException;
 use Hebbinkpro\WebServer\exception\HttpProblemException;
+use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
@@ -119,10 +120,13 @@ class HttpRequestParser
                     $this->parseHostHeader();
 
                     // update the state and set default values
-                    $this->body = fopen("php://temp", "r+");
+                    $body = @fopen("php://temp", "r+");
+                    if ($body === false) throw new StreamException("Unable to open temp file.");
+
+                    $this->body = $body;
                     $this->contentLength = intval($this->builder->getHeader()->getFieldValue(HttpHeaders::CONTENT_LENGTH, "0"));
 
-                    if ($this->contentLength == 0) {
+                    if ($this->contentLength === 0) {
                         $this->state = HttpRequestParserState::COMPLETE;
                     } else if ($this->contentLength > HttpConstants::MAX_BODY_SIZE) {
                         $this->setInvalid(HttpStatusCodes::CONTENT_TOO_LARGE, "Content length is larger then max body size");
@@ -160,8 +164,8 @@ class HttpRequestParser
      */
     private function setInvalid(int $status, ?string $detail): never
     {
-        if (!isset($this->requestLine)) $instance = "/";
-        else $instance = $this->requestLine->getTarget();
+        if (strlen($this->requestTarget) === 0) $instance = "/";
+        else $instance = $this->requestTarget;
 
         $this->setInvalidProblem(new HttpProblem($status, $instance, $detail));
     }
@@ -194,13 +198,13 @@ class HttpRequestParser
         }
 
         // needs more data, or got an empty line
-        if ($lineSize == 0) {
+        if ($lineSize === 0) {
             return false;
         }
 
         // check if the request line contains exactly 2 spaces
         $count = substr_count($requestLine, " ");
-        if ($count != 2) {
+        if ($count !== 2) {
             $this->setInvalid(HttpStatusCodes::BAD_REQUEST, "Malformed start line");
         }
 
@@ -223,7 +227,7 @@ class HttpRequestParser
         $this->requestTarget = $target;
 
         $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
-        if (!in_array($method, $supportedMethods)) {
+        if (!in_array($method, $supportedMethods, true)) {
             $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
         }
 
@@ -301,7 +305,7 @@ class HttpRequestParser
             $this->headerLength = $newTotalLength;
 
             // found the double linebreak, headers are complete
-            if ($headerLength == 0) break;
+            if ($headerLength === 0) break;
 
             // try to set the field from the parsed line
             try {
@@ -331,6 +335,11 @@ class HttpRequestParser
             // authority-form: use host and port from the authority field (RFC 9112 - 3.2.3)
             $host = $target->getAuthority()->getHostString();
         } else {
+            /**
+             * Since the Host header is known to exists, we can assume it is non-null
+             * @var string $host
+             * @phpstan-assert !null $host
+             */
             $host = $this->builder->getHeader()->getFieldValue(HttpHeaders::HOST);
         }
 
@@ -344,8 +353,11 @@ class HttpRequestParser
         $bufferSize = $this->buffer->getSize();
 
         // append the remaining bytes or the entire buffer
-        $copied = $this->buffer->copyToStream($this->body, min($remaining, $bufferSize));
-        $this->bodyLength += $copied;
+        $copySize = min($remaining, $bufferSize);
+        if ($copySize > 0) {
+            $copied = $this->buffer->copyToStream($this->body, $copySize);
+            $this->bodyLength += $copied;
+        }
 
         if ($this->bodyLength < $this->contentLength) {
             // need more data

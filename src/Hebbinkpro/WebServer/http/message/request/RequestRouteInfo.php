@@ -36,6 +36,7 @@ use Hebbinkpro\WebServer\route\Route;
 class RequestRouteInfo
 {
     private ?Route $route;
+    /** @var array<string, string> */
     private array $pathParams;
 
     public function __construct()

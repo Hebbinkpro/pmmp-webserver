@@ -29,11 +29,12 @@ namespace Hebbinkpro\WebServer\http\message\header;
 
 use Hebbinkpro\WebServer\exception\HttpProblemException;
 use Hebbinkpro\WebServer\http\HttpParsingRules;
+use Hebbinkpro\WebServer\utils\RegexUtils;
 use InvalidArgumentException;
 
 class HttpHeaderBuilder implements Header
 {
-
+    /** @var array<string, string[]> */
     private array $headerFields;
 
     public function __construct()
@@ -47,7 +48,7 @@ class HttpHeaderBuilder implements Header
      * Note: The header will be normalized (trimmed and made lowercase) as a header is case insensitive.
      * @param string $fieldName
      * @param string $value
-     * @return HttpHeaderBuilder
+     * @return $this
      */
     public function addField(string $fieldName, string $value): self
     {
@@ -55,12 +56,12 @@ class HttpHeaderBuilder implements Header
         $name = HttpHeader::normalizeFieldName($fieldName);
 
         // validate name
-        if (!@preg_match("/^" . HttpParsingRules::TOKEN . "$/", $name)) {
+        if (!Regexutils::has_preg_match("/^" . HttpParsingRules::TOKEN . "$/", $name)) {
             throw new InvalidArgumentException("Invalid header name: '$name', does not match RFC 9110 section 5.1");
         }
 
         // validate value
-        if (!@preg_match("/^(" . HttpParsingRules::FIELD_CONTENT . ")*$/", $value)) {
+        if (!Regexutils::has_preg_match("/^(" . HttpParsingRules::FIELD_CONTENT . ")*$/", $value)) {
             throw new InvalidArgumentException("Invalid header value: '$value', does not match RFC 9110 section 5.2");
         }
 
@@ -75,19 +76,19 @@ class HttpHeaderBuilder implements Header
      *
      * Validates and parses the field line before the field is set.
      * @param string $fieldLine the field line
-     * @return HttpHeaderBuilder
+     * @return $this
      */
     public function setFromFieldLine(string $fieldLine): self
     {
         // invalid field line, does not match RFC 9110 section 5
-        if (!@preg_match("/^" . HttpParsingRules::FIELD_LINE . "$/", $fieldLine)) {
+        if (!Regexutils::has_preg_match("/^" . HttpParsingRules::FIELD_LINE . "$/", $fieldLine)) {
             throw HttpProblemException::badRequest(null, "Malformed header");
         }
 
         $parts = explode(":", $fieldLine, 2);
 
         // this is actually a redundant check, as the : is definitely inside the string
-        if (sizeof($parts) != 2) {
+        if (count($parts) !== 2) {
             throw HttpProblemException::badRequest(null, "Malformed header");
         }
 
@@ -101,7 +102,7 @@ class HttpHeaderBuilder implements Header
      *
      * @param string $fieldName
      * @param string $value
-     * @return HttpHeaderBuilder
+     * @return $this
      */
     public function setFieldIfAbsent(string $fieldName, string $value): self
     {
@@ -128,7 +129,7 @@ class HttpHeaderBuilder implements Header
      * Remove a value from a field
      * @param string $fieldName
      * @param int $index the array_splice offset of the value to remove, default is the last element (-1)
-     * @return HttpHeaderBuilder
+     * @return $this
      */
     public function unsetFieldValue(string $fieldName, int $index = -1): self
     {
@@ -141,14 +142,14 @@ class HttpHeaderBuilder implements Header
         $this->headerFields[$name] = array_values(array_splice($this->headerFields[$name], $index, 1));
 
         // check if the field has values, otherwise remove it
-        if (count($this->headerFields[$name]) == 0) unset($this->headerFields[$name]);
+        if (count($this->headerFields[$name]) === 0) unset($this->headerFields[$name]);
         return $this;
     }
 
     /**
      * Remove an entire field
      * @param string $fieldName
-     * @return HttpHeaderBuilder
+     * @return $this
      */
     public function unsetField(string $fieldName): self
     {
