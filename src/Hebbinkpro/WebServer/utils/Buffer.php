@@ -27,7 +27,7 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\utils;
 
-use Exception;
+use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use OverflowException;
 
@@ -38,15 +38,15 @@ class Buffer
 {
     /** @var resource the temporary file stream where the buffer is stored */
     private mixed $stream;
-
+    /** @var int<-1, max> */
     private int $readPosition;
-
+    /** @var int<1, max> */
     private int $maxBufferSize;
 
     public function __construct(int $maxBufferSize = HttpConstants::MAX_CLIENT_BUFFER_SIZE)
     {
         $this->maxBufferSize = $maxBufferSize;
-        $this->stream = fopen("php://temp", "r+");
+        $this->stream = StreamUtils::openTempStream();
         $this->readPosition = 0;
     }
 
@@ -58,8 +58,8 @@ class Buffer
     {
         $this->readPosition = -1;
         try {
-            fclose($this->stream);
-        } catch (Exception $e) {
+            StreamUtils::closeStream($this->stream);
+        } catch (StreamException) {
             // already closed
         }
     }
@@ -80,21 +80,21 @@ class Buffer
     {
         // move position to the end of the buffer
         $this->prepareForWrite($length);
-        return stream_copy_to_stream($from, $this->stream, $length);
+        return StreamUtils::streamCopyToStream($from, $this->stream, $length);
     }
 
 
     /**
      * Copy data from this buffer to `$to` stream
-     * @param mixed $to the stream to copy to
+     * @param resource $to the stream to copy to
      * @param int<1, max> $length the maximum number of bytes to copy
-     * @return int the number of bytes copied
+     * @return int<0,max> the number of bytes copied
      */
     public function copyToStream(mixed $to, int $length): int
     {
         // move position to the beginning of the unread data
         $this->moveToRead();
-        $copied = stream_copy_to_stream($this->stream, $to, $length);
+        $copied = StreamUtils::streamCopyToStream($this->stream, $to, $length);
 
         // Advance source read position
         $this->readPosition += $copied;
@@ -110,7 +110,7 @@ class Buffer
     public function write(string $data): int
     {
         $this->prepareForWrite(strlen($data));
-        return fwrite($this->stream, $data);
+        return StreamUtils::writeStream($this->stream, $data);
     }
 
     /**
@@ -121,7 +121,7 @@ class Buffer
     public function read(int $length): string
     {
         $this->moveToRead();
-        $data = fread($this->stream, $length);
+        $data = StreamUtils::readStream($this->stream, $length);
         $this->readPosition += strlen($data);
         return $data;
     }
@@ -137,11 +137,11 @@ class Buffer
         $this->moveToRead();
 
         // create a new temp file and copy all unread data
-        $newBuffer = fopen("php://temp", "r+");
-        stream_copy_to_stream($this->stream, $newBuffer);
+        $newBuffer = StreamUtils::openTempStream();
+        StreamUtils::streamCopyToStream($this->stream, $newBuffer);
 
         // close the old file and set the new one
-        fclose($this->stream);
+        StreamUtils::closeStream($this->stream);
         $this->stream = $newBuffer;
 
         // reset the read position
@@ -158,7 +158,7 @@ class Buffer
     public function readLine(int $maxLength = HttpConstants::MAX_STREAM_READ_LENGTH): ?string
     {
         $this->moveToRead();
-        $line = stream_get_line($this->stream, $maxLength, "\r\n");
+        $line = StreamUtils::streamGetLine($this->stream, $maxLength, "\r\n");
         if ($line === false) return null;
 
         $bufferSize = $this->getSize();
@@ -181,7 +181,7 @@ class Buffer
      */
     public function getSize(): int
     {
-        return fstat($this->stream)["size"] - $this->readPosition;
+        return StreamUtils::streamStat($this->stream)["size"] - $this->readPosition;
     }
 
     /**
@@ -216,7 +216,7 @@ class Buffer
      */
     protected function moveToEnd(): void
     {
-        fseek($this->stream, 0, SEEK_END);
+        StreamUtils::seekStream($this->stream, 0, SEEK_END);
     }
 
     /**
@@ -225,7 +225,7 @@ class Buffer
      */
     protected function moveToRead(): void
     {
-        fseek($this->stream, $this->readPosition);
+        StreamUtils::seekStream($this->stream, $this->readPosition);
     }
 
     /**
