@@ -23,9 +23,11 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\utils;
+declare(strict_types=1);
 
-use Hebbinkpro\WebServer\exception\HttpProblemException;
+namespace Hebuse Hebbinkpro\WebServer\exception\HttpProblemException;
+
+on\HttpProblemException;
 
 final class UrlUtils
 {

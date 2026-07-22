@@ -23,6 +23,8 @@
  * SOFTWARE.
  */
 
+declare(strict_types=1);
+
 namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\http\HttpMethod;

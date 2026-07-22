@@ -23,6 +23,8 @@
  * SOFTWARE.
  */
 
+declare(strict_types=1);
+
 namespace Hebbinkpro\WebServer\http;
 
 use Hebbinkpro\WebServer\exception\HttpProblemException;

@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,8 @@
  * SOFTWARE.
  */
 
+declare(strict_types=1);
+
 namespace Hebbinkpro\WebServer\exception;
 
 use Hebbinkpro\WebServer\http\HttpProblem;
@@ -42,7 +44,7 @@ class HttpProblemException extends HttpException
      * @param string|null $detail detail to use, if not present, no detail is used
      * @return HttpProblemException
      */
-    public static function badRequest(string $instance = null, ?string $detail = null): HttpProblemException
+    public static function badRequest(?string $instance = null, ?string $detail = null): HttpProblemException
     {
         if ($instance === null) return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "about:blank", $detail);
         return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, $instance);

@@ -23,12 +23,11 @@
  * SOFTWARE.
  */
 
-namespace Hebbinkpro\WebServer\utils;
+declare(strict_types=1);
 
-use pmmp\thread\NonThreadSafeValueError;
-use pmmp\thread\ThreadSafe;
-use pmmp\thread\ThreadSafeArray;
-use pocketmine\thread\NonThreadSafeValue;
+namespace Hebuse pmmp\thread\NonThreadSafeValueError;use pmmp\thread\ThreadSafe;use pmmp\thread\ThreadSafeArray;use pocketmine\thread\NonThreadSafeValue;
+
+read\NonThreadSafeValue;
 
 /**
  * Utility functions for working with thread-safe values and arrays.
