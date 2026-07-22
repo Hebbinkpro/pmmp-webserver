@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,8 @@
 namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\router\Router;
 
@@ -47,10 +48,10 @@ class RouterRoute extends Route
         parent::__construct(HttpMethod::ALL, null);
     }
 
-    public function handleRequest(HttpClient $client, HttpRequest $req): void
+    public function handleRequest(HttpClient $client, HttpRequest $req): HttpResponse
     {
         // let the router inside this route handle the request
-        $this->router->handleRequest($client, $req);
+        return $this->router->handleRequest($client, $req);
     }
 
     /**

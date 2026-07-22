@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,10 @@
 namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
+use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 /**
@@ -40,28 +41,27 @@ class FileRoute extends Route
 
     /**
      * @param string $file the file path
-     * @param string|null $default
+     * @param string|null $default default value used when the file does not exist, if null a 404 will be sent instead
+     * @param string|null $defaultContentType the content type of the default value, if null text/html will be used
      * @throws FileNotFoundException
      */
-    public function __construct(string $file, ?string $default = null)
+    public function __construct(string $file, ?string $default = null, string $defaultContentType = null)
     {
         if (!file_exists($file) && $default === null) throw new FileNotFoundException($file);
 
         $this->file = $file;
 
         parent::__construct(HttpMethod::GET,
-            function (HttpRequest $req, HttpResponse $res, mixed $file = "", mixed $default = null, mixed ...$params) {
+            function (HttpRequest $req, HttpResponseBuilder $res, mixed $file = "", mixed $default = null, string $defaultContentType = null, mixed ...$params) {
                 if (!is_string($file) || ($default !== null && !is_string($default))) {
-                    $res->setStatus(HttpStatusCodes::NOT_F0UND);
+                    $res->setStatus(HttpStatusCodes::NOT_FOUND);
                     $res->sendStatusMessage();
-                    $res->end();
                     return;
                 }
 
-                $res->sendFile($file, $default);
-                $res->end();
+                $res->sendFileOrDefault($file, $default, $defaultContentType ?? HttpContentType::TEXT_HTML);
             },
-            $file, $default
+            $file, $default, $defaultContentType
         );
     }
 

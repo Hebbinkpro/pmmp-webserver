@@ -57,6 +57,7 @@ final class HttpConstants
 
     public const HTTP_URI_ASTERISK = "*";
 
+    // TODO remove the HTTP_VERSION constants, create HttpVersion.isValid() instead
     public const HTTP_VERSION_MAJOR = 1;
     public const HTTP_VERSION_MINOR = 1;
 }

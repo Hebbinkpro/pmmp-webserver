@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,15 @@ namespace Hebbinkpro\WebServer\route;
 
 use Closure;
 use Exception;
+use Hebbinkpro\WebServer\exception\RouteInUseException;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponse;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
 use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpServer;
+use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
 use Hebbinkpro\WebServer\utils\ThreadSafeUtils;
 use pmmp\thread\ThreadSafe;
@@ -44,10 +49,11 @@ class Route extends ThreadSafe
     private HttpMethod $method;
     private ?string $action;
     private ThreadSafeArray $threadSafeParams;
+    private ?UriPath $path;
 
     /**
      * @param HttpMethod $method the request method
-     * @param Closure(HttpRequest $req, HttpResponse $res, mixed ...$params): void|null $action the action to execute
+     * @param (Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void)|null $action the action to execute
      * @param mixed ...$params additional (thread safe) parameters to use in the action
      */
     public function __construct(HttpMethod $method, ?Closure $action, mixed ...$params)
@@ -60,21 +66,22 @@ class Route extends ThreadSafe
             $this->action = serialize($serializable);
         }
 
-        // make the array threads safe
+        // make the array thread safe
         $this->threadSafeParams = ThreadSafeUtils::makeThreadSafeArray($params);
+
+        $this->path = null;
     }
 
     /**
      * Handle the client request by executing the action
      * @param HttpClient $client the client
      * @param HttpRequest $req the request of the client
-     * @return void
+     * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClient $client, HttpRequest $req): void
+    public function handleRequest(HttpClient $client, HttpRequest $req): HttpResponse
     {
         if ($this->action === null) {
-            HttpResponse::notImplemented($client)->end();
-            return;
+            return HttpResponseFactory::notImplemented($client);
         }
 
         /** @var SerializableClosure|null $action */
@@ -82,13 +89,12 @@ class Route extends ThreadSafe
 
         // no action to handle the request
         if ($action === false || $action === null) {
-            HttpResponse::notImplemented($client)->end();
-            return;
+            return HttpResponseFactory::notImplemented($client);
         }
 
         // response to be sent back to the client, and make sure HEAD requests send a response without content
-        if ($req->getMethod() === HttpMethod::HEAD) $res = HttpResponse::noContent($client);
-        else $res = HttpResponse::ok($client);
+        if ($req->getMethod() === HttpMethod::HEAD) $res = new HttpResponseBuilder(true);
+        else $res = new HttpResponseBuilder();
 
         try {
             // ensure that the values are unwrapped before passing them on to the closure
@@ -97,14 +103,12 @@ class Route extends ThreadSafe
             // execute the closure with the request, response and parameters
             call_user_func($action->getClosure(), $req, $res, ...$params);
         } catch (Exception $e) {
-            error_log($e);
-            HttpResponse::internalServerError($client)->end();
+            HttpServer::getInstance()->getLogger()->error("Error while handling request: " . $e->getMessage());
+            return HttpResponseFactory::internalServerError($client);
         }
 
-        // end the response if it was not already done
-        if (!$res->isEnded()) $res->end();
 
-
+        return $res->build($client);
     }
 
     /**
@@ -116,5 +120,21 @@ class Route extends ThreadSafe
         return $this->method;
     }
 
+    /**
+     * @param UriPath $path
+     * @throws RouteInUseException if the route is already bound to a path
+     */
+    public function setPath(UriPath $path): void
+    {
+        if ($this->path !== null) throw new RouteInUseException("Route provided for '" . $path->toString() . "' is already in use at '" . $this->path->toString() . "'");
+        $this->path = $path;
+    }
 
+    /**
+     * @return UriPath|null
+     */
+    public function getPath(): ?UriPath
+    {
+        return $this->path;
+    }
 }

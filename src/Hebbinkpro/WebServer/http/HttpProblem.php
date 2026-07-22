@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,7 @@
 
 namespace Hebbinkpro\WebServer\http;
 
-use Hebbinkpro\WebServer\http\message\HttpResponse;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
 
@@ -57,15 +56,14 @@ class HttpProblem
 
     /**
      * Create an RFC7807 compliant HTTP problem+json response
-     * @param HttpClient $client the client to which the response should be sent
-     * @return HttpResponse
+     * @return HttpResponseBuilder
      */
-    public function createResponse(HttpClient $client): HttpResponse
+    public function createResponse(): HttpResponseBuilder
     {
         $status = HttpStatusRegistry::getInstance()->parseOrDefault($this->statusCode, "Custom Error");
 
-        $response = new HttpResponse($client, $status);
-        $response->json([
+        $res = new HttpResponseBuilder();
+        $res->json([
             "type" => $status->getUriReference(),
             "title" => $status->getMessage(),
             "status" => $status->getCode(),
@@ -73,7 +71,7 @@ class HttpProblem
             "instance" => $this->instance,
         ], HttpContentType::APPLICATION_PROBLEM_JSON);
 
-        return $response;
+        return $res;
     }
 
     /**

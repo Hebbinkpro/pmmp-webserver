@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,8 @@
 namespace Hebbinkpro\WebServer\router;
 
 use Closure;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -41,9 +41,9 @@ interface RouterInterface
      * Handle an incoming client request
      * @param HttpClient $client the client
      * @param HttpRequest $request the request from the client
-     * @return void
+     * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClient $client, HttpRequest $request): void;
+    public function handleRequest(HttpClient $client, HttpRequest $request): HttpResponse;
 
 
     /**

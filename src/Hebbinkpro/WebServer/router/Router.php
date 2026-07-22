@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Hebbinkpro
+ * Copyright (c) 2025-2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,14 +29,18 @@ use Closure;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\exception\RouteExistsException;
+use Hebbinkpro\WebServer\exception\RouteInUseException;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpProblem;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponse;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
 use Hebbinkpro\WebServer\http\server\HttpClient;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\Route;
 use Hebbinkpro\WebServer\route\RouterRoute;
@@ -64,9 +68,9 @@ class Router extends ThreadSafe implements RouterInterface
      * Let the correct route handle an HTTP request
      * @param HttpClient $client the client
      * @param HttpRequest $request the request from the client
-     * @return void
+     * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClient $client, HttpRequest $request): void
+    public function handleRequest(HttpClient $client, HttpRequest $request): HttpResponse
     {
         // get the route that will handle the request
         $routePath = $this->getRoutePath($request);
@@ -74,8 +78,7 @@ class Router extends ThreadSafe implements RouterInterface
         // no route was found
         if ($routePath === null) {
             // send a 404 not found message
-            HttpResponse::notFound($client)->end();
-            return;
+            return HttpResponseFactory::notFound($client);
         }
 
         /** @var Route|ThreadSafeArray<string, Route> $routeEntry */
@@ -89,15 +92,14 @@ class Router extends ThreadSafe implements RouterInterface
 
         if ($route === null) {
             // send a 404 not found message
-            HttpResponse::notFound($client)->end();
-            return;
+            return HttpResponseFactory::notFound($client);
         }
 
         // add the route path in the request, used for path params and sub paths
-        $request->appendRoutePath($routePath);
+        $request->getRouteInfo()->updateRouteInfo($route, UriPath::parse($routePath));
 
         // handle the request
-        $route->handleRequest($client, $request);
+        return $route->handleRequest($client, $request);
     }
 
     /**
@@ -107,7 +109,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
     public function getRoutePath(HttpRequest $req): ?string
     {
-        $reqPath = $req->getSubPath();
+        $reqPath = $req->getRouteInfo()->getSubPath();
         foreach ($this->routes as $routePath => $routes) {
             if (($routes instanceof Route || isset($routes[$req->getMethod()->name]))
                 && $this->matchesRoutePath($reqPath, $routePath)) {
@@ -159,25 +161,33 @@ class Router extends ThreadSafe implements RouterInterface
      */
     public function rejectRequest(HttpClient $client, int|HttpStatus $status = HttpStatusCodes::BAD_REQUEST, string $body = ""): void
     {
-        $res = new HttpResponse($client, $status);
-        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
+        // TODO move to the client as it has nothing to do with the Router
+        $res = new HttpResponseBuilder();
+        $res->setStatus($status);
+        $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
 
         if (strlen($body) == 0) $body = $res->getStatus()->toString();
         $res->text($body);
 
-        $res->end();
-    }
-
-    public function rejectRequestWithProblem(HttpClient $client, HttpProblem $problem): void
-    {
-        $res = $problem->createResponse($client);
-        $res->getHeaders()->setHeader(HttpHeaders::CONNECTION, "close");
-        $res->end();
-
+        $res->build($client);
     }
 
     /**
-     * @throws RouteExistsException
+     * Reject a request because of a problem
+     * @param HttpClient $client
+     * @param HttpProblem $problem
+     * @return void
+     */
+    public function rejectRequestWithProblem(HttpClient $client, HttpProblem $problem): void
+    {
+        // TODO move to the client as it has nothing to do with the Router
+        $res = $problem->createResponse();
+        $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
+        $res->build($client);
+    }
+
+    /**
+     * @throws RouteExistsException|RouteInUseException
      */
     public function get(string $path, Closure $action, mixed ...$params): void
     {
@@ -189,7 +199,8 @@ class Router extends ThreadSafe implements RouterInterface
      * @param string $path
      * @param Route $route
      * @return void
-     * @throws RouteExistsException
+     * @throws RouteExistsException if the routing path already exists
+     * @throws RouteInUseException if the given route is already added to a routing path
      */
     public function addRoute(string $path, Route $route): void
     {
@@ -211,6 +222,9 @@ class Router extends ThreadSafe implements RouterInterface
             /** @phpstan-ignore-next-line */
             $this->routes[$segments][$route->getMethod()->name] = $route;
         }
+
+        $uriPath = UriPath::parse($path);
+        $route->setPath($uriPath);
     }
 
     /**
@@ -219,7 +233,7 @@ class Router extends ThreadSafe implements RouterInterface
      * @param string $file the path of the file
      * @param string|null $default default value used when the file does not exist
      * @return void
-     * @throws FileNotFoundException|RouteExistsException
+     * @throws FileNotFoundException|RouteExistsException|RouteInUseException
      */
     public function getFile(string $path, string $file, ?string $default = null): void
     {
@@ -227,7 +241,7 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function post(string $path, Closure $action, mixed ...$params): void
     {
@@ -235,7 +249,7 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function head(string $path, Closure $action, mixed ...$params): void
     {
@@ -243,7 +257,7 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function put(string $path, Closure $action, mixed ...$params): void
     {
@@ -251,7 +265,7 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function delete(string $path, Closure $action, mixed ...$params): void
     {
@@ -259,7 +273,7 @@ class Router extends ThreadSafe implements RouterInterface
     }
 
     /**
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function all(string $path, Closure $action, mixed ...$params): void
     {
@@ -272,7 +286,7 @@ class Router extends ThreadSafe implements RouterInterface
      * @param string $path
      * @param Router $router
      * @return void
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function route(string $path, Router $router): void
     {
@@ -284,7 +298,7 @@ class Router extends ThreadSafe implements RouterInterface
      * @param string $path the path that should match
      * @param Route $route the route that handles the request
      * @return void
-     * @throws RouteExistsException
+     * @throws RouteExistsException|RouteInUseException
      */
     public function addAnyRoute(string $path, Route $route): void
     {
@@ -300,7 +314,7 @@ class Router extends ThreadSafe implements RouterInterface
      * @param string $path
      * @param string $folder
      * @return void
-     * @throws FolderNotFoundException|RouteExistsException when the given folder does not exist
+     * @throws FolderNotFoundException|RouteExistsException|RouteInUseException
      */
     public function getStatic(string $path, string $folder): void
     {

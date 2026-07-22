@@ -165,7 +165,8 @@ class HttpClient extends SocketClient
 
             // handle the request
             try {
-                $router->handleRequest($this, $req);
+                // TODO handle the response
+                $res = $router->handleRequest($this, $req);
             } catch (Exception $e) {
                 // log the error but don't reject the connection as it's unavailable
                 $this->logger->logException($e);

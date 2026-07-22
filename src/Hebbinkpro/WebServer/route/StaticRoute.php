@@ -27,8 +27,8 @@ namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\message\HttpRequest;
-use Hebbinkpro\WebServer\http\message\HttpResponse;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 /**
@@ -54,16 +54,15 @@ class StaticRoute extends Route
 
         // construct the parent with a get method, the new path and the action
         parent::__construct(HttpMethod::GET,
-            function (HttpRequest $req, HttpResponse $res, mixed ...$params) {
+            function (HttpRequest $req, HttpResponseBuilder $res, mixed ...$params) {
                 // quick check to make PHPStan happy and to ensure the folder still exists
                 if (!is_string($params[0]) || ($folderPath = realpath($params[0])) === false || !is_dir($folderPath)) {
-                    $res->setStatus(HttpStatusCodes::NOT_F0UND);
+                    $res->setStatus(HttpStatusCodes::NOT_FOUND);
                     $res->sendStatusMessage();
-                    $res->end();
                     return;
                 }
                 // get the path of the requested file, the uriPath is replaced with the folder path
-                $reqFilePath = $req->getSubPath();
+                $reqFilePath = $req->getRouteInfo()->getSubPath();
                 $realFilePath = realpath($folderPath . DIRECTORY_SEPARATOR . $reqFilePath);
 
                 // validate path
@@ -72,15 +71,13 @@ class StaticRoute extends Route
                     || !is_file($realFilePath)) {
 
                     // file does not exist, send 404
-                    $res->setStatus(HttpStatusCodes::NOT_F0UND);
+                    $res->setStatus(HttpStatusCodes::NOT_FOUND);
                     $res->sendStatusMessage();
-                    $res->end();
                     return;
                 }
 
                 // file does exist, send the file
                 $res->sendFile($realFilePath);
-                $res->end();
             },
             $folder);
     }
