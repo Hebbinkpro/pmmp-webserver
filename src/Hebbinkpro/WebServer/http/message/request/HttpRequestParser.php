@@ -206,7 +206,7 @@ class HttpRequestParser
         }
 
         // get the different parts
-        [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);;
+        [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);
 
         try {
             $this->builder->setHttpVersion(HttpVersion::parse($versionStr));

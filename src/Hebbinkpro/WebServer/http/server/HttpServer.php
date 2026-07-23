@@ -39,7 +39,7 @@ use pocketmine\thread\ThreadSafeClassLoader;
 class HttpServer extends Thread
 {
     /** @var int Time in microseconds to wait before serving sockets */
-    public const int SOCKET_SERVE_TIMEOUT = 100000;
+    public const SOCKET_SERVE_TIMEOUT = 100000;
 
     private static ?self $instance = null;
 

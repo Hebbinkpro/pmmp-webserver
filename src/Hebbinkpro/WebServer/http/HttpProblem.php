@@ -30,6 +30,7 @@ namespace Hebbinkpro\WebServer\http;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
+use JsonException;
 
 /**
  * A class to create RFC 7807 compliant Problem Details when HTTP requests do something unexpected.
@@ -65,13 +66,17 @@ class HttpProblem
         $status = HttpStatusRegistry::getInstance()->parseOrDefault($this->statusCode, "Custom Error");
 
         $res = new HttpResponseBuilder();
-        $res->json([
-            "type" => $status->getUriReference(),
-            "title" => $status->getMessage(),
-            "status" => $status->getCode(),
-            "detail" => $this->detail ?? $status->getMessage(),
-            "instance" => $this->instance,
-        ]);
+        try {
+            $res->json([
+                "type" => $status->getUriReference(),
+                "title" => $status->getMessage(),
+                "status" => $status->getCode(),
+                "detail" => $this->detail ?? $status->getMessage(),
+                "instance" => $this->instance,
+            ]);
+        } catch (JsonException) {
+            // ignore as the provided array is valid and we want to make PHPStorm happy
+        }
         $res->setContentType(HttpContentType::APPLICATION_PROBLEM_JSON);
 
         return $res;

@@ -300,7 +300,7 @@ class HttpResponseBuilder implements Response
         $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval($contentLength));
 
         // set server headers
-        $this->headers->setField(HttpHeaders::DATE, new DateTime()->format(DateTimeInterface::RFC7231));
+        $this->headers->setField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));
 
         // set the server name if it is set
         if ($serverInfo->getName() !== null) {
