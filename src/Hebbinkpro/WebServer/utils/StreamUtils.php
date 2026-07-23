@@ -108,13 +108,21 @@ final class StreamUtils
     }
 
     /**
-     * Open a read and writeable stream in-memory.
+     * Open a read and writeable stream stored in-memory.
      *
+     * Using `$alwaysInMemory` you can select the stream type.
+     * For `php://memory` all data will be stored in memory, while for `php://temp` the data will be stored in memory
+     * until a limit (default = 2 MB) is reached after which the data is stored on disk.
+     * Setting the value to `true` is preferable for most use cases.
+     *
+     * @param bool $alwaysInMemory if true: `php://memory` will be used, if false: `php://temp` will be used
      * @return resource <code>fopen("php://temp", "r+")</code>
+     * @see https://www.php.net/manual/en/wrappers.php.php
      */
-    public static function openTempStream(): mixed
+    public static function openTempStream(bool $alwaysInMemory = true): mixed
     {
-        return self::openStream("php://temp", "r+");
+        $file = $alwaysInMemory ? "php://memory" : "php://temp";
+        return self::openStream($file, "r+");
     }
 
     /**
