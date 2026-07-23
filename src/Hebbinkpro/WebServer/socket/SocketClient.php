@@ -136,7 +136,7 @@ class SocketClient
 
     /**
      * Stream data from a stream to the client
-     * @param mixed $stream the stream to send the the client
+     * @param resource $stream the stream to send the the client
      * @param int<1, max> $length the length of the stream
      * @return bool if the data was sent
      * @throws SocketClosedException when the socket is closed
