@@ -35,7 +35,7 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\HttpBody;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -400,10 +400,10 @@ class HttpRequestParser
 
     /**
      * Build an HTTP Message from a completely parsed message
-     * @param HttpClient $client
+     * @param HttpClientInfo $client
      * @return HttpRequest
      */
-    function build(HttpClient $client): HttpRequest
+    function build(HttpClientInfo $client): HttpRequest
     {
         if ($this->state !== HttpRequestParserState::COMPLETE) {
             throw new HttpRequestParserException("Cannot build an HttpRequest from an incomplete builder");

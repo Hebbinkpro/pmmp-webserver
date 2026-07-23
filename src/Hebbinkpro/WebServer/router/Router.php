@@ -35,7 +35,7 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\Route;
@@ -62,11 +62,11 @@ class Router extends ThreadSafe implements RouterInterface
 
     /**
      * Let the correct route handle an HTTP request
-     * @param HttpClient $client the client
+     * @param HttpClientInfo $client the client
      * @param HttpRequest $request the request from the client
      * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClient $client, HttpRequest $request): HttpResponse
+    public function handleRequest(HttpClientInfo $client, HttpRequest $request): HttpResponse
     {
         // get the route that will handle the request
         $routePath = $this->getRoutePath($request);

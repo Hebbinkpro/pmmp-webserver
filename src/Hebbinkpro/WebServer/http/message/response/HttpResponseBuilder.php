@@ -35,7 +35,7 @@ use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpBody;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
@@ -263,7 +263,7 @@ class HttpResponseBuilder implements Response
         return $this;
     }
 
-    public function build(HttpClient $client): HttpResponse
+    public function build(HttpClientInfo $client): HttpResponse
     {
         $this->finalize($client);
         $headers = $this->headers->build();
@@ -278,10 +278,10 @@ class HttpResponseBuilder implements Response
      * Finalize the response such that it is ready to be built
      *
      * This function will always be called during `build()`, which ensures that everything set here will be part of the response.
-     * @param HttpClient $client
+     * @param HttpClientInfo $client
      * @return void
      */
-    protected function finalize(HttpClient $client): void
+    protected function finalize(HttpClientInfo $client): void
     {
         $serverInfo = HttpServer::getInstance()->getServerInfo();
 

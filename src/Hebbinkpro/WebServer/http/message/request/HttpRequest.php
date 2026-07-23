@@ -31,12 +31,12 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\HttpBody;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 
 readonly class HttpRequest implements Request
 {
-    private HttpClient $client;
+    private HttpClientInfo $client;
     private HttpMethod $method;
     private HttpUrl $target;
     private HttpVersion $httpVersion;
@@ -44,7 +44,7 @@ readonly class HttpRequest implements Request
     private ?HttpBody $body;
     private RequestRouteInfo $routeInfo;
 
-    public function __construct(HttpClient $client, HttpMethod $method, HttpUrl $target, HttpVersion $httpVersion, HttpHeader $header, ?HttpBody $body)
+    public function __construct(HttpClientInfo $client, HttpMethod $method, HttpUrl $target, HttpVersion $httpVersion, HttpHeader $header, ?HttpBody $body)
     {
         $this->client = $client;
         $this->method = $method;
@@ -56,9 +56,9 @@ readonly class HttpRequest implements Request
     }
 
     /**
-     * @return HttpClient
+     * @return HttpClientInfo
      */
-    public function getClient(): HttpClient
+    public function getClient(): HttpClientInfo
     {
         return $this->client;
     }

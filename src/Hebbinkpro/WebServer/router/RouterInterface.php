@@ -31,7 +31,7 @@ use Closure;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 
 /**
  * Interface for a basic HTTP request router
@@ -40,11 +40,11 @@ interface RouterInterface
 {
     /**
      * Handle an incoming client request
-     * @param HttpClient $client the client
+     * @param HttpClientInfo $client the client
      * @param HttpRequest $request the request from the client
      * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClient $client, HttpRequest $request): HttpResponse;
+    public function handleRequest(HttpClientInfo $client, HttpRequest $request): HttpResponse;
 
     /**
      * Add a GET route to the router

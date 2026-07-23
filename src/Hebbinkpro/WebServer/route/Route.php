@@ -35,7 +35,7 @@ use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
@@ -76,11 +76,11 @@ class Route extends ThreadSafe
 
     /**
      * Handle the client request by executing the action
-     * @param HttpClient $client the client
+     * @param HttpClientInfo $client the client
      * @param HttpRequest $req the request of the client
      * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClient $client, HttpRequest $req): HttpResponse
+    public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
     {
         if ($this->action === null) {
             return HttpResponseFactory::notImplemented($client);

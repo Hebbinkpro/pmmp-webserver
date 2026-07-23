@@ -155,21 +155,21 @@ class HttpClient extends SocketClient
             // the request is not complete
             if (!$success) break;
 
-            // build the HTTP Request from the parsed result
-            $req = $parser->build($this);
-
             // reset request builder
             $this->requestParser = null;
 
             // we are serving a new request, so increment the counter
             $this->servedRequests++;
 
+            // build the HTTP Request from the parsed result
+            $req = $parser->build($this->getClientInfo());
+
             // if not already closed, validate the http connection using the headers
             if (!$this->closed) $this->closed = $this->validateHttpConnection($req);
 
             // handle the request
             try {
-                $res = $router->handleRequest($this, $req);
+                $res = $router->handleRequest($this->getClientInfo(), $req);
                 $this->sendResponse($res);
             } catch (Exception $e) {
                 // log the error but don't reject the connection as it's unavailable
@@ -205,7 +205,7 @@ class HttpClient extends SocketClient
 
         $res = $problem->createResponse();
         $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
-        $this->sendResponse($res->build($this));
+        $this->sendResponse($res->build($this->getClientInfo()));
 
         if ($problem->getDetail() !== null) {
             $this->logger->log($level, "Client request rejected. Reason: " . $problem->getDetail());

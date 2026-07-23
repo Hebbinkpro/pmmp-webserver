@@ -31,24 +31,24 @@ use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\message\HttpStreamMessage;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 
 readonly class HttpResponse implements HttpStreamMessage
 {
-    private HttpClient $client;
+    private HttpClientInfo $client;
     private HttpStatus $status;
     private HttpHeader $headers;
 
     private ?HttpBody $body;
 
     /**
-     * @param HttpClient $client
+     * @param HttpClientInfo $client
      * @param HttpStatus $status
      * @param HttpHeader $headers
      * @param HttpBody|null $body
      */
-    public function __construct(HttpClient $client, HttpStatus $status, HttpHeader $headers, ?HttpBody $body)
+    public function __construct(HttpClientInfo $client, HttpStatus $status, HttpHeader $headers, ?HttpBody $body)
     {
         $this->client = $client;
         $this->status = $status;
@@ -57,9 +57,9 @@ readonly class HttpResponse implements HttpStreamMessage
     }
 
     /**
-     * @return HttpClient
+     * @return HttpClientInfo
      */
-    public function getClient(): HttpClient
+    public function getClient(): HttpClientInfo
     {
         return $this->client;
     }

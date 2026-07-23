@@ -33,7 +33,7 @@ use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpBody;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 use RuntimeException;
@@ -137,7 +137,7 @@ class HttpRequestBuilder implements Request
         return $this;
     }
 
-    public function build(HttpClient $client): HttpRequest
+    public function build(HttpClientInfo $client): HttpRequest
     {
         if (!isset($this->method) || !isset($this->target) || !isset($this->httpVersion)) {
             throw new RuntimeException("Cannot build request without method, target and/or http version");

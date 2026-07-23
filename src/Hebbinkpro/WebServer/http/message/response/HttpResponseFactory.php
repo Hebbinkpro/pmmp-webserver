@@ -27,7 +27,7 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\http\message\response;
 
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
@@ -37,18 +37,18 @@ use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
  */
 final class HttpResponseFactory
 {
-    public static function notFound(HttpClient $client): HttpResponse
+    public static function notFound(HttpClientInfo $client): HttpResponse
     {
         return self::statusResponse($client, HttpStatusCodes::NOT_FOUND);
     }
 
     /**
      * Generate a generic status response
-     * @param HttpClient $client
+     * @param HttpClientInfo $client
      * @param HttpStatus|int $status
      * @return HttpResponse
      */
-    public static function statusResponse(HttpClient $client, HttpStatus|int $status): HttpResponse
+    public static function statusResponse(HttpClientInfo $client, HttpStatus|int $status): HttpResponse
     {
         $status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
 
@@ -58,17 +58,17 @@ final class HttpResponseFactory
             ->build($client);
     }
 
-    public static function internalServerError(HttpClient $client): HttpResponse
+    public static function internalServerError(HttpClientInfo $client): HttpResponse
     {
         return self::statusResponse($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
     }
 
-    public static function badRequest(HttpClient $client): HttpResponse
+    public static function badRequest(HttpClientInfo $client): HttpResponse
     {
         return self::statusResponse($client, HttpStatusCodes::BAD_REQUEST);
     }
 
-    public static function notImplemented(HttpClient $client): HttpResponse
+    public static function notImplemented(HttpClientInfo $client): HttpResponse
     {
         return self::statusResponse($client, HttpStatusCodes::NOT_IMPLEMENTED);
     }

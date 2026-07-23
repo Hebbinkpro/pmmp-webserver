@@ -30,7 +30,7 @@ namespace Hebbinkpro\WebServer\route;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
-use Hebbinkpro\WebServer\http\server\HttpClient;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\router\Router;
 
 /**
@@ -50,7 +50,7 @@ class RouterRoute extends Route
         parent::__construct(HttpMethod::ALL, null);
     }
 
-    public function handleRequest(HttpClient $client, HttpRequest $req): HttpResponse
+    public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
     {
         // let the router inside this route handle the request
         return $this->router->handleRequest($client, $req);
