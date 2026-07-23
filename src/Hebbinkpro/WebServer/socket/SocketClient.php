@@ -206,4 +206,16 @@ class SocketClient
 
         return true;
     }
+
+    /**
+     * Get readonly information about the client
+     * @return SocketClientInfo
+     */
+    public function getClientInfo(): SocketClientInfo
+    {
+        return new SocketClientInfo(
+            $this->host,
+            $this->port,
+        );
+    }
 }

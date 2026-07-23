@@ -284,4 +284,19 @@ class HttpClient extends SocketClient
     {
         return $this->servedRequests;
     }
+
+    /**
+     * Get readonly information about the client
+     * @return HttpClientInfo
+     */
+    public function getClientInfo(): HttpClientInfo
+    {
+        return new HttpClientInfo(
+            $this->getHost(),
+            $this->getPort(),
+            $this->closed,
+            $this->lastActivity,
+            $this->servedRequests,
+        );
+    }
 }
