@@ -31,16 +31,11 @@ use Closure;
 use Hebbinkpro\WebServer\exception\FolderNotFoundException;
 use Hebbinkpro\WebServer\exception\RouteExistsException;
 use Hebbinkpro\WebServer\exception\RouteInUseException;
-use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
-use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
 use Hebbinkpro\WebServer\http\server\HttpClient;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
-use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\Route;
@@ -151,40 +146,6 @@ class Router extends ThreadSafe implements RouterInterface
 
         // the given path is valid
         return true;
-    }
-
-    /**
-     * Reject a request with a given status
-     * @param HttpClient $client
-     * @param int|HttpStatus $status
-     * @param string $body
-     * @return void
-     */
-    public function rejectRequest(HttpClient $client, int|HttpStatus $status = HttpStatusCodes::BAD_REQUEST, string $body = ""): void
-    {
-        // TODO move to the client as it has nothing to do with the Router
-        $res = new HttpResponseBuilder();
-        $res->setStatus($status);
-        $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
-
-        if (strlen($body) === 0) $body = $res->getStatus()->toString();
-        $res->text($body);
-
-        $res->build($client);
-    }
-
-    /**
-     * Reject a request because of a problem
-     * @param HttpClient $client
-     * @param HttpProblem $problem
-     * @return void
-     */
-    public function rejectRequestWithProblem(HttpClient $client, HttpProblem $problem): void
-    {
-        // TODO move to the client as it has nothing to do with the Router
-        $res = $problem->createResponse();
-        $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
-        $res->build($client);
     }
 
     /**

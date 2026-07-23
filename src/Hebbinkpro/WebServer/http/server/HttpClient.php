@@ -123,7 +123,7 @@ class HttpClient extends SocketClient
             if (!$hasData) return;
         } catch (Exception $e) {
             $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
-            $this->reject($problem, LogLevel::ERROR);
+            $this->rejectRequest($problem, LogLevel::ERROR);
             return;
         }
 
@@ -142,13 +142,13 @@ class HttpClient extends SocketClient
                 $success = $parser->readFromBuffer();
             } catch (HttpException $e) {
                 // the HTTP request was invalid
-                $this->reject($e->getHttpError());
+                $this->rejectRequest($e->getHttpError());
                 break;
             } catch (HttpRequestParserException $e) {
                 // this should never happen if the builder is properly used
                 $this->logger->error("Error while parsing request: " . $e->getMessage());
                 $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
-                $this->reject($problem);
+                $this->rejectRequest($problem);
                 break;
             }
 
@@ -194,17 +194,21 @@ class HttpClient extends SocketClient
     }
 
     /**
-     * Reject a client request
+     * Reject a client request and close the connection
      * @param HttpProblem $problem the reason of the rejection
      * @param string $level logging level of the rejection reason
      * @return void
      */
-    private function reject(HttpProblem $problem, string $level = LogLevel::DEBUG): void
+    public function rejectRequest(HttpProblem $problem, string $level = LogLevel::DEBUG): void
     {
         $this->closed = true;
-        HttpServer::getInstance()->getServerInfo()->getRouter()->rejectRequestWithProblem($this, $problem);
+
+        $res = $problem->createResponse();
+        $res->getHeader()->setField(HttpHeaders::CONNECTION, "close");
+        $this->sendResponse($res->build($this));
+
         if ($problem->getDetail() !== null) {
-            $this->logger->log($level, "Client rejected. Reason: " . $problem->getDetail());
+            $this->logger->log($level, "Client request rejected. Reason: " . $problem->getDetail());
         }
     }
 

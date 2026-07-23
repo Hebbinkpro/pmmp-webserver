@@ -29,8 +29,10 @@ namespace Hebbinkpro\WebServer\http\server;
 
 use Exception;
 use Hebbinkpro\WebServer\exception\SocketNotCreatedException;
+use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use LogicException;
+use LogLevel;
 use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
@@ -251,7 +253,9 @@ class HttpServer extends Thread
 
             } catch (Exception $e) {
                 $this->logger->error("Got an error while handling $name. " . $e->getMessage());
-                $this->serverInfo->getRouter()->rejectRequest($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
+
+                $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, null);
+                $client->rejectRequest($problem, LogLevel::WARNING);
                 $closed[] = $name;
             }
         }

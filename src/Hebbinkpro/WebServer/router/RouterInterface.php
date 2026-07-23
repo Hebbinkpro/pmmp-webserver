@@ -32,8 +32,6 @@ use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClient;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
-use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 
 /**
  * Interface for a basic HTTP request router
@@ -47,15 +45,6 @@ interface RouterInterface
      * @return HttpResponse the response to send back to the client
      */
     public function handleRequest(HttpClient $client, HttpRequest $request): HttpResponse;
-
-
-    /**
-     * Reject an incoming client request
-     * @param HttpClient $client the client
-     * @param int|HttpStatus $status the status code indicating the error
-     * @return void
-     */
-    public function rejectRequest(HttpClient $client, int|HttpStatus $status = HttpStatusCodes::BAD_REQUEST): void;
 
     /**
      * Add a GET route to the router
