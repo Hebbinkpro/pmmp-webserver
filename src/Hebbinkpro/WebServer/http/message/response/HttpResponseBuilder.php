@@ -295,9 +295,15 @@ class HttpResponseBuilder implements Response
             $this->status = HttpStatusRegistry::getInstance()->getOrDefault(HttpStatusCodes::OK);
         }
 
-        // set the final content length
-        $contentLength = $this->body?->getLength() ?? 0;
-        $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval($contentLength));
+        if ($this->status->canNotHaveBody()) {
+            // remove the body and unset the content type header
+            $this->body = null;
+            $this->headers->unsetField(HttpHeaders::CONTENT_TYPE);
+        } else {
+            // set the final content length, also keep this for head-only requests
+            $contentLength = $this->body?->getLength() ?? 0;
+            $this->headers->setField(HttpHeaders::CONTENT_LENGTH, strval($contentLength));
+        }
 
         // set server headers
         $this->headers->setField(HttpHeaders::DATE, (new DateTime())->format(DateTimeInterface::RFC7231));

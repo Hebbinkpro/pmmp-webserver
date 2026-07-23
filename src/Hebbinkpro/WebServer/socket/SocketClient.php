@@ -134,6 +134,32 @@ class SocketClient
         return true;
     }
 
+    /**
+     * Stream data from a stream to the client
+     * @param mixed $stream the stream to send the the client
+     * @param int<1, max> $length the length of the stream
+     * @return bool if the data was sent
+     * @throws SocketClosedException when the socket is closed
+     * @throws SocketException when an unexpected exception happened
+     */
+    public function stream(mixed $stream, int $length): bool
+    {
+        // we cannot write from a closed socket
+        if (!$this->isAvailable()) {
+            // we cannot write from a closed socket, this can be thrown when the client closes the connection
+            return false;
+        }
+
+        try {
+            // copy data from stream to the sockket
+            StreamUtils::streamCopyToStream($stream, $this->socket, $length);
+        } catch (StreamException $e) {
+            throw new SocketException("Failed to stream data to socket {$this->getName()}", 0, $e);
+        }
+
+        return true;
+    }
+
 
     /**
      * Check if the socket is still available

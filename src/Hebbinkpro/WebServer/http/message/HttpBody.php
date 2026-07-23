@@ -96,7 +96,7 @@ readonly class HttpBody
      */
     public function close(): void
     {
-        fclose($this->stream);
+        StreamUtils::closeStream($this->stream);
     }
 
     /**
@@ -128,7 +128,7 @@ readonly class HttpBody
      */
     public function rewind(): void
     {
-        rewind($this->stream);
+        StreamUtils::rewindStream($this->stream);
     }
 
     /**
@@ -160,5 +160,14 @@ readonly class HttpBody
     public function asJson(int $depth = 512, int $flags = 0): mixed
     {
         return json_decode($this->readAll(), true, $depth, $flags);
+    }
+
+    /**
+     * Get the body as the raw data stream
+     * @return resource
+     */
+    public function getStream(): mixed
+    {
+        return $this->stream;
     }
 }

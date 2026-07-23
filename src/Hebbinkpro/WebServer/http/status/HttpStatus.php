@@ -79,4 +79,60 @@ class HttpStatus extends ThreadSafe
     {
         return $this->code . " " . $this->message;
     }
+
+    /**
+     * Get if the status is informational (100-199)
+     * @return bool
+     */
+    public function isInformational(): bool
+    {
+        return $this->code >= 100 && $this->code < 200;
+    }
+
+    /**
+     * Get if the status is successful (200-299)
+     * @return bool
+     */
+    public function isSuccessful(): bool
+    {
+        return $this->code >= 200 && $this->code < 300;
+    }
+
+    /**
+     * Get if the status is a redirection (300-399)
+     * @return bool
+     */
+    public function isRedirection(): bool
+    {
+        return $this->code >= 300 && $this->code < 400;
+    }
+
+    /**
+     * Get if the status is a client error (400-499)
+     * @return bool
+     */
+    public function isClientError(): bool
+    {
+        return $this->code >= 400 && $this->code < 500;
+    }
+
+    /**
+     * Get if the status is a server error (500-599)
+     * @return bool
+     */
+    public function isServerError(): bool
+    {
+        return $this->code >= 500 && $this->code < 600;
+    }
+
+    /**
+     * Get if the status code is not allowed to return a message body
+     * @return bool true for all 1xx (Informational), 204 (No Content), and 304 (Not Modified) responses.
+     */
+    public function canNotHaveBody(): bool
+    {
+        return $this->isInformational()
+            || $this->code === HttpStatusCodes::NO_CONTENT
+            || $this->code === HttpStatusCodes::NOT_MODIFIED;
+    }
 }

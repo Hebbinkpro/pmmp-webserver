@@ -170,7 +170,7 @@ class HttpClient extends SocketClient
             // handle the request
             try {
                 $res = $router->handleRequest($this, $req);
-                $this->respond($res);
+                $this->sendResponse($res);
             } catch (Exception $e) {
                 // log the error but don't reject the connection as it's unavailable
                 $this->logger->logException($e);
@@ -193,6 +193,12 @@ class HttpClient extends SocketClient
 
     }
 
+    /**
+     * Reject a client request
+     * @param HttpProblem $problem the reason of the rejection
+     * @param string $level logging level of the rejection reason
+     * @return void
+     */
     private function reject(HttpProblem $problem, string $level = LogLevel::DEBUG): void
     {
         $this->closed = true;
@@ -202,9 +208,34 @@ class HttpClient extends SocketClient
         }
     }
 
-    private function respond(HttpResponse $response): void
+    /**
+     * Send a HTTP Response to the client
+     *
+     * This writes all data of the response to the socket of the client
+     * @param HttpResponse $res the response to be send
+     * @return void
+     */
+    private function sendResponse(HttpResponse $res): void
     {
-        // TODO implement
+        $requestLine = $res->getVersion()->toString() . " " . $res->getStatus()->toString();
+        $this->write($requestLine . "\r\n");
+
+        $headers = $res->getHeaders()->toString();
+        $this->write($headers . "\r\n");
+
+        if (($body = $res->getBody()) !== null) {
+            // ensure the entire body can be read
+            $body->rewind();
+
+            if ($body->getLength() > 0) {
+                // stream the body to the socket
+                $this->stream($body->getStream(), $body->getLength());
+                // always end with a new line
+                $this->write("\r\n");
+            }
+        }
+
+        $this->flush();
     }
 
     /**
