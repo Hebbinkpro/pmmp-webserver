@@ -28,7 +28,6 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\exception;
 
 use Hebbinkpro\WebServer\http\HttpProblem;
-use RuntimeException;
 
 /**
  * Exception to throw when an HTTP request has a problem.
@@ -38,7 +37,7 @@ use RuntimeException;
  * This exception should ALWAYS be caught and handled properly,
  * otherwise the server can be crashed by arbitrary HTTP Requests.
  */
-class HttpException extends RuntimeException
+class HttpException extends WebServerException
 {
 
     public function __construct(private HttpProblem $httpError)

@@ -27,9 +27,9 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\socket;
 
-use RuntimeException;
+use Hebbinkpro\WebServer\exception\WebServerException;
 
-class SocketException extends RuntimeException
+class SocketException extends WebServerException
 {
 
 }

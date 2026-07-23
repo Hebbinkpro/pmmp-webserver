@@ -29,9 +29,7 @@ namespace Hebbinkpro\WebServer\http\message\response;
 
 use DateTime;
 use DateTimeInterface;
-use Exception;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
-use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
 use Hebbinkpro\WebServer\http\HttpVersion;
@@ -114,12 +112,8 @@ class HttpResponseBuilder implements Response
 
         $stream = StreamUtils::openTempStream();
 
-        try {
-            fwrite($stream, $data);
-            rewind($stream);
-        } catch (Exception) {
-            throw new StreamException("Unable to write data to temp stream.");
-        }
+        StreamUtils::writeStream($stream, $data);
+        StreamUtils::rewindStream($stream);
 
         $this->setBody(new HttpBody($stream));
         $this->setContentType($contentType);

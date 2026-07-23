@@ -30,7 +30,7 @@ namespace Hebbinkpro\WebServer\exception;
 use RuntimeException;
 
 /**
- * Exception thrown when someone tries to break the web server
+ * Base class of all exceptions thrown by the WebServer
  */
 abstract class WebServerException extends RuntimeException
 {

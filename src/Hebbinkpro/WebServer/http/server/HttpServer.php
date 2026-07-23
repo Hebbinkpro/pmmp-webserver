@@ -38,8 +38,8 @@ use pocketmine\thread\ThreadSafeClassLoader;
 
 class HttpServer extends Thread
 {
-    /** @var int Time in milliseconds to wait before serving sockets */
-    public const SOCKET_SERVE_TIMEOUT = 100000;
+    /** @var int Time in microseconds to wait before serving sockets */
+    public const int SOCKET_SERVE_TIMEOUT = 100000;
 
     private static ?self $instance = null;
 
@@ -108,7 +108,11 @@ class HttpServer extends Thread
         $context = stream_context_create();
 
         if (($ssl = $this->serverInfo->getSsl()) !== null) {
-            stream_context_set_option($context, $ssl->getContextOptions());
+            $success = stream_context_set_option($context, $ssl->getContextOptions());
+            if (!$success) {
+                throw new SocketNotCreatedException("Unable to create SSL stream context option.");
+            }
+
             $this->isSecure = true;
         }
 

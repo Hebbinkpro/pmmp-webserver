@@ -35,6 +35,7 @@ use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\request\HttpRequestParser;
 use Hebbinkpro\WebServer\http\message\request\HttpRequestParserException;
+use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\socket\SocketClient;
 use Hebbinkpro\WebServer\socket\SocketException;
@@ -49,7 +50,7 @@ class HttpClient extends SocketClient
 
     private bool $closed = false;
 
-    private ?HttpRequestParser $requestBuilder = null;
+    private ?HttpRequestParser $requestParser = null;
 
     /** @var int The time when the client was last active (unix time in seconds) */
     private int $lastActivity;
@@ -83,17 +84,17 @@ class HttpClient extends SocketClient
     }
 
     /**
-     * Set a new request builder
-     * @param HttpRequestParser $builder
+     * Set a new request parser
+     * @param HttpRequestParser $parser
      * @return void
      */
-    public function setRequestBuilder(HttpRequestParser $builder): void
+    public function setRequestParser(HttpRequestParser $parser): void
     {
-        if ($this->requestBuilder !== null) {
-            throw new LogicException("Cannot set a RequestBuilder when the previous builder is still active!");
+        if ($this->requestParser !== null) {
+            throw new LogicException("Cannot set a RequestParser when the previous parser is still active!");
         }
 
-        $this->requestBuilder = $builder;
+        $this->requestParser = $parser;
     }
 
     public function isClosed(): bool
@@ -146,7 +147,8 @@ class HttpClient extends SocketClient
             } catch (HttpRequestParserException $e) {
                 // this should never happen if the builder is properly used
                 $this->logger->error("Error while parsing request: " . $e->getMessage());
-                $this->reject(new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage()));
+                $problem = new HttpProblem(HttpStatusCodes::INTERNAL_SERVER_ERROR, null, $e->getMessage());
+                $this->reject($problem);
                 break;
             }
 
@@ -157,7 +159,7 @@ class HttpClient extends SocketClient
             $req = $parser->build($this);
 
             // reset request builder
-            $this->requestBuilder = null;
+            $this->requestParser = null;
 
             // we are serving a new request, so increment the counter
             $this->servedRequests++;
@@ -167,8 +169,8 @@ class HttpClient extends SocketClient
 
             // handle the request
             try {
-                // TODO handle the response
                 $res = $router->handleRequest($this, $req);
+                $this->respond($res);
             } catch (Exception $e) {
                 // log the error but don't reject the connection as it's unavailable
                 $this->logger->logException($e);
@@ -195,7 +197,14 @@ class HttpClient extends SocketClient
     {
         $this->closed = true;
         HttpServer::getInstance()->getServerInfo()->getRouter()->rejectRequestWithProblem($this, $problem);
-        if ($problem->getDetail() !== null) $this->logger->log($level, "Client rejected. Reason: " . $problem->getDetail());
+        if ($problem->getDetail() !== null) {
+            $this->logger->log($level, "Client rejected. Reason: " . $problem->getDetail());
+        }
+    }
+
+    private function respond(HttpResponse $response): void
+    {
+        // TODO implement
     }
 
     /**
@@ -204,11 +213,11 @@ class HttpClient extends SocketClient
      */
     public function getOrCreateRequestParser(): HttpRequestParser
     {
-        if ($this->requestBuilder === null || $this->requestBuilder->isInvalid()) {
-            $this->requestBuilder = new HttpRequestParser($this->buffer, HttpServer::getInstance()->getServerInfo(), $this->logger);
+        if ($this->requestParser === null || $this->requestParser->isInvalid()) {
+            $this->requestParser = new HttpRequestParser($this->buffer, HttpServer::getInstance()->getServerInfo(), $this->logger);
         }
 
-        return $this->requestBuilder;
+        return $this->requestParser;
     }
 
     /**

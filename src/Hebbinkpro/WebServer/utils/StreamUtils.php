@@ -283,4 +283,34 @@ final class StreamUtils
         if ($pos === false) throw new StreamException("Unable to get the current position of the stream.");
         return $pos;
     }
+
+    /**
+     * Rewind the position of a file pointer
+     *
+     * Wrapper around <code>rewind</code>
+     * @param resource $stream
+     * @return void
+     * @throws StreamException on failure
+     * @see rewind for parameter descriptions
+     */
+    public static function rewindStream(mixed $stream): void
+    {
+        $success = @rewind($stream);
+        if ($success === false) throw new StreamException("Unable to rewind stream");
+    }
+
+    /**
+     * Flushes the output to a file
+     *
+     * Wrapper around <code>fflush</code>
+     * @param resource $stream
+     * @return void
+     * @throws StreamException on failure
+     * @see rewind for parameter descriptions
+     */
+    public static function flushStream(mixed $stream): void
+    {
+        $success = @fflush($stream);
+        if ($success === false) throw new StreamException("Unable to flush stream");
+    }
 }

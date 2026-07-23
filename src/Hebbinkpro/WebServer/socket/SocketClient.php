@@ -27,7 +27,6 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\socket;
 
-use Exception;
 use Hebbinkpro\WebServer\exception\StreamException;
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\utils\Buffer;
@@ -127,8 +126,8 @@ class SocketClient
         }
 
         try {
-            fwrite($this->socket, $data);
-        } catch (Exception $e) {
+            StreamUtils::writeStream($this->socket, $data);
+        } catch (StreamException $e) {
             throw new SocketException("Failed to write to socket {$this->getName()}", 0, $e);
         }
 
@@ -142,11 +141,7 @@ class SocketClient
      */
     public function isAvailable(): bool
     {
-        try {
-            return !feof($this->socket);
-        } catch (Exception) {
-            return false;
-        }
+        return !feof($this->socket);
     }
 
     /**
@@ -157,8 +152,8 @@ class SocketClient
     public function flush(): void
     {
         try {
-            fflush($this->socket);
-        } catch (Exception $e) {
+            StreamUtils::flushStream($this->socket);
+        } catch (StreamException $e) {
             throw new SocketException("Failed to flush socket {$this->getName()}.", 0, $e);
         }
     }
