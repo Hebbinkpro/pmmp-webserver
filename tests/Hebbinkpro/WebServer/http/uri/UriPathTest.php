@@ -118,4 +118,18 @@ class UriPathTest extends TestCase
         $this->assertFalse((new UriPath(["foo", "bar", "baz"]))->equals(new UriPath([])));
         $this->assertFalse((new UriPath(["foo", "bar", "baz"]))->equals(new UriPath(["foo", "bar", "baz", "abc"])));
     }
+
+    public function testGetSubPath()
+    {
+        $pathParts = ["foo", "bar", "baz"];
+        $path = new UriPath($pathParts);
+
+        $this->assertTrue($path->getSubPath(new UriPath(["foo", ":a", "baz"]))?->equals(new UriPath([])));
+        $this->assertTrue($path->getSubPath(new UriPath(["foo", "bar", "*"]))?->equals(new UriPath(["baz"])));
+        $this->assertTrue($path->getSubPath(new UriPath(["**"]))?->equals($path));
+        $this->assertTrue($path->getSubPath(new UriPath(["**", "baz"]))?->equals(new UriPath([])));
+        $this->assertTrue($path->getSubPath(new UriPath(["foo", "**", "baz"]))?->equals(new UriPath([])));
+        $this->assertTrue($path->getSubPath(new UriPath(["foo", "bar", "**"]))?->equals(new UriPath(["baz"])));
+        $this->assertTrue($path->getSubPath(new UriPath(["**", "foo"]))?->equals(new UriPath(["bar", "baz"])));
+    }
 }

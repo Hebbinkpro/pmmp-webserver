@@ -55,7 +55,7 @@ class RequestRouteInfo
     {
         $this->route = $route;
         $this->pathParams = [];
-        $this->subPath = $requestPath->getSubPath($route->getPath(), $this->pathParams);
+        $this->subPath = $requestPath->getSubPath($route->getPath(), false, $this->pathParams);
     }
 
     /**

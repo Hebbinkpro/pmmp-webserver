@@ -80,28 +80,24 @@ class UriPath extends ThreadSafe implements UriElement
     }
 
     /**
-     * Get a subpath by removing the parent path from the current path
-     * @param UriPath $parent the parent path to remove
-     * @param array|null $params if not null, parameters in the parent path will be set
-     * @return UriPath|null the resulting subpath, or null when the current path does not start with the parent
+     * Get the subpath of a matched URI
+     *
+     * This method returns the opposite of getMatchPath, as it returns the remaining part of the URI.
+     * @param UriPath $matchPath the path to check
+     * @param bool $strict if the paths should match exactly, if true wildcards will be ignored.
+     * @param array<string,string> $params if strict is false, sets url parameters from the matchpath to
+     *                                      their coresponding values in the base path.
+     * @returns UriPath|null
+     * @see getMatchingPath()
      */
-    public function getSubPath(UriPath $parent, ?array &$params = null): ?UriPath
+    public function getSubPath(UriPath $matchPath, bool $strict = false, ?array &$params = null): ?UriPath
     {
-        // first check if this path starts with the given path
-        if (!$this->startsWith($parent)) return null;
+        // get the base path
+        $matchingPath = $this->getMatchingPath($matchPath, $strict, $params);
+        if ($matchingPath === null) return null;
 
-        $path = $this->asArray();
-        $parentPath = $parent->asArray();
-
-        if ($params !== null) {
-            for ($i = 0; $i < count($path); $i++) {
-                if (str_starts_with($parentPath[$i], ":")) {
-                    $params[substr($parentPath[$i], 1)] = $path[$i];
-                }
-            }
-        }
-
-        $subPath = array_slice($path, $parent->getLength());
+        $basePath = $matchingPath->asArray();
+        $subPath = array_slice($this->asArray(), count($basePath));
         return new self($subPath);
     }
 
