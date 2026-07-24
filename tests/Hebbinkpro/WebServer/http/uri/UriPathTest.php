@@ -29,7 +29,8 @@ use PHPUnit\Framework\TestCase;
 
 class UriPathTest extends TestCase
 {
-    public function testUriStartsWith()
+
+    public function testUriMatches()
     {
 
         $pathParts = ["foo", "bar", "baz"];
@@ -38,21 +39,83 @@ class UriPathTest extends TestCase
 
         for ($i = 0; $i <= count($pathParts); $i++) {
             $slice = array_slice($pathParts, 0, $i);
-            $this->assertTrue($path->startsWith(new UriPath($slice)));
+            $this->assertTrue($path->matches(new UriPath($slice)));
         }
 
-        $this->assertFalse($path->startsWith(new UriPath(["bar"])));
-        $this->assertFalse($path->startsWith(new UriPath(["bar", "baz"])));
+        $this->assertFalse($path->matches(new UriPath(["bar"])));
+        $this->assertFalse($path->matches(new UriPath(["bar", "baz"])));
 
-        $this->assertTrue($path->startsWith(new UriPath(["foo", ":a", "baz"])));
-        $this->assertTrue($path->startsWith(new UriPath(["foo", "bar", "*"])));
-        $this->assertTrue($path->startsWith(new UriPath(["**"])));
-        $this->assertTrue($path->startsWith(new UriPath(["**", "baz"])));
-        $this->assertTrue($path->startsWith(new UriPath(["foo", "**", "baz"])));
+        $this->assertTrue($path->matches(new UriPath(["foo", ":a", "baz"])));
+        $this->assertTrue($path->matches(new UriPath(["foo", "bar", "*"])));
+        $this->assertTrue($path->matches(new UriPath(["**"])));
+        $this->assertTrue($path->matches(new UriPath(["**", "baz"])));
+        $this->assertTrue($path->matches(new UriPath(["foo", "**", "baz"])));
 
-        $this->assertFalse($path->startsWith(new UriPath(["**", "abc"])));
-        $this->assertFalse($path->startsWith(new UriPath(["**", "bar", "abc"])));
-        $this->assertFalse($path->startsWith(new UriPath(["**", "bar", "baz", "abc"])));
-        $this->assertFalse($path->startsWith(new UriPath(["**", "foo", "bar", "baz", "abc"])));
+        $this->assertFalse($path->matches(new UriPath(["**", "abc"])));
+        $this->assertFalse($path->matches(new UriPath(["**", "bar", "abc"])));
+        $this->assertFalse($path->matches(new UriPath(["**", "bar", "baz", "abc"])));
+        $this->assertFalse($path->matches(new UriPath(["**", "foo", "bar", "baz", "abc"])));
+    }
+
+    public function testUriGetMatchingPath()
+    {
+
+        $pathParts = ["foo", "bar", "baz"];
+        $path = new UriPath($pathParts);
+
+
+        for ($i = 0; $i <= count($pathParts); $i++) {
+            $slice = array_slice($pathParts, 0, $i);
+            $this->assertTrue($path->getMatchingPath(new UriPath($slice))->equals(new UriPath($slice)));
+        }
+
+        $this->assertNull($path->getMatchingPath(new UriPath(["bar"])));
+        $this->assertNull($path->getMatchingPath(new UriPath(["bar", "baz"])));
+
+        $this->assertTrue($path->getMatchingPath(new UriPath(["foo", ":a", "baz"]))?->equals($path));
+        $this->assertTrue($path->getMatchingPath(new UriPath(["foo", "bar", "*"]))?->equals(new UriPath(["foo", "bar"])));
+        $this->assertTrue($path->getMatchingPath(new UriPath(["**"]))?->equals(new UriPath([])));
+        $this->assertTrue($path->getMatchingPath(new UriPath(["**", "baz"]))?->equals($path));
+        $this->assertTrue($path->getMatchingPath(new UriPath(["foo", "**", "baz"]))?->equals($path));
+        $this->assertTrue($path->getMatchingPath(new UriPath(["foo", "bar", "**"]))?->equals(new UriPath(["foo", "bar"])));
+        $this->assertTrue($path->getMatchingPath(new UriPath(["**", "foo"]))?->equals(new UriPath(["foo"])));
+
+        $this->assertNull($path->getMatchingPath(new UriPath(["**", "abc"])));
+        $this->assertNull($path->getMatchingPath(new UriPath(["**", "bar", "abc"])));
+        $this->assertNull($path->getMatchingPath(new UriPath(["**", "bar", "baz", "abc"])));
+        $this->assertNull($path->getMatchingPath(new UriPath(["**", "foo", "bar", "baz", "abc"])));
+    }
+
+    public function testUriGetMatchingPathWithParams()
+    {
+        $uri = new UriPath(["foo", "bar", "baz"]);
+        $match = new UriPath([":a", ":b", ":c"]);
+
+        $matchParams = [];
+        $res = $uri->getMatchingPath($match, false, $matchParams);
+        $this->assertNotNull($res);
+        $this->assertEquals([
+            "a" => "foo",
+            "b" => "bar",
+            "c" => "baz"
+        ], $matchParams);
+
+        $match = new UriPath(["**", "bar", ":c"]);
+        $matchParams = [];
+        $res = $uri->getMatchingPath($match, false, $matchParams);
+
+        $this->assertNotNull($res);
+        $this->assertEquals([
+            "c" => "baz"
+        ], $matchParams);
+    }
+
+
+    public function testEquals(): void
+    {
+        $this->assertTrue((new UriPath(["foo", "bar", "baz"]))->equals(new UriPath(["foo", "bar", "baz"])));
+        $this->assertFalse((new UriPath(["foo", "bar", "baz"]))->equals(new UriPath(["foo", "bar"])));
+        $this->assertFalse((new UriPath(["foo", "bar", "baz"]))->equals(new UriPath([])));
+        $this->assertFalse((new UriPath(["foo", "bar", "baz"]))->equals(new UriPath(["foo", "bar", "baz", "abc"])));
     }
 }

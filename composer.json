@@ -5,7 +5,7 @@
   "type": "library",
   "require": {
     "pocketmine/pocketmine-mp": "^5.0.0",
-    "php": "^8.4"
+    "php": "^8.2"
   },
   "require-dev": {
     "laravel/serializable-closure": "v1.3.0",

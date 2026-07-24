@@ -148,63 +148,125 @@ class UriPath extends ThreadSafe implements UriElement
     }
 
     /**
-     * Get if this path starts with the given path
+     * Get if this path matches the given path
      *
      * If the given path contains wildcards, they will be taken into account
-     * @param UriPath $path the path to check
+     * @param UriPath $matchPath the path to check
      * @param bool $strict if the paths should match exactly, if true wildcards will be ignored.
      * @return bool
      */
-    public function startsWith(UriPath $path, bool $strict = false): bool
+    public function matches(UriPath $matchPath, bool $strict = false): bool
     {
-        $pathArray = $path->asArray();
-        $pathSize = $path->getLength();
+        return $this->getMatchingPath($matchPath, $strict) !== null;
+    }
 
-        if ($pathSize === 0) return true;
-        else if ($this->getLength() < $pathSize) return false;
+    /**
+     * Get if this path matches the given path
+     *
+     * If the given path contains wildcards, they will be taken into account
+     * @param UriPath $matchPath the path to check
+     * @param bool $strict if the paths should match exactly, if true wildcards will be ignored.
+     * @param array<string,string> $params if strict is false, sets url parameters from the matchpath to
+     *                                     their coresponding values in the base path.
+     * @return UriPath|null
+     */
+    public function getMatchingPath(UriPath $matchPath, bool $strict = false, ?array &$params = null): ?UriPath
+    {
+        $matchPattern = $matchPath->asArray();
+        $pathLength = $this->getLength();
+        $matchLength = $matchPath->getLength();
 
-        $pathIdx = 0;
+        // path length can never be shorter then the path it should match
+        if ($pathLength < $matchLength) return null;
+
+        $matchingPath = [];
+        $matchingParams = [];
+
+        $patternIdx = 0;
+        // iterate through thte entire path
         foreach ($this->path as $value) {
-            if ($pathIdx >= $pathSize) return true;
+            // end of pattern, matching path is valid
+            if ($patternIdx >= $matchLength) break;
 
-            $toMatch = $pathArray[$pathIdx++];
+            // get next value to be matched and increment the pattern index (after assignment)
+            $toMatch = $matchPattern[$patternIdx++];
+            $isFinalMatch = $patternIdx >= $matchLength;
 
+            // ** is a unique case as we need to recursively check the path until a new value arises
             if (!$strict && str_starts_with($toMatch, "**")) {
                 // final match (since pathIdx is already incremented at $toMatch, we dont need a +1)
-                if ($pathIdx >= count($pathArray)) return true;
+                if ($isFinalMatch) break;
 
                 // check if current value matches the next one
                 // also take care of any other ** parts in the path, since that would be possible
-                $nextMatchIdx = $pathIdx;
+                $nextMatchIdx = $patternIdx;
                 do {
-                    $nextMatch = $pathArray[$nextMatchIdx++];
-                } while (str_starts_with($nextMatch, "**") && $nextMatchIdx < count($pathArray));
+                    $nextMatch = $matchPattern[$nextMatchIdx++];
+                } while (str_starts_with($nextMatch, "**") && $nextMatchIdx < $matchLength);
+
+                $nextMatchIdx--; // decrement 1, to remove the last increment of the while loop
 
                 // we got multiple ** parts until the end of the path
-                if (str_starts_with($nextMatch, "**")) return true;
-
-                $nextIdx = $pathIdx;
-                do {
-                    /**
-                     * @var string $nextValue
-                     * @phpstan-assert string $nextValue
-                     */
-                    $nextValue = $this->path[$nextIdx++];
-                } while ($nextIdx < $this->getLength() && !$this->pathPartMatches($nextMatch, $nextValue, false));
-
-                if ($nextIdx >= $this->getLength()) {
-                    return $this->pathPartMatches($nextMatch, $nextValue, false);
+                if (str_starts_with($nextMatch, "**")) {
+                    // it was a final match
+                    break;
                 }
 
+                # -1 to account for "current" toMatch value
+                $nextIdx = $patternIdx - 1;
+                while ($nextIdx < $pathLength) {
+                    $nextValue = $this->path[$nextIdx];
+
+                    if ($this->pathPartMatches($nextMatch, $nextValue, false)) {
+                        break;
+                    }
+
+                    $matchingPath[] = $nextValue;
+                    $nextIdx++;
+                }
+
+                if ($nextIdx >= $pathLength) {
+                    return null;
+                }
+
+                // get the matching path between our remaining path and matching path
                 $subPath = new UriPath(array_slice($this->asArray(), $nextIdx));
-                $matchPath = new UriPath(array_slice($pathArray, $nextMatchIdx));
-                return $subPath->startsWith($matchPath, $strict);
+                $matchSubPath = new UriPath(array_slice($matchPattern, $nextMatchIdx));
+
+                $matchingSubPath = $subPath->getMatchingPath($matchSubPath, $strict, $matchingParams);
+                if ($matchingSubPath === null) return null;
+
+                // append the matching subpath to the already existing matching path
+                $matchingPath = array_merge($matchingPath, $matchingSubPath->asArray());
+                break;
             }
 
-            if (!$this->pathPartMatches($toMatch, $value, $strict)) return false;
+            if (!$this->pathPartMatches($toMatch, $value, $strict)) {
+                return null;
+            }
+
+            if (!$strict) {
+                // if match ends on a *, do not include the value in the matching path
+                if ($isFinalMatch && $toMatch === "*") break;
+
+                // store path parameters when encountered
+                if (str_starts_with($toMatch, ":")) {
+                    $matchingParams[substr($toMatch, 1)] = $value;
+                }
+            }
+
+            $matchingPath[] = $value;
         }
 
-        return true;
+        // only on success, add the matched parameters to the provided params array
+        if (!$strict && $params !== null) {
+            foreach ($matchingParams as $key => $value) {
+                $params[$key] = $value;
+            }
+        }
+
+        // return the matching path
+        return new UriPath($matchingPath);
     }
 
     /**
@@ -219,5 +281,15 @@ class UriPath extends ThreadSafe implements UriElement
         if ($strict) return $toMatch === $value;
 
         return $toMatch === $value || str_starts_with($toMatch, "*") || str_starts_with($toMatch, ":");
+    }
+
+    /**
+     * Get if this UriPath is the same as the given UriPath
+     * @param UriPath $path
+     * @return bool
+     */
+    public function equals(UriPath $path): bool
+    {
+        return $this->asArray() === $path->asArray();
     }
 }

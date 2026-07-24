@@ -204,7 +204,7 @@ class HttpRequest implements HttpMessage
     /**
      * Set the route that will handle this request
      * @param string $routePath
-     * @deprecated TODO Move to other class
+     * @deprecated Use `RequestRouteInfo::updateRouteInfo()` instead
      */
     public function setRoutePath(string $routePath): void
     {
@@ -233,7 +233,7 @@ class HttpRequest implements HttpMessage
      * If the current route path ends with *, this will be replaced.
      * @param string $routePath
      * @return void
-     * @deprecated TODO Move to other class
+     * @deprecated Use `UriPath::appendRoute()` instead
      */
     public function appendRoutePath(string $routePath): void
     {
