@@ -246,7 +246,7 @@ class HttpRequest implements HttpMessage
     /**
      * Get the uri path without the route path
      * @return string
-     * @deprecated TODO Move to other class
+     * @deprecated Moved to UriPath
      */
     public function getSubPath(): string
     {
@@ -282,7 +282,7 @@ class HttpRequest implements HttpMessage
      *
      * Path params are defined by :param in a Route path. (e.g. /my/path/:param, where :param is the path parameter
      * @return array<string, string>
-     * @deprecated TODO Move to other class
+     * @deprecated Moved to HttpRequestInfo
      */
     public function getPathParams(): array
     {
@@ -293,7 +293,7 @@ class HttpRequest implements HttpMessage
      * Get a path param by its name
      * @param string $name the name of the path param
      * @return string|null null when the param does not exist.
-     * @deprecated TODO Move to other class
+     * @deprecated HttpRequestInfo
      */
     public function getPathParam(string $name): ?string
     {
@@ -313,7 +313,7 @@ class HttpRequest implements HttpMessage
     /**
      * Get if the message body is completed
      * @return bool
-     * @deprecated TODO why does this exist?
+     * @deprecated removed
      */
     public function isCompleted(): bool
     {

@@ -27,7 +27,6 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\http\message\response;
 
-use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
@@ -37,40 +36,75 @@ use Hebbinkpro\WebServer\http\status\HttpStatusRegistry;
  */
 final class HttpResponseFactory
 {
-    public static function notFound(HttpClientInfo $client): HttpResponse
-    {
-        return self::statusResponse($client, HttpStatusCodes::NOT_FOUND);
-    }
-
     /**
      * Generate a generic status response
-     * @param HttpClientInfo $client
      * @param HttpStatus|int $status
-     * @return HttpResponse
+     * @param bool $headOnly
+     * @return HttpResponseBuilder
      */
-    public static function statusResponse(HttpClientInfo $client, HttpStatus|int $status): HttpResponse
+    public static function statusResponse(HttpStatus|int $status, bool $headOnly = false): HttpResponseBuilder
     {
         $status = HttpStatusRegistry::getInstance()->parseOrDefault($status);
 
-        return (new HttpResponseBuilder())
+        return (new HttpResponseBuilder($headOnly))
             ->setStatus($status)
-            ->text($status->getMessage())
-            ->build($client);
+            ->text($status->getMessage());
     }
 
-    public static function internalServerError(HttpClientInfo $client): HttpResponse
+    /**
+     * Create a "200 OK" response
+     * @return HttpResponseBuilder
+     */
+    public static function ok(): HttpResponseBuilder
     {
-        return self::statusResponse($client, HttpStatusCodes::INTERNAL_SERVER_ERROR);
+        return self::statusResponse(HttpStatusCodes::OK);
     }
 
-    public static function badRequest(HttpClientInfo $client): HttpResponse
+    /**
+     * Create a "204 No Content" response
+     *
+     * This sets `HttpResponseBuilder::$headOnly` to true
+     * @return HttpResponseBuilder
+     */
+    public static function noContent(): HttpResponseBuilder
     {
-        return self::statusResponse($client, HttpStatusCodes::BAD_REQUEST);
+        return self::statusResponse(HttpStatusCodes::NO_CONTENT, true);
     }
 
-    public static function notImplemented(HttpClientInfo $client): HttpResponse
+    /**
+     * Create a "400 Bad Request" response
+     * @return HttpResponseBuilder
+     */
+    public static function badRequest(): HttpResponseBuilder
     {
-        return self::statusResponse($client, HttpStatusCodes::NOT_IMPLEMENTED);
+        return self::statusResponse(HttpStatusCodes::BAD_REQUEST);
+    }
+
+    /**
+     * Create a "404 Not Found" response
+     * @return HttpResponseBuilder
+     */
+    public static function notFound(): HttpResponseBuilder
+    {
+        return self::statusResponse(HttpStatusCodes::NOT_FOUND);
+    }
+
+    /**
+     * Create a "500 Internal Server Error" response
+     * @return HttpResponseBuilder
+     */
+    public static function internalServerError(): HttpResponseBuilder
+    {
+        return self::statusResponse(HttpStatusCodes::INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * Create a "501 Not Implemented" response
+     * @return HttpResponseBuilder
+     */
+    public static function notImplemented(): HttpResponseBuilder
+    {
+        return self::statusResponse(HttpStatusCodes::NOT_IMPLEMENTED);
     }
 
 

@@ -83,7 +83,7 @@ class Route extends ThreadSafe
     public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
     {
         if ($this->action === null) {
-            return HttpResponseFactory::notImplemented($client);
+            return HttpResponseFactory::notImplemented()->build($client);
         }
 
         /** @var SerializableClosure|null $action */
@@ -91,7 +91,7 @@ class Route extends ThreadSafe
 
         // no action to handle the request
         if ($action === false || $action === null) {
-            return HttpResponseFactory::notImplemented($client);
+            return HttpResponseFactory::notImplemented()->build($client);
         }
 
         // response to be sent back to the client, and make sure HEAD requests send a response without content
@@ -106,7 +106,7 @@ class Route extends ThreadSafe
             call_user_func($action->getClosure(), $req, $res, ...$params);
         } catch (Exception $e) {
             HttpServer::getInstance()->getLogger()->error("Error while handling request: " . $e->getMessage());
-            return HttpResponseFactory::internalServerError($client);
+            return HttpResponseFactory::internalServerError()->build($client);
         }
 
 

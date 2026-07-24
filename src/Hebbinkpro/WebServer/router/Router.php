@@ -74,7 +74,7 @@ class Router extends ThreadSafe implements RouterInterface
         // no route was found
         if ($routePath === null) {
             // send a 404 not found message
-            return HttpResponseFactory::notFound($client);
+            return HttpResponseFactory::notFound()->build($client);
         }
 
         /** @var Route|ThreadSafeArray<string, Route> $routeEntry */
@@ -88,7 +88,7 @@ class Router extends ThreadSafe implements RouterInterface
 
         if ($route === null) {
             // send a 404 not found message
-            return HttpResponseFactory::notFound($client);
+            return HttpResponseFactory::notFound()->build($client);
         }
 
         // add the route path in the request, used for path params and sub paths
