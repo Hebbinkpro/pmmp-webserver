@@ -71,11 +71,38 @@ class UriPath extends ThreadSafe implements UriElement
     /**
      * Append a new path to the existing path
      * @param UriPath $path the path to add
-     * @return void
+     * @return UriPath the resulting path
      */
-    public function appendPath(UriPath $path): void
+    public function appendPath(UriPath $path): UriPath
     {
-        $this->path->merge($path->asArray());
+        $newPath = array_merge($this->asArray(), $path->asArray());
+        return new self($newPath);
+    }
+
+    /**
+     * Get a subpath by removing the parent path from the current path
+     * @param UriPath $parent the parent path to remove
+     * @param array|null $params if not null, parameters in the parent path will be set
+     * @return UriPath|null the resulting subpath, or null when the current path does not start with the parent
+     */
+    public function getSubPath(UriPath $parent, ?array &$params = null): ?UriPath
+    {
+        // first check if this path starts with the given path
+        if (!$this->startsWith($parent)) return null;
+
+        $path = $this->asArray();
+        $parentPath = $parent->asArray();
+
+        if ($params !== null) {
+            for ($i = 0; $i < count($path); $i++) {
+                if (str_starts_with($parentPath[$i], ":")) {
+                    $params[substr($parentPath[$i], 1)] = $path[$i];
+                }
+            }
+        }
+
+        $subPath = array_slice($path, $parent->getLength());
+        return new self($subPath);
     }
 
     /**
@@ -180,6 +207,13 @@ class UriPath extends ThreadSafe implements UriElement
         return true;
     }
 
+    /**
+     * Check if a part of a path matches a value
+     * @param string $toMatch the part of the path
+     * @param string $value the value to match
+     * @param bool $strict wether the path part should match strictly. If false, wildcards are allowed matches.
+     * @return bool
+     */
     protected function pathPartMatches(string $toMatch, string $value, bool $strict): bool
     {
         if ($strict) return $toMatch === $value;

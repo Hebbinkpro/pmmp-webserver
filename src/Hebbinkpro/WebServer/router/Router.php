@@ -105,7 +105,9 @@ class Router extends ThreadSafe implements RouterInterface
      */
     public function getRoutePath(HttpRequest $req): ?string
     {
-        $reqPath = $req->getRouteInfo()->getSubPath();
+        $reqPath = $req->getRouteInfo()->getSubPath()?->toString();
+        if ($reqPath === null) return null;
+
         foreach ($this->routes as $routePath => $routes) {
             if (($routes instanceof Route || isset($routes[$req->getMethod()->name]))
                 && $this->matchesRoutePath($reqPath, $routePath)) {

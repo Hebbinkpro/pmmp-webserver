@@ -38,11 +38,13 @@ class RequestRouteInfo
     private ?Route $route;
     /** @var array<string, string> */
     private array $pathParams;
+    private ?UriPath $subPath;
 
     public function __construct()
     {
         $this->route = null;
         $this->pathParams = [];
+        $this->subPath = null;
     }
 
     /**
@@ -51,8 +53,9 @@ class RequestRouteInfo
      */
     public function updateRouteInfo(Route $route, UriPath $requestPath): void
     {
-        // TODO implement path params
         $this->route = $route;
+        $this->pathParams = [];
+        $this->subPath = $requestPath->getSubPath($route->getPath(), $this->pathParams);
     }
 
     /**
@@ -73,10 +76,15 @@ class RequestRouteInfo
         return $this->pathParams[$name] ?? null;
     }
 
-    public function getSubPath(): string
+    /**
+     * Get the subpath of the request
+     *
+     * A subpath is the remaining part of the path, after the route path has been removed from the request path
+     * @return UriPath|null
+     */
+    public function getSubPath(): ?UriPath
     {
-        // TODO: Implement getSubPath() method.
-        return "";
+        return $this->subPath;
     }
 
 }
