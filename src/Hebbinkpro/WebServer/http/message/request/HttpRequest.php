@@ -34,7 +34,7 @@ use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 
-readonly class HttpRequest implements Request
+readonly class HttpRequest implements HttpRequestMessage
 {
     private HttpClientInfo $client;
     private HttpMethod $method;
@@ -82,7 +82,7 @@ readonly class HttpRequest implements Request
     /**
      * @return HttpVersion
      */
-    public function getHttpVersion(): HttpVersion
+    public function getVersion(): HttpVersion
     {
         return $this->httpVersion;
     }

@@ -30,11 +30,10 @@ namespace Hebbinkpro\WebServer\http\message\response;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeader;
 use Hebbinkpro\WebServer\http\message\HttpBody;
-use Hebbinkpro\WebServer\http\message\HttpStreamMessage;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
 
-readonly class HttpResponse implements HttpStreamMessage
+readonly class HttpResponse implements HttpResponseMessage
 {
     private HttpClientInfo $client;
     private HttpStatus $status;
@@ -83,7 +82,7 @@ readonly class HttpResponse implements HttpStreamMessage
     /**
      * @return HttpHeader
      */
-    public function getHeaders(): HttpHeader
+    public function getHeader(): HttpHeader
     {
         return $this->headers;
     }

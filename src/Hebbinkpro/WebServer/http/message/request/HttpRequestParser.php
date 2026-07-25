@@ -209,7 +209,7 @@ class HttpRequestParser
         [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);
 
         try {
-            $this->builder->setHttpVersion(HttpVersion::parse($versionStr));
+            $this->builder->setVersion(HttpVersion::parse($versionStr));
         } catch (HttpException $e) {
             $this->setInvalidProblem($e->getHttpError());
         }
@@ -419,5 +419,14 @@ class HttpRequestParser
     public function isInvalid(): bool
     {
         return $this->state === HttpRequestParserState::INVALID;
+    }
+
+    /**
+     * Get the request builder
+     * @return HttpRequestBuilder
+     */
+    public function getRequestBuilder(): HttpRequestBuilder
+    {
+        return $this->builder;
     }
 }

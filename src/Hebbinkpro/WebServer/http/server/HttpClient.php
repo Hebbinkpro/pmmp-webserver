@@ -224,8 +224,8 @@ class HttpClient extends SocketClient
         $requestLine = $res->getVersion()->toString() . " " . $res->getStatus()->toString();
         $this->write($requestLine . "\r\n");
 
-        $headers = $res->getHeaders()->toString();
-        $this->write($headers . "\r\n");
+        $header = $res->getHeader()->toString();
+        $this->write($header . "\r\n");
 
         if (($body = $res->getBody()) !== null) {
             // ensure the entire body can be read

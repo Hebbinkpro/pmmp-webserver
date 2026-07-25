@@ -28,30 +28,29 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\http\message;
 
 use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\HttpHeader;
+use Hebbinkpro\WebServer\http\message\header\Header;
 
 /**
- * Interface for all methods required inside an HTTP Message
+ * Interface for an HTTP message
  */
 interface HttpMessage
 {
     /**
-     * Get the HTTP version of the message
+     * Get the HTTP version
      * @return HttpVersion
      */
     public function getVersion(): HttpVersion;
 
     /**
-     * Get the HTTP message headers
-     * @return HttpHeader
+     * Get the message header
+     * @return Header
      */
-    public function getHeaders(): HttpHeader;
+    public function getHeader(): Header;
 
     /**
-     * Get the HTTP message body
-     * @return string
-     * @deprecated TODO replace by some streaming principle
+     * Get the HTTP body
+     * @return HttpBody|null
      */
-    public function getBody(): string;
+    public function getBody(): ?HttpBody;
 
 }

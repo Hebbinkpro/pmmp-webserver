@@ -44,7 +44,7 @@ use Hebbinkpro\WebServer\utils\StreamUtils;
 use JsonException;
 use LogicException;
 
-class HttpResponseBuilder implements Response
+class HttpResponseBuilder implements HttpResponseMessage
 {
     private HttpStatus $status;
     private HttpHeaderBuilder $headers;

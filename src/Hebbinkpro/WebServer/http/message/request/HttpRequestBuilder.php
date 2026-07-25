@@ -38,7 +38,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 use RuntimeException;
 
-class HttpRequestBuilder implements Request
+class HttpRequestBuilder implements HttpRequestMessage
 {
     private HttpMethod $method;
     private HttpUrl $target;
@@ -90,7 +90,7 @@ class HttpRequestBuilder implements Request
     /**
      * @return HttpVersion
      */
-    public function getHttpVersion(): HttpVersion
+    public function getVersion(): HttpVersion
     {
         return $this->httpVersion;
     }
@@ -100,7 +100,7 @@ class HttpRequestBuilder implements Request
      * @return HttpRequestBuilder
      * @throws HttpProblemException if the HTTP version is not supported
      */
-    public function setHttpVersion(HttpVersion $httpVersion): self
+    public function setVersion(HttpVersion $httpVersion): self
     {
         $this->httpVersion = $httpVersion;
 

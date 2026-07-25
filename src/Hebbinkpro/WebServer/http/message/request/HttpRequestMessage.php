@@ -25,34 +25,25 @@
 
 declare(strict_types=1);
 
-namespace Hebbinkpro\WebServer\http\message\response;
+namespace Hebbinkpro\WebServer\http\message\request;
 
-use Hebbinkpro\WebServer\http\HttpVersion;
-use Hebbinkpro\WebServer\http\message\header\Header;
-use Hebbinkpro\WebServer\http\message\HttpBody;
-use Hebbinkpro\WebServer\http\status\HttpStatus;
+use Hebbinkpro\WebServer\http\HttpMethod;
+use Hebbinkpro\WebServer\http\message\HttpMessage;
+use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 
-interface Response
+interface HttpRequestMessage extends HttpMessage
 {
 
     /**
-     * @return HttpStatus
+     * Get the request method
+     * @return HttpMethod
      */
-    public function getStatus(): HttpStatus;
+    public function getMethod(): HttpMethod;
 
     /**
-     * @return HttpVersion
+     * Get the target URL
+     * @return HttpUrl
      */
-    public function getVersion(): HttpVersion;
-
-    /**
-     * @return Header
-     */
-    public function getHeader(): Header;
-
-    /**
-     * @return HttpBody|null
-     */
-    public function getBody(): ?HttpBody;
+    public function getTarget(): HttpUrl;
 
 }
