@@ -1,22 +1,26 @@
 <?php
 /*
+ * MIT License
  *
- *  __          __  _     _____
- *  \ \        / / | |   / ____|
- *   \ \  /\  / /__| |__| (___   ___ _ ____   _____ _ __
- *    \ \/  \/ / _ \ '_ \\___ \ / _ \ '__\ \ / / _ \ '__|
- *     \  /\  /  __/ |_) |___) |  __/ |   \ V /  __/ |
- *      \/  \/ \___|_.__/_____/ \___|_|    \_/ \___|_|
+ * Copyright (c) 2026 Hebbinkpro
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * @author Hebbinkpro
- * @link https://github.com/Hebbinkpro/pmmp-webserver
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 declare(strict_types=1);
@@ -41,17 +45,6 @@ class UriPath extends ThreadSafe implements UriElement
     public function __construct(array $path = [])
     {
         $this->path = ThreadSafeArray::fromArray($path);
-    }
-
-    /**
-     * Parse a route path from the given string
-     * @param string $path The route path
-     * @return UriPath
-     * @deprecated since v1.0.0 - Use UriPath::parse() instead
-     */
-    public static function fromString(string $path): UriPath
-    {
-        return self::parse($path);
     }
 
     public static function parse(string $value): self
@@ -191,48 +184,11 @@ class UriPath extends ThreadSafe implements UriElement
                 // final match (since pathIdx is already incremented at $toMatch, we dont need a +1)
                 if ($isFinalMatch) break;
 
-                // check if current value matches the next one
-                // also take care of any other ** parts in the path, since that would be possible
-                $nextMatchIdx = $patternIdx;
-                do {
-                    $nextMatch = $matchPattern[$nextMatchIdx++];
-                } while (str_starts_with($nextMatch, "**") && $nextMatchIdx < $matchLength);
-
-                $nextMatchIdx--; // decrement 1, to remove the last increment of the while loop
-
-                // we got multiple ** parts until the end of the path
-                if (str_starts_with($nextMatch, "**")) {
-                    // it was a final match
-                    break;
-                }
-
-                # -1 to account for "current" toMatch value
-                $nextIdx = $patternIdx - 1;
-                while ($nextIdx < $pathLength) {
-	                /** @var string $nextValue */
-                    $nextValue = $this->path[$nextIdx];
-
-                    if ($this->pathPartMatches($nextMatch, $nextValue, false)) {
-                        break;
-                    }
-
-                    $matchingPath[] = $nextValue;
-                    $nextIdx++;
-                }
-
-                if ($nextIdx >= $pathLength) {
-                    return null;
-                }
-
-                // get the matching path between our remaining path and matching path
-                $subPath = new UriPath(array_slice($this->asArray(), $nextIdx));
-                $matchSubPath = new UriPath(array_slice($matchPattern, $nextMatchIdx));
-
-                $matchingSubPath = $subPath->getMatchingPath($matchSubPath, $strict, $matchingParams);
-                if ($matchingSubPath === null) return null;
+	            $matchingFolderPath = $this->getMatchingFolderWildcardPath($matchPattern, $patternIdx, $strict, $matchingParams);
+	            if ($matchingFolderPath === null) return null;
 
                 // append the matching subpath to the already existing matching path
-                $matchingPath = array_merge($matchingPath, $matchingSubPath->asArray());
+	            $matchingPath = array_merge($matchingPath, $matchingFolderPath);
                 break;
             }
 
@@ -264,6 +220,62 @@ class UriPath extends ThreadSafe implements UriElement
         return new UriPath($matchingPath);
     }
 
+	/**
+	 * Get a path matching the folder wildcard
+	 * @param string[] $matchPattern the pattern that needs to be matched
+	 * @param int $patternIdx the index in the pattern at which the wildcard occurs
+	 * @param bool $strict if a strict match should be applied
+	 * @param array<string,string> $matchingParams array to store encountered path params
+	 * @return string[]|null the folder wildcard path as array, or null if the path did not match
+	 */
+	private function getMatchingFolderWildcardPath(array $matchPattern, int $patternIdx, bool $strict, array &$matchingParams): ?array
+	{
+		$matchLength = count($matchPattern);
+		$pathLength = $this->getLength();
+
+		// check if current value matches the next one
+		// also take care of any other ** parts in the path, since that would be possible
+		$nextMatchIdx = $patternIdx;
+		do {
+			$nextMatch = $matchPattern[$nextMatchIdx++];
+		} while (str_starts_with($nextMatch, "**") && $nextMatchIdx < $matchLength);
+
+		$nextMatchIdx--; // decrement 1, to remove the last increment of the while loop
+
+		// we got multiple ** parts until the end of the path
+		if (str_starts_with($nextMatch, "**")) {
+			// it was a final match
+			return [];
+		}
+
+		$matchingPath = [];
+		$nextIdx = $patternIdx - 1; # -1 to account for "current" toMatch value
+		while ($nextIdx < $pathLength) {
+			/** @var string $nextValue */
+			$nextValue = $this->path[$nextIdx];
+
+			if ($this->pathPartMatches($nextMatch, $nextValue, false)) {
+				break;
+			}
+
+			$matchingPath[] = $nextValue;
+			$nextIdx++;
+		}
+
+		if ($nextIdx >= $pathLength) {
+			return null;
+		}
+
+		// get the matching path between our remaining path and matching path
+		$subPath = new UriPath(array_slice($this->asArray(), $nextIdx));
+		$matchSubPath = new UriPath(array_slice($matchPattern, $nextMatchIdx));
+
+		$matchingSubPath = $subPath->getMatchingPath($matchSubPath, $strict, $matchingParams);
+		if ($matchingSubPath === null) return null;
+
+		return array_merge($matchingPath, $matchingSubPath->asArray());
+	}
+
     /**
      * Check if a part of a path matches a value
      * @param string $toMatch the part of the path
@@ -271,11 +283,13 @@ class UriPath extends ThreadSafe implements UriElement
      * @param bool $strict wether the path part should match strictly. If false, wildcards are allowed matches.
      * @return bool
      */
-    protected function pathPartMatches(string $toMatch, string $value, bool $strict): bool
+	private function pathPartMatches(string $toMatch, string $value, bool $strict): bool
     {
         if ($strict) return $toMatch === $value;
 
-        return $toMatch === $value || str_starts_with($toMatch, "*") || str_starts_with($toMatch, ":");
+	    return $toMatch === $value
+		    || ($firstChar = substr($toMatch, 0, 1)) === "*"
+		    || $firstChar === ":";
     }
 
     /**
