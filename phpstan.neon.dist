@@ -6,8 +6,6 @@ parameters:
 	    - vendor
 	excludePaths:
 	    - src/Hebbinkpro/WebServer/libs/*
-	    - src/Hebbinkpro/WebServer/http/message/HttpRequest.php
-	    - src/Hebbinkpro/WebServer/http/message/HttpResponse.php
 	treatPhpDocTypesAsCertain: false
 	editorUrl: 'file://%%file%%:%%line%%'
 	editorUrlTitle: '%%file%%:%%line%%'

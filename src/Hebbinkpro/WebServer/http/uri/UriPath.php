@@ -1,26 +1,22 @@
 <?php
 /*
- * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ *  __          __  _     _____
+ *  \ \        / / | |   / ____|
+ *   \ \  /\  / /__| |__| (___   ___ _ ____   _____ _ __
+ *    \ \/  \/ / _ \ '_ \\___ \ / _ \ '__\ \ / / _ \ '__|
+ *     \  /\  /  __/ |_) |___) |  __/ |   \ V /  __/ |
+ *      \/  \/ \___|_.__/_____/ \___|_|    \_/ \___|_|
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * @author Hebbinkpro
+ * @link https://github.com/Hebbinkpro/pmmp-webserver
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ *
  */
 
 declare(strict_types=1);
@@ -90,7 +86,7 @@ class UriPath extends ThreadSafe implements UriElement
      * @returns UriPath|null
      * @see getMatchingPath()
      */
-    public function getSubPath(UriPath $matchPath, bool $strict = false, ?array &$params = null): ?UriPath
+	public function getSubPath(UriPath $matchPath, bool $strict = false, array &$params = []): ?UriPath
     {
         // get the base path
         $matchingPath = $this->getMatchingPath($matchPath, $strict, $params);
@@ -166,7 +162,7 @@ class UriPath extends ThreadSafe implements UriElement
      *                                     their coresponding values in the base path.
      * @return UriPath|null
      */
-    public function getMatchingPath(UriPath $matchPath, bool $strict = false, ?array &$params = null): ?UriPath
+	public function getMatchingPath(UriPath $matchPath, bool $strict = false, array &$params = []): ?UriPath
     {
         $matchPattern = $matchPath->asArray();
         $pathLength = $this->getLength();
@@ -175,7 +171,9 @@ class UriPath extends ThreadSafe implements UriElement
         // path length can never be shorter then the path it should match
         if ($pathLength < $matchLength) return null;
 
+	    /** @var array<string,string> $matchingPath */
         $matchingPath = [];
+	    /** @var array<string,string> $matchingParams */
         $matchingParams = [];
 
         $patternIdx = 0;
@@ -211,6 +209,7 @@ class UriPath extends ThreadSafe implements UriElement
                 # -1 to account for "current" toMatch value
                 $nextIdx = $patternIdx - 1;
                 while ($nextIdx < $pathLength) {
+	                /** @var string $nextValue */
                     $nextValue = $this->path[$nextIdx];
 
                     if ($this->pathPartMatches($nextMatch, $nextValue, false)) {
@@ -255,7 +254,7 @@ class UriPath extends ThreadSafe implements UriElement
         }
 
         // only on success, add the matched parameters to the provided params array
-        if (!$strict && $params !== null) {
+	    if (!$strict) {
             foreach ($matchingParams as $key => $value) {
                 $params[$key] = $value;
             }
