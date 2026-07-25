@@ -27,21 +27,88 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\http\message\header;
 
+use Hebbinkpro\WebServer\exception\HttpHeaderException;
+use Hebbinkpro\WebServer\exception\HttpProblemException;
+use Hebbinkpro\WebServer\http\HttpParsingRules;
+use Hebbinkpro\WebServer\utils\RegexUtils;
+
 /**
  * Class for managing HTTP headers inside an HTTP request or response message
  */
 readonly class HttpHeader implements Header
 {
+	/**
+	 * Normalize header field names.
+	 *
+	 * Normalization is done by removing illegal field name characters such that the returned field name
+	 * only contains valid characters where its words start with an uppercase with lowercase continuation.
+	 * Examples:
+	 *  - "Content-Length" -> "Content-Length"
+	 *  - "content-length" -> "Content-Lenght" | Capitalize the first letter of a word
+	 *  - "cOnTeNt-lEnGtH" -> "Content-Lenght" | Capitalize the first and lower the other letters of a word
+	 *  - "  Content-Length  " -> "Content-Length" | Remove whitespaces from the start end end
+	 *  - "content length" -> "Content-Length" | Replaces whitespaces within the name with a "-"
+	 *  - "@Content-Length@" -> "Content-Length"  | Removes the illegal character "@" from start and end
+	 *  - "Content@Length" -> "Content-Length" | Replaces the illegal character with a "-"
+	 *  - "Content@~@Length" -> "Content-Length" | Replace a sequence of illegal characters with a single "-"
+	 *
+	 * Is this method unnecesarraly complex? Yes it is, but it returns nice header field names.
+	 * @param string $fieldName the field name to normalize
+	 * @return string the normalized field name
+	 * @see HttpParsingRules::TCHAR for the allowed field name characters
+	 */
     public static function normalizeFieldName(string $fieldName): string
     {
-        return strtolower(trim($fieldName));
+	    $normalizedName = trim($fieldName);
+
+	    if (!RegexUtils::has_preg_match("/^" . HttpParsingRules::TOKEN . "$/", $normalizedName)) {
+
+		    $illegalChars = "[^" . HttpParsingRules::TCHAR . "]";
+
+		    // Strip illegal characters from the beginning/end.
+		    $normalizedName = @preg_replace(
+			    "/^$illegalChars+|$illegalChars+$/",
+			    '',
+			    $normalizedName
+		    );
+
+		    if (!is_string($normalizedName)) {
+			    throw HttpProblemException::internalServerError(detail: "Could not parse header field name: '$normalizedName'");
+		    }
+
+		    // Replace illegal characters in the middle.
+		    $normalizedName = preg_replace(
+			    "/$illegalChars+/",
+			    '-',
+			    $normalizedName
+		    );
+
+		    if (!is_string($normalizedName)) {
+			    throw HttpProblemException::internalServerError(detail: "Could not parse header field name: '$normalizedName'");
+		    }
+	    }
+
+	    // format the words like headers
+	    return ucwords(strtolower($normalizedName), '-');
     }
+
+	/**
+	 * @var array<string, string[]>
+	 */
+	private array $headerFields;
 
     /**
      * @param array<string, string[]> $headerFields
      */
-    public function __construct(private array $headerFields)
+	public function __construct(array $headerFields)
     {
+	    // ensure that all header fields are normalized
+	    $normalizedHeaderFields = [];
+	    foreach ($headerFields as $name => $value) {
+		    $normalizedHeaderFields[self::normalizeFieldName($name)] = $value;
+	    }
+
+	    $this->headerFields = $normalizedHeaderFields;
     }
 
     /**
@@ -89,7 +156,17 @@ readonly class HttpHeader implements Header
     }
 
     /**
-     * Encode the request headers
+     * Encode the HTTP header.
+     *
+     * Each field line will end with a new-line (`\r\n`) character
+     *
+     * Example:
+     * ```
+     * """
+     * Content-Length: 123\r\n
+     * Content-Type: text/html\r\n
+     * """
+     * ```
      * @return string
      */
     public function toString(): string
@@ -98,7 +175,7 @@ readonly class HttpHeader implements Header
         foreach ($this->headerFields as $name => $values) {
             // apply all values in-order
             foreach ($values as $value) {
-                $res .= $name . ": " . $value . "\r\n";
+	            $res .= self::normalizeFieldName($name) . ": " . $value . "\r\n";
             }
         }
 

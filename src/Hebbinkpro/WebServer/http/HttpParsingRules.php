@@ -36,14 +36,14 @@ final class HttpParsingRules
     /**
      * A-Z / a-z
      */
-    public const ALPHA = "[A-Za-z]";
+	public const ALPHA = "A-Za-z";
 
-    public const BIT = "[01]";
+	public const BIT = "01";
 
     /**
      * any 7-bit US-ASCII character excluding NUL
      */
-    public const CHAR = "[\x01-\x7F]";
+	public const CHAR = "\x01-\x7F";
 
 
     /**
@@ -64,14 +64,14 @@ final class HttpParsingRules
     /**
      * 0-9
      */
-    public const DIGIT = "[0-9]";
+	public const DIGIT = "0-9";
 
     /**
      * " (Double Quote)
      */
     public const DQUOTE = "\"";
 
-    public const HEXDIG = "[0-9A-Fa-f]";
+	public const HEXDIG = "0-9A-Fa-f";
 
     /**
      * horizontal tab
@@ -91,7 +91,7 @@ final class HttpParsingRules
     /**
      * 8 bits of data
      */
-    public const OCTET = "[\x00-\xFF]";
+	public const OCTET = "\x00-\xFF";
 
     /**
      * space
@@ -101,12 +101,12 @@ final class HttpParsingRules
     /**
      * visible (printing) characters
      */
-    public const VCHAR = "[\x21-\x7E]";
+	public const VCHAR = "\x21-\x7E";
 
     /**
      * white space
      */
-    public const WSP = "[ \t]";
+	public const WSP = " \t";
 
     /**
      * "bad" whitespace
@@ -129,15 +129,15 @@ final class HttpParsingRules
      */
     public const RWS = "[ \t]+";
 
-    public const TCHAR = "[!#$%&'*+\-.^_`|~0-9A-Za-z]";
+	public const TCHAR = "!#$%&'*+\-.^_`|~0-9A-Za-z";
 
-    public const TOKEN = self::TCHAR . "+";
+	public const TOKEN = "[" . self::TCHAR . "]+";
 
-    public const OBS_TEXT = "[\x80-\xFF]";
+	public const OBS_TEXT = "\x80-\xFF";
 
-    public const HTTP_VERSION = "HTTP\/" . self::DIGIT . "." . self::DIGIT;
+	public const HTTP_VERSION = "HTTP\/[0-9].[0-9]";
 
-    public const FIELD_VCHAR = "(" . self::VCHAR . "|" . self::OBS_TEXT . ")";
+	public const FIELD_VCHAR = "([" . self::VCHAR . "]|[" . self::OBS_TEXT . "])";
     public const FIELD_CONTENT = self::FIELD_VCHAR . "((" . self::SP . "|" . self::HTAB . "|" . self::FIELD_VCHAR . ")+" . self::FIELD_VCHAR . ")?";
 
     public const FIELD_LINE = self::TOKEN . ":" . self::OWS . "(" . self::FIELD_CONTENT . ")*" . self::OWS;

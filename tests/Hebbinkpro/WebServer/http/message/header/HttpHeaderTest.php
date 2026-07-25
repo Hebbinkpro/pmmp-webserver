@@ -32,7 +32,41 @@ class HttpHeaderTest extends TestCase
 {
     public function testNormalizeFieldName()
     {
-        $this->assertEquals("content-type", HttpHeader::normalizeFieldName("Content-Type"));
+
+	    /**
+	     *
+	     *   - "Content-Length" -> "Content-Length"
+	     *   - "content-length" -> "Content-Lenght" | Capitalize the first letter of a word
+	     *   - "cOnTeNt-lEnGtH" -> "Content-Lenght" | Capitalize the first and lower the other letters of a word
+	     *   - "  Content-Length  " -> "Content-Length" | Remove whitespaces from the start end end
+	     *   - "content length" -> "Content-Length" | Replaces whitespaces within the name with a "-"
+	     *   - "@Content-Length@" -> "Content-Length"  | Removes the illegal character "@" from start and end
+	     *   - "Content@Length" -> "Content-Length" | Replaces the illegal character with a "-"
+	     *   - "Content@~@Length" -> "Content-Length" | Replace a sequence of illegal characters with a single "-"
+	     */
+
+	    $tests = [
+		    "Content-Length" => [
+			    "Content-Length",
+			    "content-length",
+			    "cOnTeNt-lEnGtH",
+			    "content length",
+			    "  Content-Length  ",
+			    "@Content-Length@",
+			    "Content@Length",
+			    "Content@@@Length",
+			    "  @Content@         @Length@ ",
+		    ],
+		    "!content-Type#" => [
+			    "!Content@@@Type#"
+		    ],
+	    ];
+
+	    foreach ($tests as $result => $values) {
+		    foreach ($values as $value) {
+			    $this->assertEquals($result, HttpHeader::normalizeFieldName($value));
+		    }
+	    }
     }
 
     public function testBuilder()
@@ -46,14 +80,14 @@ class HttpHeaderTest extends TestCase
         $builder->setField("Content-Length", "123");
         $builder->setField("Server", "Hebbinkpro/WebServer");
 
-        $this->assertEquals(["content-type" => ["text/html"], "content-length" => ["123"], "server" => ["Hebbinkpro/WebServer"]], $builder->getHeaderFields());
+	    $this->assertEquals(["Content-Type" => ["text/html"], "Content-Length" => ["123"], "Server" => ["Hebbinkpro/WebServer"]], $builder->getHeaderFields());
         $this->assertEquals($builder->getHeaderFields(), $builder->build()->getHeaderFields());
         $this->assertEquals("text/html", $builder->build()->getFieldValue("Content-Type"));
 
         $builder->setFromFieldLine("Content-Type: text/plain");
         $this->assertEquals(["text/html", "text/plain"], $builder->build()->getField("Content-Type"));
 
-        $header = "content-type: text/html\r\ncontent-type: text/plain\r\ncontent-length: 123\r\nserver: Hebbinkpro/WebServer\r\n";
+	    $header = "Content-Type: text/html\r\nContent-Type: text/plain\r\nContent-Length: 123\r\nServer: Hebbinkpro/WebServer\r\n";
         $this->assertEquals($header, $builder->build()->toString());
 
         // test add to existing field

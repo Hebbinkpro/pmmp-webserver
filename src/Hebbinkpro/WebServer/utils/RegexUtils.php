@@ -34,19 +34,17 @@ final class RegexUtils
      *
      * @param string $pattern
      * @param string $subject
-     * @param array<mixed>|null $matches
+     * @param string[]|null $matches
      * @param int $flags
      * @param int $offset
      * @return bool true if there is a match, false otherwise
-     * @param-out array<mixed> $matches
+     * @param-out string[] $matches
      * @see preg_match for parameter descriptions
      */
     public static function has_preg_match(string $pattern, string $subject, ?array &$matches = null, int $flags = 0, int $offset = 0): bool
     {
-
         // @phpstan-ignore-next-line
         $match = @preg_match($pattern, $subject, $matches, $flags, $offset);
         return $match !== false && $match > 0;
-
     }
 }

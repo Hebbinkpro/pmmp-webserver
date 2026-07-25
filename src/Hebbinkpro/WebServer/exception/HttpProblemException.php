@@ -46,17 +46,30 @@ class HttpProblemException extends HttpException
      */
     public static function badRequest(?string $instance = null, ?string $detail = null): HttpProblemException
     {
-        if ($instance === null) return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "about:blank", $detail);
-        return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, $instance);
+	    $instance = $instance ?? "about:blank";
+	    return new HttpProblemException(HttpStatusCodes::BAD_REQUEST, $instance, $detail);
     }
 
-    /**
-     * Http Problem with a blank instance
-     * @param HttpStatus|int $statusCode the HTTP status code
-     * @return HttpProblemException
-     */
-    public static function blankInstance(HttpStatus|int $statusCode): HttpProblemException
+	/**
+	 * 500 internal server error exception without any details and an about:blank instance
+	 * @param string|null $instance instance to use, if not present, a blank instance is used
+	 * @param string|null $detail detail to use, if not present, no detail is used
+	 * @return HttpProblemException
+	 */
+	public static function internalServerError(?string $instance = null, ?string $detail = null): HttpProblemException
+	{
+		$instance = $instance ?? "about:blank";
+		return new HttpProblemException(HttpStatusCodes::INTERNAL_SERVER_ERROR, $instance, $detail);
+	}
+
+	/**
+	 * Http Problem with a blank instance
+	 * @param HttpStatus|int $statusCode the HTTP status code
+	 * @param string|null $detail detail to use, if not present, no detail is used
+	 * @return HttpProblemException
+	 */
+	public static function blankInstance(HttpStatus|int $statusCode, ?string $detail = null): HttpProblemException
     {
-        return new HttpProblemException($statusCode, "about:blank");
+	    return new HttpProblemException($statusCode, "about:blank", $detail);
     }
 }
