@@ -46,7 +46,7 @@ class HttpUrlFactory
         if ($target === "*") return new HttpAsteriskUrl();
 
         // allow only visible ascii characters
-        if (!RegexUtils::has_preg_match("/^" . HttpParsingRules::VCHAR . "+$/", $target)) {
+	    if (!RegexUtils::has_preg_match("/^[" . HttpParsingRules::VCHAR . "]+$/", $target)) {
             throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "/", "Invalid Request Target");
         }
 

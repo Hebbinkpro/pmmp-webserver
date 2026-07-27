@@ -103,7 +103,7 @@ readonly class HttpBody
      * Returns the entire body as a string
      * @return string
      */
-    public function __toString(): string
+	public function toString(): string
     {
         // ensures that the entire stream is read, and the pointer is returned to its original position
         $ptr = $this->tell();

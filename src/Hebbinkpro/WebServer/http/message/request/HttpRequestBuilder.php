@@ -45,6 +45,7 @@ class HttpRequestBuilder implements HttpRequestMessage
 
     public function __construct()
     {
+	    $this->header = new HttpHeaderBuilder();
         $this->body = null;
     }
 
