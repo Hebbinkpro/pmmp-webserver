@@ -36,7 +36,6 @@ use Hebbinkpro\WebServer\http\HttpProblem;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
-use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\server\HttpServerInfo;
 use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\AuthorityUri;
@@ -46,6 +45,7 @@ use Hebbinkpro\WebServer\http\uri\url\HttpUrlFactory;
 use Hebbinkpro\WebServer\utils\Buffer;
 use Hebbinkpro\WebServer\utils\StreamUtils;
 use Logger;
+use Throwable;
 
 class HttpRequestParser
 {
@@ -170,15 +170,16 @@ class HttpRequestParser
     /**
      * Mark the request builder as invalid with an HttpException
      * @param HttpProblem $problem HTTP problem details
+     * @param Throwable|null $cause The throwable that caused the HTTP problem
      * @return never will always throw an HttpException
      * @throws HttpException with the HTTP Problem details
      */
-    private function setInvalidProblem(HttpProblem $problem): never
+	private function setInvalidProblem(HttpProblem $problem, ?Throwable $cause = null): never
     {
         $this->httpProblem = $problem;
         $this->state = HttpRequestParserState::INVALID;
         $this->logger->debug("[INVALID REQUEST] {$problem->getDetail()}");
-        throw new HttpException($this->httpProblem);
+	    throw new HttpException($this->httpProblem, $cause);
     }
 
 	/**
@@ -234,7 +235,7 @@ class HttpRequestParser
 
         $this->requestTarget = $target;
 
-        $supportedMethods = HttpServer::getInstance()->getServerInfo()->getSupportedMethods();
+	    $supportedMethods = $this->serverInfo->getSupportedMethods();
         if (!in_array($method, $supportedMethods, true)) {
             $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
         }
@@ -251,7 +252,7 @@ class HttpRequestParser
         try {
             $url = HttpUrlFactory::parseRequestTarget($this->requestTarget);
         } catch (HttpProblemException $e) {
-            $this->setInvalidProblem($e->getHttpError());
+	        $this->setInvalidProblem($e->getHttpError(), $e);
         }
 
         switch ($url->getRequestForm()) {
@@ -327,7 +328,7 @@ class HttpRequestParser
             try {
                 $this->builder->getHeader()->setFromFieldLine($headerFieldLine);
             } catch (HttpProblemException $e) {
-                $this->setInvalidProblem($e->getHttpError());
+	            $this->setInvalidProblem($e->getHttpError(), $e);
             }
         }
 

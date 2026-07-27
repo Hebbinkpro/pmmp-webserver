@@ -28,6 +28,7 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\exception;
 
 use Hebbinkpro\WebServer\http\HttpProblem;
+use Throwable;
 
 /**
  * Exception to throw when an HTTP request has a problem.
@@ -40,9 +41,9 @@ use Hebbinkpro\WebServer\http\HttpProblem;
 class HttpException extends WebServerException
 {
 
-    public function __construct(private HttpProblem $httpError)
+	public function __construct(private HttpProblem $httpError, ?Throwable $cause = null)
     {
-        parent::__construct($this->httpError->getDetail() ?? "");
+	    parent::__construct($this->httpError->getDetail() ?? "", 0, $cause);
     }
 
     /**
