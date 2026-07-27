@@ -50,7 +50,7 @@ final class StreamUtils
      */
     public static function hasMode(mixed $stream, string $mode): bool
     {
-        return self::isStream($stream) && stream_get_meta_data($stream)["mode"] === $mode;
+	    return self::isStream($stream) && str_starts_with(stream_get_meta_data($stream)["mode"], $mode);
     }
 
     /**
@@ -116,7 +116,7 @@ final class StreamUtils
      * Setting the value to `true` is preferable for most use cases.
      *
      * @param bool $alwaysInMemory if true: `php://memory` will be used, if false: `php://temp` will be used
-     * @return resource <code>fopen("php://temp", "r+")</code>
+     * @return resource `fopen("php://memory", "r+")` or `fopen("php://temp", "r+")`
      * @see https://www.php.net/manual/en/wrappers.php.php
      */
     public static function openTempStream(bool $alwaysInMemory = true): mixed
