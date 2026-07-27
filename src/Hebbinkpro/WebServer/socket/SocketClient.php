@@ -43,13 +43,14 @@ class SocketClient
 
     protected Buffer $buffer;
     private string $host;
+	/** @var int<1,65535> */
     private int $port;
     /** @var resource */
     private mixed $socket;
 
     /**
      * @param string $host
-     * @param int $port
+     * @param int<1,65535> $port
      * @param resource $socket
      */
     public function __construct(string $host, int $port, mixed $socket)
@@ -70,7 +71,7 @@ class SocketClient
     }
 
     /**
-     * @return int
+     * @return int<1,65535>
      */
     public function getPort(): int
     {

@@ -36,6 +36,7 @@ use LogLevel;
 use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\thread\Thread;
 use pocketmine\thread\ThreadSafeClassLoader;
+use UnexpectedValueException;
 
 
 class HttpServer extends Thread
@@ -167,6 +168,11 @@ class HttpServer extends Thread
             if (!is_resource($incoming)) return;
 
             [$host, $port] = explode(":", $clientName);
+	        $port = intval($port);
+	        if ($port < 1 || $port > 65535) {
+		        throw new UnexpectedValueException("The port '$port' is out of the TCP port range.");
+	        }
+
             $client = new HttpClient($host, intval($port), $incoming);
             $this->logger->debug("Got new connection from: $clientName");
 

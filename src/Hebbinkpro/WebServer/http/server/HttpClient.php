@@ -62,7 +62,7 @@ class HttpClient extends SocketClient
 
     /**
      * @param string $host
-     * @param int $port
+     * @param int<1,65535> $port
      * @param resource $socket
      */
     public function __construct(string $host, int $port, mixed $socket)

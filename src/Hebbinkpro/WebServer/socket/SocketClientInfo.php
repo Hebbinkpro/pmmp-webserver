@@ -32,6 +32,11 @@ readonly class SocketClientInfo
     private string $host;
     private int $port;
 
+	/**
+	 * Create information about a socket client
+	 * @param string $host host address of the client
+	 * @param int<1,65535> $port service port of the client
+	 */
     public function __construct(string $host, int $port)
     {
         $this->host = $host;

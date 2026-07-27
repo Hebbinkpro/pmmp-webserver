@@ -40,27 +40,29 @@ use pmmp\thread\ThreadSafe;
 class HttpServerInfo extends ThreadSafe
 {
     private string $host;
+	/** @var int<1,65535> */
     private int $port;
     private Router $router;
     private ?SslSettings $ssl;
-
+	/** @var int<0,max> */
     private int $keepAliveTimeout;
+	/** @var int<0,max> */
     private int $keepAliveMax;
     private ?string $name;
 
     /**
      * @param string $host
-     * @param int<-1,65535> $port If a negative port is given, the default HTTP port (or HTTPS port when SSL is given) will be used
+     * @param int<0,65535> $port if 0, the default HTTP port (or HTTPS port when SSL is given) will be used
      * @param Router|null $router
      * @param SslSettings|null $ssl
      * @param int<0,max> $keepAliveTimeout
      * @param int<0,max> $keepAliveMax
      * @param string|null $name set to null to disable, set to empty string for `WebServer::getDefaultServerName()`
      */
-    public function __construct(string $host, int $port = -1, ?Router $router = null, ?SslSettings $ssl = null, int $keepAliveTimeout = 0, int $keepAliveMax = 0, ?string $name = "")
+	public function __construct(string $host, int $port = 0, ?Router $router = null, ?SslSettings $ssl = null, int $keepAliveTimeout = 0, int $keepAliveMax = 0, ?string $name = "")
     {
         $this->host = $host;
-        $this->port = $port >= 0 ? $port :
+	    $this->port = $port > 0 ? $port :
             ($ssl === null ? HttpConstants::DEFAULT_HTTP_PORT : HttpConstants::DEFAULT_HTTPS_PORT);
         $this->router = $router ?? new Router();
         $this->ssl = $ssl;
@@ -116,9 +118,6 @@ class HttpServerInfo extends ThreadSafe
     /**
      * Get the HTTP/HTTPS address
      * @param string|null $host optional host[:port] to use instead of <code>$this->host[:$this->port]</code>
-     *
-     * NOTE: The address now returns an http(s) address.
-     *       For the TCP address, use getSocketBindAddress() instead!
      * @return string scheme://host[:port]
      */
     public function getAddress(?string $host = null): string
@@ -149,12 +148,17 @@ class HttpServerInfo extends ThreadSafe
 
     /**
      * Check if the SSL cert and pk are available
+     * @return bool
      */
     public function isSslEnabled(): bool
     {
         return $this->ssl !== null;
     }
 
+	/**
+	 * Check if the server uses the default HTTP(S) port
+	 * @return bool
+	 */
     public function usesDefaultPort(): bool
     {
 
@@ -179,7 +183,7 @@ class HttpServerInfo extends ThreadSafe
      * Integer time in seconds that the server will keep an idle connection open.
      *
      * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Keep-Alive
-     * @return int
+     * @return int<0,max>
      */
     public function getKeepAliveTimeout(): int
     {
@@ -190,7 +194,7 @@ class HttpServerInfo extends ThreadSafe
      * An integer that is the maximum number of requests that can be sent on a connection before closing it.
      *
      * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Keep-Alive
-     * @return int
+     * @return int<0,max>
      */
     public function getKeepAliveMax(): int
     {

@@ -41,6 +41,15 @@ readonly class HttpClientInfo extends SocketClientInfo
 
     private int $servedRequests;
 
+
+	/**
+	 * Create information about a HTTP client
+	 * @param string $host host address of the client
+	 * @param int<1,65535> $port service port of the client
+	 * @param bool $closed If the client can receive new requests
+	 * @param int $lastActivity unix time of the last activity from the client
+	 * @param int $servedRequests number of requests served for this client
+	 */
     public function __construct(string $host, int $port, bool $closed, int $lastActivity, int $servedRequests)
     {
         parent::__construct($host, $port);

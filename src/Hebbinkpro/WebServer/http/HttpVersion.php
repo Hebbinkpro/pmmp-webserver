@@ -38,8 +38,8 @@ readonly class HttpVersion
 {
 
     /**
-     * @param int $major major HTTP version
-     * @param int $minor minor HTTP version
+     * @param int<0,max> $major major HTTP version
+     * @param int<0,max> $minor minor HTTP version
      */
     public function __construct(private int $major, private int $minor)
     {
@@ -64,11 +64,17 @@ readonly class HttpVersion
         // get major and minor versions, since it passed the preg_match, we are sure that they are digits in [0-9]
         [$major, $minor] = explode(".", $httpVersion);
 
-        return new HttpVersion(intval($major), intval($minor));
+	    $major = intval($major);
+	    $minor = intval($minor);
+	    if ($major < 0 || $minor < 0) {
+		    throw new HttpProblemException(HttpStatusCodes::BAD_REQUEST, "Invalid HTTP Version");
+	    }
+
+	    return new HttpVersion($major, $minor);
     }
 
     /**
-     * @return int
+     * @return int<0,max>
      */
     public function getMajorVersion(): int
     {
@@ -76,7 +82,7 @@ readonly class HttpVersion
     }
 
     /**
-     * @return int
+     * @return int<0,max>
      */
     public function getMinorVersion(): int
     {
