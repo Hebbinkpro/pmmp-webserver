@@ -27,14 +27,11 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\http\message\request;
 
-use Hebbinkpro\WebServer\exception\HttpProblemException;
-use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpBody;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
-use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 use Hebbinkpro\WebServer\http\uri\url\HttpUrl;
 use RuntimeException;
 
@@ -98,24 +95,10 @@ class HttpRequestBuilder implements HttpRequestMessage
     /**
      * @param HttpVersion $httpVersion
      * @return HttpRequestBuilder
-     * @throws HttpProblemException if the HTTP version is not supported
      */
     public function setVersion(HttpVersion $httpVersion): self
     {
         $this->httpVersion = $httpVersion;
-
-        // TODO change the hardcoded constants
-        if ($this->httpVersion->getMajorVersion() !== HttpConstants::HTTP_VERSION_MAJOR
-            || $this->httpVersion->getMinorVersion() !== HttpConstants::HTTP_VERSION_MINOR) {
-
-            throw new HttpProblemException(
-                HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED,
-                "/",
-                "Unsupported HTTP Version"
-            );
-        }
-
-
         return $this;
     }
 

@@ -29,6 +29,7 @@ namespace Hebbinkpro\WebServer\http\server;
 
 use Hebbinkpro\WebServer\http\HttpConstants;
 use Hebbinkpro\WebServer\http\HttpMethod;
+use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\router\Router;
 use Hebbinkpro\WebServer\WebServer;
 use pmmp\thread\ThreadSafe;
@@ -211,6 +212,26 @@ class HttpServerInfo extends ThreadSafe
             // TODO HttpMethod::OPTIONS,
         ];
     }
+
+	/**
+	 * Get all the HTTP versions the server supports
+	 * @return HttpVersion[] [HTTP/1.1]
+	 */
+	public function getSupportedHttpVersions(): array
+	{
+		return [
+			$this->getDefaultHttpVersion(),
+		];
+	}
+
+	/**
+	 * Get the default HTTP version of the server
+	 * @return HttpVersion HTTP/1.1
+	 */
+	public function getDefaultHttpVersion(): HttpVersion
+	{
+		return new HttpVersion(1, 1);
+	}
 
     /**
      * Get if the server acts as a proxy.

@@ -37,7 +37,6 @@ use Hebbinkpro\WebServer\utils\RegexUtils;
 readonly class HttpVersion
 {
 
-
     /**
      * @param int $major major HTTP version
      * @param int $minor minor HTTP version
@@ -69,15 +68,6 @@ readonly class HttpVersion
     }
 
     /**
-     * Get the default HTTP version
-     * @return HttpVersion HTTP/1.1
-     */
-    public static function getDefault(): HttpVersion
-    {
-        return new HttpVersion(HttpConstants::HTTP_VERSION_MAJOR, HttpConstants::HTTP_VERSION_MINOR);
-    }
-
-    /**
      * @return int
      */
     public function getMajorVersion(): int
@@ -101,4 +91,14 @@ readonly class HttpVersion
     {
         return "HTTP/" . $this->major . "." . $this->minor;
     }
+
+	/**
+	 * Compare two HTTP versions
+	 * @param HttpVersion $version
+	 * @return bool true if both the major and minor versions are the same
+	 */
+	public function equals(HttpVersion $version): bool
+	{
+		return $this->major === $version->major && $this->minor === $version->minor;
+	}
 }

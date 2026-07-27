@@ -83,7 +83,6 @@ class HttpRequestParser
      */
     function readFromBuffer(): bool
     {
-
         $previousState = null;
         // loop until the states don't change anymore
         while ($this->state !== $previousState) {
@@ -158,6 +157,7 @@ class HttpRequestParser
      * @param int $status the HTTP Status code to respond
      * @param string|null $detail the error detail
      * @return never
+     * @throws HttpException with the HTTP Problem details
      */
     private function setInvalid(int $status, ?string $detail): never
     {
@@ -181,6 +181,10 @@ class HttpRequestParser
         throw new HttpException($this->httpProblem);
     }
 
+	/**
+	 * Parse the request line (method target version) from the request
+	 * @return bool if the request line was parsed completely
+	 */
     private function parseRequestLine(): bool
     {
         $requestLine = $this->buffer->readLine(HttpConstants::MAX_START_LINE_LENGTH);
@@ -208,14 +212,21 @@ class HttpRequestParser
         // get the different parts
         [$methodStr, $target, $versionStr] = explode(" ", $requestLine, 3);
 
-        try {
-            $this->builder->setVersion(HttpVersion::parse($versionStr));
-        } catch (HttpException $e) {
-            $this->setInvalidProblem($e->getHttpError());
-        }
+	    // parse the HTTP version and check if the server supports it
+	    $version = HttpVersion::parse($versionStr);
+	    $isSupported = false;
+	    foreach ($this->serverInfo->getSupportedHttpVersions() as $v) {
+		    if (($isSupported = $version->equals($v))) {
+			    break;
+		    }
+	    }
+	    if (!$isSupported) {
+		    $this->setInvalid(HttpStatusCodes::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP version");
+	    }
+	    $this->builder->setVersion($version);
 
         // validate the method, also gainst the servers supported methods
-        $method = HttpMethod::parse(strtoupper($methodStr));
+	    $method = HttpMethod::parse($methodStr);
         if ($method === null) {
             $this->setInvalid(HttpStatusCodes::NOT_IMPLEMENTED, "Method not implemented");
         }
@@ -231,6 +242,10 @@ class HttpRequestParser
         return true;
     }
 
+	/**
+	 * Parse the request target
+	 * @return void
+	 */
     private function parseRequestTarget(): void
     {
         try {
@@ -274,6 +289,10 @@ class HttpRequestParser
         }
     }
 
+	/**
+	 * Parse the request header
+	 * @return bool true when all header fields have been parsed
+	 */
     private function parseHeader(): bool
     {
 
@@ -344,6 +363,10 @@ class HttpRequestParser
         $this->builder->getHeader()->setField(HttpHeaders::HOST, $host);
     }
 
+	/**
+	 * Parse the message body
+	 * @return bool true when the body is completely parsed
+	 */
     private function parseBody(): bool
     {
         $remaining = $this->contentLength - $this->bodyLength;

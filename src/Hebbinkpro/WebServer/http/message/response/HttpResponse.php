@@ -37,20 +37,23 @@ readonly class HttpResponse implements HttpResponseMessage
 {
     private HttpClientInfo $client;
     private HttpStatus $status;
+	private HttpVersion $version;
     private HttpHeader $headers;
 
     private ?HttpBody $body;
 
-    /**
-     * @param HttpClientInfo $client
-     * @param HttpStatus $status
-     * @param HttpHeader $headers
-     * @param HttpBody|null $body
-     */
-    public function __construct(HttpClientInfo $client, HttpStatus $status, HttpHeader $headers, ?HttpBody $body)
+	/**
+	 * @param HttpClientInfo $client
+	 * @param HttpStatus $status
+	 * @param HttpVersion $version
+	 * @param HttpHeader $headers
+	 * @param HttpBody|null $body
+	 */
+	public function __construct(HttpClientInfo $client, HttpStatus $status, HttpVersion $version, HttpHeader $headers, ?HttpBody $body)
     {
         $this->client = $client;
         $this->status = $status;
+	    $this->version = $version;
         $this->headers = $headers;
         $this->body = $body;
     }
@@ -76,7 +79,7 @@ readonly class HttpResponse implements HttpResponseMessage
      */
     public function getVersion(): HttpVersion
     {
-        return HttpVersion::getDefault();
+	    return $this->version;
     }
 
     /**

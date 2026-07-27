@@ -47,6 +47,7 @@ use LogicException;
 class HttpResponseBuilder implements HttpResponseMessage
 {
     private HttpStatus $status;
+	private HttpVersion $version;
     private HttpHeaderBuilder $headers;
     private ?HttpBody $body;
     private bool $headOnly;
@@ -58,6 +59,7 @@ class HttpResponseBuilder implements HttpResponseMessage
      */
     public function __construct(bool $headOnly = false)
     {
+	    $this->version = new HttpVersion(1, 1);
         $this->headers = new HttpHeaderBuilder();
         $this->body = null;
         $this->headOnly = $headOnly;
@@ -266,11 +268,12 @@ class HttpResponseBuilder implements HttpResponseMessage
     public function build(HttpClientInfo $client): HttpResponse
     {
         $this->finalize($client);
+	    $version = $this->version;
         $headers = $this->headers->build();
 
         // set body to null if head only
         $body = $this->headOnly ? null : $this->body;
-        return new HttpResponse($client, $this->status, $headers, $body);
+	    return new HttpResponse($client, $this->status, $version, $headers, $body);
     }
 
 
@@ -346,7 +349,7 @@ class HttpResponseBuilder implements HttpResponseMessage
 
     public function getVersion(): HttpVersion
     {
-        return HttpVersion::getDefault();
+	    return $this->version;
     }
 
     public function getBody(): ?HttpBody
