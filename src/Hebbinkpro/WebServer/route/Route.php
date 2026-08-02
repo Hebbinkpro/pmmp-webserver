@@ -27,6 +27,7 @@ namespace Hebbinkpro\WebServer\route;
 
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 
 interface Route
@@ -35,8 +36,9 @@ interface Route
 	 * Handle a routing request
 	 * @param HttpClientInfo $client information about the client that send the request
 	 * @param HttpRequest $req the request send by the client
+	 * @param HttpResponseBuilder|null $res [optional] a partial response builder that can be completed
 	 * @return HttpResponse the response to send to the client
 	 */
-	public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse;
+	public function handleRequest(HttpClientInfo $client, HttpRequest $req, ?HttpResponseBuilder $res = null): HttpResponse;
 
 }

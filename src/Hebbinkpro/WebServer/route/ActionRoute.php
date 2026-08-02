@@ -68,11 +68,12 @@ class ActionRoute extends BaseRoute
 
 	/**
 	 * Handle the client request by executing a given action
-	 * @param HttpClientInfo $client the client
-	 * @param HttpRequest $req the request of the client
+	 * @param HttpClientInfo $client
+	 * @param HttpRequest $req
+	 * @param HttpResponseBuilder|null $res
 	 * @return HttpResponse the response to send back to the client
 	 */
-	public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
+	public function handleRequest(HttpClientInfo $client, HttpRequest $req, ?HttpResponseBuilder $res = null): HttpResponse
 	{
 		if ($this->action === null) {
 			return HttpResponseFactory::notImplemented()->build($client);
@@ -86,9 +87,7 @@ class ActionRoute extends BaseRoute
 			return HttpResponseFactory::notImplemented()->build($client);
 		}
 
-		// response to be sent back to the client, and make sure HEAD requests send a response without content
-		if ($req->getMethod() === HttpMethod::HEAD) $res = new HttpResponseBuilder(true);
-		else $res = new HttpResponseBuilder();
+		if ($res === null) $res = HttpResponseBuilder::fromRequest($req);
 
 		try {
 			// ensure that the values are unwrapped before passing them on to the closure

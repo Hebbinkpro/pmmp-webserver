@@ -60,9 +60,9 @@ class StaticRoute extends BaseRoute
 	    parent::__construct(HttpMethod::GET);
     }
 
-	public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
+	public function handleRequest(HttpClientInfo $client, HttpRequest $req, ?HttpResponseBuilder $res = null): HttpResponse
 	{
-		$res = HttpResponseBuilder::fromRequest($req);
+		if ($res === null) $res = HttpResponseBuilder::fromRequest($req);
 
 		// quick check to make PHPStan happy and to ensure the folder still exists
 		if (($folderPath = realpath($this->folder)) === false || !is_dir($folderPath)) {

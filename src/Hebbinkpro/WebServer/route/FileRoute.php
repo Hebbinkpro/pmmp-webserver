@@ -65,10 +65,10 @@ class FileRoute extends BaseRoute
 	    parent::__construct(HttpMethod::GET);
     }
 
-	public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
+	public function handleRequest(HttpClientInfo $client, HttpRequest $req, ?HttpResponseBuilder $res = null): HttpResponse
 	{
 		// response to be sent back to the client, and make sure HEAD requests send a response without content
-		$res = HttpResponseBuilder::fromRequest($req);
+		if ($res === null) $res = HttpResponseBuilder::fromRequest($req);
 
 		if ($this->default === null) {
 			$res->sendFile($this->file, $this->contentType);

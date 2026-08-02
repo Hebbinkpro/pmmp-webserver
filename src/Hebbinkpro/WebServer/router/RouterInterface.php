@@ -42,9 +42,10 @@ interface RouterInterface
      * Handle an incoming client request
      * @param HttpClientInfo $client the client
      * @param HttpRequest $request the request from the client
+     * @param HttpResponseBuilder|null $response [optional] a partial response builder that can be completed
      * @return HttpResponse the response to send back to the client
      */
-    public function handleRequest(HttpClientInfo $client, HttpRequest $request): HttpResponse;
+	public function handleRequest(HttpClientInfo $client, HttpRequest $request, ?HttpResponseBuilder $response = null): HttpResponse;
 
     /**
      * Add a GET route to the router

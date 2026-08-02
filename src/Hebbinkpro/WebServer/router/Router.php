@@ -34,6 +34,7 @@ use Hebbinkpro\WebServer\exception\RouteInUseException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
+use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\uri\UriPath;
@@ -59,22 +60,19 @@ class Router extends ThreadSafe implements RouterInterface
 	    $this->routes = new RoutingNode();
     }
 
-    /**
-     * Let the correct route handle an HTTP request
-     * @param HttpClientInfo $client the client
-     * @param HttpRequest $request the request from the client
-     * @return HttpResponse the response to send back to the client
-     */
-    public function handleRequest(HttpClientInfo $client, HttpRequest $request): HttpResponse
+	/**
+	 * @inheritDoc
+	 */
+	public function handleRequest(HttpClientInfo $client, HttpRequest $request, HttpResponseBuilder|null $response = null): HttpResponse
     {
 
 	    $target = $request->getTarget();
 	    if ($target instanceof HttpOriginUrl) {
-		    return $this->handleOriginRequest($client, $request, $target);
+		    return $this->handleOriginRequest($client, $request, $target, $response);
 	    } else if ($target instanceof HttpAsteriskUrl) {
-		    return $this->handleAsteriskRequest($client, $request, $target);
+		    return $this->handleAsteriskRequest($client, $request, $target, $response);
 	    } else if ($target instanceof HttpAuthorityUrl) {
-		    return $this->handleAuthorityRequest($client, $request, $target);
+		    return $this->handleAuthorityRequest($client, $request, $target, $response);
 	    }
 
 	    // unknown request target
@@ -86,9 +84,10 @@ class Router extends ThreadSafe implements RouterInterface
 	 * @param HttpClientInfo $client
 	 * @param HttpRequest $request
 	 * @param HttpOriginUrl $target
+	 * @param HttpResponseBuilder|null $response
 	 * @return HttpResponse
 	 */
-	protected function handleOriginRequest(HttpClientInfo $client, HttpRequest $request, HttpOriginUrl $target): HttpResponse
+	protected function handleOriginRequest(HttpClientInfo $client, HttpRequest $request, HttpOriginUrl $target, HttpResponseBuilder|null $response = null): HttpResponse
 	{
 
 		$route = $this->routes->getRoute($target->getPath(), $request->getMethod());
@@ -101,7 +100,7 @@ class Router extends ThreadSafe implements RouterInterface
 		$request->getRouteInfo()->updateRouteInfo($route, $target->getPath());
 
 		// handle the request
-		return $route->handleRequest($client, $request);
+		return $route->handleRequest($client, $request, $response);
 	}
 
 	/**
@@ -109,9 +108,10 @@ class Router extends ThreadSafe implements RouterInterface
 	 * @param HttpClientInfo $client
 	 * @param HttpRequest $request
 	 * @param HttpAsteriskUrl $target
+	 * @param HttpResponseBuilder|null $response
 	 * @return HttpResponse
 	 */
-	protected function handleAsteriskRequest(HttpClientInfo $client, HttpRequest $request, HttpAsteriskUrl $target): HttpResponse
+	protected function handleAsteriskRequest(HttpClientInfo $client, HttpRequest $request, HttpAsteriskUrl $target, HttpResponseBuilder|null $response = null): HttpResponse
 	{
 		return HttpResponseFactory::notImplemented()->build($client);
 	}
@@ -121,9 +121,10 @@ class Router extends ThreadSafe implements RouterInterface
 	 * @param HttpClientInfo $client
 	 * @param HttpRequest $request
 	 * @param HttpAuthorityUrl $target
+	 * @param HttpResponseBuilder|null $response
 	 * @return HttpResponse
 	 */
-	protected function handleAuthorityRequest(HttpClientInfo $client, HttpRequest $request, HttpAuthorityUrl $target): HttpResponse
+	protected function handleAuthorityRequest(HttpClientInfo $client, HttpRequest $request, HttpAuthorityUrl $target, HttpResponseBuilder|null $response = null): HttpResponse
 	{
 		return HttpResponseFactory::notImplemented()->build($client);
 	}
