@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ * Copyright (c) 2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +25,37 @@
 
 declare(strict_types=1);
 
-namespace Hebbinkpro\WebServer\exception;
+namespace Hebbinkpro\WebServer\router;
 
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\uri\UriPath;
+use Hebbinkpro\WebServer\route\Route;
+use PHPUnit\Framework\TestCase;
 
-class RouteExistsException extends WebServerException
+class RoutingNodeTest extends TestCase
 {
-	public function __construct(UriPath|string $path, HttpMethod $method)
-    {
-	    if (!is_string($path)) $path = $path->toString();
 
-        parent::__construct("There already exists a $method->value route for path '$path'.");
-    }
+	public function testRoutingNode(): void
+	{
+
+		$node = new RoutingNode();
+		$emptyPath = new UriPath();
+		$route0 = new Route(HttpMethod::GET, null);
+
+		$node->addRoute($emptyPath, $route0);
+		$this->assertEquals($route0, $node->getRoute($emptyPath, HttpMethod::GET));
+
+		$path = UriPath::parse("/test/example/route");
+		$route1 = new Route(HttpMethod::POST, null);
+		$node->addRoute($path, $route1);
+		$this->assertEquals($route1, $node->getRoute($path, HttpMethod::POST));
+
+		$route2 = new Route(HttpMethod::ALL, null);
+		$node->addRoute($emptyPath, $route2);
+		$this->assertEquals($route0, $node->getRoute($emptyPath, HttpMethod::GET));
+		$this->assertEquals($route2, $node->getRoute($emptyPath, HttpMethod::POST));
+		$this->assertEquals($route2, $node->getRoute($emptyPath, HttpMethod::PUT));
+		$this->assertEquals($route2, $node->getRoute($emptyPath, HttpMethod::DELETE));
+	}
+
 }

@@ -37,27 +37,25 @@ use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\uri\UriPath;
+use Hebbinkpro\WebServer\http\uri\url\HttpAsteriskUrl;
+use Hebbinkpro\WebServer\http\uri\url\HttpAuthorityUrl;
+use Hebbinkpro\WebServer\http\uri\url\HttpOriginUrl;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\Route;
 use Hebbinkpro\WebServer\route\RouterRoute;
 use Hebbinkpro\WebServer\route\StaticRoute;
 use pmmp\thread\ThreadSafe;
-use pmmp\thread\ThreadSafeArray;
 
 /**
  * A Router that handles requests by calling the Route corresponding to the request path
  */
 class Router extends ThreadSafe implements RouterInterface
 {
-    /**
-     * TODO change this to a tree structure
-     * @var ThreadSafeArray<string, Route|ThreadSafeArray<string, Route>>
-     */
-    private ThreadSafeArray $routes;
+	private RoutingNode $routes;
 
     public function __construct()
     {
-        $this->routes = new ThreadSafeArray();
+	    $this->routes = new RoutingNode();
     }
 
     /**
@@ -68,179 +66,144 @@ class Router extends ThreadSafe implements RouterInterface
      */
     public function handleRequest(HttpClientInfo $client, HttpRequest $request): HttpResponse
     {
-        // get the route that will handle the request
-        $routePath = $this->getRoutePath($request);
 
-        // no route was found
-        if ($routePath === null) {
-            // send a 404 not found message
-            return HttpResponseFactory::notFound()->build($client);
-        }
+	    $target = $request->getTarget();
+	    if ($target instanceof HttpOriginUrl) {
+		    return $this->handleOriginRequest($client, $request, $target);
+	    } else if ($target instanceof HttpAsteriskUrl) {
+		    return $this->handleAsteriskRequest($client, $request, $target);
+	    } else if ($target instanceof HttpAuthorityUrl) {
+		    return $this->handleAuthorityRequest($client, $request, $target);
+	    }
 
-        /** @var Route|ThreadSafeArray<string, Route> $routeEntry */
-        $routeEntry = $this->routes[$routePath] ?? null;
-        if ($routeEntry instanceof Route) {
-            $route = $routeEntry;
-        } else {
-            /** @var Route|null $route */
-            $route = $routeEntry[$request->getMethod()->name] ?? null;
-        }
-
-        if ($route === null) {
-            // send a 404 not found message
-            return HttpResponseFactory::notFound()->build($client);
-        }
-
-        // add the route path in the request, used for path params and sub paths
-        $request->getRouteInfo()->updateRouteInfo($route, UriPath::parse($routePath));
-
-        // handle the request
-        return $route->handleRequest($client, $request);
+	    // unknown request target
+	    return HttpResponseFactory::notImplemented()->build($client);
     }
 
-    /**
-     * Get the path to route to from the given request
-     * @param HttpRequest $req
-     * @return string|null
-     */
-    public function getRoutePath(HttpRequest $req): ?string
-    {
-        $reqPath = $req->getRouteInfo()->getSubPath()?->toString();
-        if ($reqPath === null) return null;
+	/**
+	 * Handle all requests in the Origin form
+	 * @param HttpClientInfo $client
+	 * @param HttpRequest $request
+	 * @param HttpOriginUrl $target
+	 * @return HttpResponse
+	 */
+	protected function handleOriginRequest(HttpClientInfo $client, HttpRequest $request, HttpOriginUrl $target): HttpResponse
+	{
 
-        foreach ($this->routes as $routePath => $routes) {
-            if (($routes instanceof Route || isset($routes[$req->getMethod()->name]))
-                && $this->matchesRoutePath($reqPath, $routePath)) {
-                return $routePath;
-            }
-        }
+		$route = $this->routes->getRoute($target->getPath(), $request->getMethod());
 
-        return null;
-    }
+		if ($route === null) {
+			return HttpResponseFactory::notFound()->build($client);
+		}
 
-    /**
-     * Checks if the request path matches the given route path
-     * @param string $reqPath
-     * @param string $routePath
-     * @return bool if the path matches
-     */
-    public function matchesRoutePath(string $reqPath, string $routePath): bool
-    {
-        // any route
-        if ($routePath === "*") return true;
+		// add the route path in the request, used for path params and sub paths
+		$request->getRouteInfo()->updateRouteInfo($route, $target->getPath());
 
-        // get the route path as an array
-        $splitReqPath = explode("/", $reqPath);
-        $splitRoutePath = explode("/", $routePath);
+		// handle the request
+		return $route->handleRequest($client, $request);
+	}
 
-        // the request path is smaller than the route path, which isn't possible
-        if (count($splitReqPath) < count($splitRoutePath)) return false;
+	/**
+	 * Handle all requests in the asterisk form
+	 * @param HttpClientInfo $client
+	 * @param HttpRequest $request
+	 * @param HttpAsteriskUrl $target
+	 * @return HttpResponse
+	 */
+	protected function handleAsteriskRequest(HttpClientInfo $client, HttpRequest $request, HttpAsteriskUrl $target): HttpResponse
+	{
+		return HttpResponseFactory::notImplemented()->build($client);
+	}
 
-        // loop through all sub paths of the route
-        foreach ($splitReqPath as $i => $reqSubPath) {
-            $routeSubPath = $splitRoutePath[$i] ?? null;
-            if ($routeSubPath === null) return false;
-
-            if ($routeSubPath === "*") return true;
-
-            if ($reqSubPath !== $routeSubPath && !str_starts_with($routeSubPath, ":")) return false;
-        }
-
-        // the given path is valid
-        return true;
-    }
+	/**
+	 * Handle all requests in the authority form
+	 * @param HttpClientInfo $client
+	 * @param HttpRequest $request
+	 * @param HttpAuthorityUrl $target
+	 * @return HttpResponse
+	 */
+	protected function handleAuthorityRequest(HttpClientInfo $client, HttpRequest $request, HttpAuthorityUrl $target): HttpResponse
+	{
+		return HttpResponseFactory::notImplemented()->build($client);
+	}
 
     /**
      * @throws RouteExistsException|RouteInUseException
      */
-    public function get(string $path, Closure $action, mixed ...$params): void
+	public function get(UriPath|string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::GET, $action, ...$params));
     }
 
     /**
      * Assign the route to the path
-     * @param string $path
-     * @param Route $route
+     * @param UriPath|string $path the path to access the route
+     * @param Route $route the route that should be executed when requested
      * @return void
      * @throws RouteExistsException if the routing path already exists
      * @throws RouteInUseException if the given route is already added to a routing path
      */
-    public function addRoute(string $path, Route $route): void
+	public function addRoute(UriPath|string $path, Route $route): void
     {
-        $segments = trim($path, "/");
-
-        if (isset($this->routes[$segments])) {
-            // it's a route for all methods
-            if (!$this->routes[$segments] instanceof ThreadSafeArray) throw new RouteExistsException($segments, HttpMethod::ALL);
-
-            // there exists already a route for this method, or if an any route is added
-            if (isset($this->routes[$segments][$route->getMethod()->name]) || $route->getMethod() === HttpMethod::ALL) {
-                throw new RouteExistsException($segments, $route->getMethod());
-            }
-        }
-
-        if ($route->getMethod() === HttpMethod::ALL) $this->routes[$segments] = $route;
-        else {
-            if (!isset($this->routes[$segments])) $this->routes[$segments] = new ThreadSafeArray();
-            /** @phpstan-ignore-next-line */
-            $this->routes[$segments][$route->getMethod()->name] = $route;
-        }
-
-        $uriPath = UriPath::parse($path);
-        $route->setPath($uriPath);
+	    if (is_string($path)) $path = UriPath::parse($path);
+	    $this->routes->addRoute($path, $route);
     }
 
     /**
      * Add a FileRoute to the router
-     * @param string $path
+     * @param UriPath|string $path
      * @param string $file the path of the file
      * @param string|null $contentType the content type of the file
      * @param string|null $default default value used when the file does not exist
      * @param string|null $defaultContentType the content type of the default value
      * @return void
      */
-    public function getFile(string $path, string $file, ?string $contentType = null, ?string $default = null, ?string $defaultContentType = null): void
+	public function getFile(UriPath|string $path, string $file, ?string $contentType = null, ?string $default = null, ?string $defaultContentType = null): void
     {
-        $this->addRoute($path, new FileRoute($file, default: $default));
+	    $this->addRoute($path, new FileRoute($file, $contentType, $default, $defaultContentType));
     }
 
     /**
+     * Handle a POST request
      * @throws RouteExistsException|RouteInUseException
      */
-    public function post(string $path, Closure $action, mixed ...$params): void
+	public function post(UriPath|string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::POST, $action, ...$params));
     }
 
     /**
+     * Handle a HEAD request
      * @throws RouteExistsException|RouteInUseException
      */
-    public function head(string $path, Closure $action, mixed ...$params): void
+	public function head(UriPath|string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::HEAD, $action, ...$params));
     }
 
     /**
+     * Handle a PUT request
      * @throws RouteExistsException|RouteInUseException
      */
-    public function put(string $path, Closure $action, mixed ...$params): void
+	public function put(UriPath|string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::PUT, $action, ...$params));
     }
 
     /**
+     * Handle a DELETE request
      * @throws RouteExistsException|RouteInUseException
      */
-    public function delete(string $path, Closure $action, mixed ...$params): void
+	public function delete(UriPath|string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::DELETE, $action, ...$params));
     }
 
     /**
+     * Handle a request for all methods
      * @throws RouteExistsException|RouteInUseException
      */
-    public function all(string $path, Closure $action, mixed ...$params): void
+	public function all(UriPath|string $path, Closure $action, mixed ...$params): void
     {
         $this->addRoute($path, new Route(HttpMethod::ALL, $action, ...$params));
     }
@@ -248,46 +211,48 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a RouterRoute to the router.
      *
-     * @param string $path
+     * @param UriPath|string $path
      * @param Router $router
      * @return void
      * @throws RouteExistsException|RouteInUseException
      */
-    public function route(string $path, Router $router): void
+	public function route(UriPath|string $path, Router $router): void
     {
         $this->addAnyRoute($path, new RouterRoute($router));
     }
 
     /**
      * Add a route to the router that accepts every path staring with the given path
-     * @param string $path the path that should match
+     * @param UriPath|string $path the path that should match
      * @param Route $route the route that handles the request
      * @return void
      * @throws RouteExistsException|RouteInUseException
      */
-    public function addAnyRoute(string $path, Route $route): void
+	public function addAnyRoute(UriPath|string $path, Route $route): void
     {
-        // make sure the static route ends with a *
-        if (str_ends_with($path, "/")) $path .= "*";
-        else if (!str_ends_with($path, "/*")) $path .= "/*";
+	    if (is_string($path)) $path = UriPath::parse($path);
+
+	    if (!$path->hasFilePathWildcard()) {
+		    $path = $path->append("*");
+	    }
 
         $this->addRoute($path, $route);
     }
 
     /**
      * Create a GET route for a static folder
-     * @param string $path
+     * @param UriPath|string $path
      * @param string $folder
      * @return void
      * @throws FolderNotFoundException|RouteExistsException|RouteInUseException
      */
-    public function getStatic(string $path, string $folder): void
+	public function getStatic(UriPath|string $path, string $folder): void
     {
         $this->addAnyRoute($path, new StaticRoute($folder));
 
     }
 
-    public function getRoutes(): ThreadSafeArray
+	public function getRoutes(): RoutingNode
     {
         return $this->routes;
     }

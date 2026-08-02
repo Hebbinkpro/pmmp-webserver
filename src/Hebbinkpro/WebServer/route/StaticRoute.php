@@ -64,7 +64,7 @@ class StaticRoute extends Route
                     return;
                 }
                 // get the path of the requested file, the uriPath is replaced with the folder path
-                $reqSubPath = $req->getRouteInfo()->getSubPath();
+	            $reqSubPath = $req->getRouteInfo()->getFilePath();
 
                 if ($reqSubPath !== null) {
                     $reqFilePath = implode(DIRECTORY_SEPARATOR, $reqSubPath->asArray());
