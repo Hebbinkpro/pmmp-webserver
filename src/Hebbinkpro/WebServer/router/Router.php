@@ -40,6 +40,7 @@ use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\http\uri\url\HttpAsteriskUrl;
 use Hebbinkpro\WebServer\http\uri\url\HttpAuthorityUrl;
 use Hebbinkpro\WebServer\http\uri\url\HttpOriginUrl;
+use Hebbinkpro\WebServer\route\ActionRoute;
 use Hebbinkpro\WebServer\route\BaseRoute;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\RouterRoute;
@@ -132,7 +133,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function get(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-	    $this->addRoute($path, new BaseRoute(HttpMethod::GET, $action, ...$params));
+	    $this->addRoute($path, new ActionRoute(HttpMethod::GET, $action, ...$params));
     }
 
     /**
@@ -169,7 +170,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function post(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-	    $this->addRoute($path, new BaseRoute(HttpMethod::POST, $action, ...$params));
+	    $this->addRoute($path, new ActionRoute(HttpMethod::POST, $action, ...$params));
     }
 
     /**
@@ -178,7 +179,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function head(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-	    $this->addRoute($path, new BaseRoute(HttpMethod::HEAD, $action, ...$params));
+	    $this->addRoute($path, new ActionRoute(HttpMethod::HEAD, $action, ...$params));
     }
 
     /**
@@ -187,7 +188,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function put(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-	    $this->addRoute($path, new BaseRoute(HttpMethod::PUT, $action, ...$params));
+	    $this->addRoute($path, new ActionRoute(HttpMethod::PUT, $action, ...$params));
     }
 
     /**
@@ -196,7 +197,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function delete(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-	    $this->addRoute($path, new BaseRoute(HttpMethod::DELETE, $action, ...$params));
+	    $this->addRoute($path, new ActionRoute(HttpMethod::DELETE, $action, ...$params));
     }
 
     /**
@@ -205,7 +206,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function all(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-	    $this->addRoute($path, new BaseRoute(HttpMethod::ALL, $action, ...$params));
+	    $this->addRoute($path, new ActionRoute(HttpMethod::ALL, $action, ...$params));
     }
 
     /**

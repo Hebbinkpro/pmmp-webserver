@@ -32,9 +32,11 @@ use DateTimeInterface;
 use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpHeaders;
+use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\HttpVersion;
 use Hebbinkpro\WebServer\http\message\header\HttpHeaderBuilder;
 use Hebbinkpro\WebServer\http\message\HttpBody;
+use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\status\HttpStatus;
@@ -53,6 +55,23 @@ class HttpResponseBuilder implements HttpResponseMessage
     private bool $headOnly;
 
     private bool $locked;
+
+	/**
+	 * Create an emtpy Http Response Builder based on the provided HTTP request.
+	 *
+	 * If the request method is HEAD, this ensures that the returned response is headOnly
+	 * @param HttpRequest $req the request for which the response will serve
+	 * @return HttpResponseBuilder the response builder to use for the request
+	 */
+	public static function fromRequest(HttpRequest $req): HttpResponseBuilder
+	{
+
+		if ($req->getMethod() === HttpMethod::HEAD) $res = new HttpResponseBuilder(true);
+		else $res = new HttpResponseBuilder();
+
+
+		return $res;
+	}
 
     /**
      * @param bool $headOnly if true, only the response headers will be set in the final HttpResponse

@@ -31,8 +31,9 @@ use Hebbinkpro\WebServer\exception\FileNotFoundException;
 use Hebbinkpro\WebServer\http\HttpContentType;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
+use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
-use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
+use Hebbinkpro\WebServer\http\server\HttpClientInfo;
 
 /**
  * A GET route that sends a file to the client
@@ -40,6 +41,9 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 class FileRoute extends BaseRoute
 {
     private string $file;
+	private ?string $contentType;
+	private ?string $default;
+	private ?string $defaultContentType;
 
     /**
      * @param string $file the file path
@@ -53,28 +57,29 @@ class FileRoute extends BaseRoute
         if (!file_exists($file) && $default === null) throw new FileNotFoundException($file);
 
         $this->file = $file;
+	    $this->contentType = $contentType;
+	    $this->default = $default;
+	    $this->defaultContentType = $defaultContentType;
 
-        parent::__construct(HttpMethod::GET,
-            function (HttpRequest $req, HttpResponseBuilder $res, mixed $file = "", ?string $contentType = null, ?string $default = null, ?string $defaultContentType = null, mixed ...$params) {
-                // for PHPStan, validate that the given file is a proper string, which should always be the case
-                if (!is_string($file)) {
-                    $res->setStatus(HttpStatusCodes::NOT_FOUND);
-                    $res->sendStatusMessage();
-                    return;
-                }
 
-                if ($default === null) {
-                    $res->sendFile($file, $contentType);
-                } else {
-                    $res->sendFileOrDefault($file, $default, $defaultContentType ?? HttpContentType::TEXT_HTML);
-                }
-
-            },
-            $file, $contentType, $default, $defaultContentType
-        );
+	    parent::__construct(HttpMethod::GET);
     }
 
-    public function getFile(): string
+	public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
+	{
+		// response to be sent back to the client, and make sure HEAD requests send a response without content
+		$res = HttpResponseBuilder::fromRequest($req);
+
+		if ($this->default === null) {
+			$res->sendFile($this->file, $this->contentType);
+		} else {
+			$res->sendFileOrDefault($this->file, $this->default, $this->defaultContentType ?? HttpContentType::TEXT_HTML);
+		}
+
+		return $res->build($client);
+	}
+
+	public function getFile(): string
     {
         return $this->file;
     }

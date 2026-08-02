@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025-2026 Hebbinkpro
+ * Copyright (c) 2026 Hebbinkpro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,20 @@
  * SOFTWARE.
  */
 
-declare(strict_types=1);
-
 namespace Hebbinkpro\WebServer\route;
 
-use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
-use Hebbinkpro\WebServer\router\Router;
 
-/**
- * A Route that functions like a Router
- */
-class RouterRoute extends BaseRoute
+interface Route
 {
-    private Router $router;
+	/**
+	 * Handle a routing request
+	 * @param HttpClientInfo $client information about the client that send the request
+	 * @param HttpRequest $req the request send by the client
+	 * @return HttpResponse the response to send to the client
+	 */
+	public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse;
 
-    /**
-     * @param Router $router
-     */
-    public function __construct(Router $router)
-    {
-        $this->router = $router;
-
-	    parent::__construct(HttpMethod::ALL);
-    }
-
-    public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
-    {
-        // let the router inside this route handle the request
-        return $this->router->handleRequest($client, $req);
-    }
-
-    /**
-     * @return Router
-     */
-    public function getRouter(): Router
-    {
-        return $this->router;
-    }
 }

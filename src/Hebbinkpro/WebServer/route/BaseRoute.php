@@ -27,90 +27,26 @@ declare(strict_types=1);
 
 namespace Hebbinkpro\WebServer\route;
 
-use Closure;
-use Exception;
 use Hebbinkpro\WebServer\exception\RouteInUseException;
 use Hebbinkpro\WebServer\http\HttpMethod;
-use Hebbinkpro\WebServer\http\message\request\HttpRequest;
-use Hebbinkpro\WebServer\http\message\response\HttpResponse;
-use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
-use Hebbinkpro\WebServer\http\message\response\HttpResponseFactory;
-use Hebbinkpro\WebServer\http\server\HttpClientInfo;
-use Hebbinkpro\WebServer\http\server\HttpServer;
 use Hebbinkpro\WebServer\http\uri\UriPath;
-use Hebbinkpro\WebServer\libs\Laravel\SerializableClosure\SerializableClosure;
-use Hebbinkpro\WebServer\utils\ThreadSafeUtils;
 use pmmp\thread\ThreadSafe;
-use pmmp\thread\ThreadSafeArray;
 
 /**
  * A route that handles a client request for a specific path
  */
-class BaseRoute extends ThreadSafe
+abstract class BaseRoute extends ThreadSafe implements Route
 {
     private HttpMethod $method;
-    private ?string $action;
-    private ThreadSafeArray $threadSafeParams;
     private ?UriPath $path;
 
-    /**
-     * @param HttpMethod $method the request method
-     * @param (Closure(HttpRequest $req, HttpResponseBuilder $res, mixed ...$params): void)|null $action the action to execute
-     * @param mixed ...$params additional (thread safe) parameters to use in the action
-     */
-    public function __construct(HttpMethod $method, ?Closure $action, mixed ...$params)
+	/**
+	 * @param HttpMethod $method the request method
+	 */
+	public function __construct(HttpMethod $method)
     {
         $this->method = $method;
-        $this->action = null;
-
-        if ($action !== null) {
-            $serializable = new SerializableClosure($action);
-            $this->action = serialize($serializable);
-        }
-
-        // make the array thread safe
-        $this->threadSafeParams = ThreadSafeUtils::makeThreadSafeArray($params);
-
         $this->path = null;
-    }
-
-    /**
-     * Handle the client request by executing the action
-     * @param HttpClientInfo $client the client
-     * @param HttpRequest $req the request of the client
-     * @return HttpResponse the response to send back to the client
-     */
-    public function handleRequest(HttpClientInfo $client, HttpRequest $req): HttpResponse
-    {
-        if ($this->action === null) {
-            return HttpResponseFactory::notImplemented()->build($client);
-        }
-
-        /** @var SerializableClosure|null $action */
-        $action = unserialize($this->action);
-
-        // no action to handle the request
-        if ($action === false || $action === null) {
-            return HttpResponseFactory::notImplemented()->build($client);
-        }
-
-        // response to be sent back to the client, and make sure HEAD requests send a response without content
-        if ($req->getMethod() === HttpMethod::HEAD) $res = new HttpResponseBuilder(true);
-        else $res = new HttpResponseBuilder();
-
-        try {
-            // ensure that the values are unwrapped before passing them on to the closure
-            $params = ThreadSafeUtils::unwrapThreadSafeArray($this->threadSafeParams);
-
-            // execute the closure with the request, response and parameters
-            call_user_func($action->getClosure(), $req, $res, ...$params);
-        } catch (Exception $e) {
-            HttpServer::getInstance()->getLogger()->error("Error while handling request: " . $e->getMessage());
-            return HttpResponseFactory::internalServerError()->build($client);
-        }
-
-
-        return $res->build($client);
     }
 
     /**
