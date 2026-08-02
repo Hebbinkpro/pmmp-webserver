@@ -1,9 +1,9 @@
 # Paths
 
 Route paths are the paths in the URL, these paths are very important because they contain the information about the page
-a client wants to see.
-But to make sure the client sees the correct page, the path of this page needs to have a `Route`.
-This is why for every `Route` you create, if it is using functions in the `Router` or by creating a new `Route`
+a client wants to see. But to make sure the client sees the correct page, the path of this page needs to have a
+`BaseRoute`. This is why for every `BaseRoute` you create, if it is using functions in the `Router` or by creating a new
+`BaseRoute`
 instance,
 you HAVE to provide a VALID path, otherwise a client cannot find or request your page.
 
@@ -13,7 +13,7 @@ A path is nothing more than everything after the first `/` up to the end or `?` 
 
 ## prefixes
 
-Sometimes you want a `Route` that listens to all requests that start with `/foo`, so also to `/foo/bar` or
+Sometimes you want a `BaseRoute` that listens to all requests that start with `/foo`, so also to `/foo/bar` or
 `/foo/bar/etc`.<br>
 We can accomplish this by adding a `/*` to the end of a path.
 

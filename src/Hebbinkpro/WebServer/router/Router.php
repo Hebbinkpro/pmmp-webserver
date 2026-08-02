@@ -40,8 +40,8 @@ use Hebbinkpro\WebServer\http\uri\UriPath;
 use Hebbinkpro\WebServer\http\uri\url\HttpAsteriskUrl;
 use Hebbinkpro\WebServer\http\uri\url\HttpAuthorityUrl;
 use Hebbinkpro\WebServer\http\uri\url\HttpOriginUrl;
+use Hebbinkpro\WebServer\route\BaseRoute;
 use Hebbinkpro\WebServer\route\FileRoute;
-use Hebbinkpro\WebServer\route\Route;
 use Hebbinkpro\WebServer\route\RouterRoute;
 use Hebbinkpro\WebServer\route\StaticRoute;
 use pmmp\thread\ThreadSafe;
@@ -132,18 +132,18 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function get(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-        $this->addRoute($path, new Route(HttpMethod::GET, $action, ...$params));
+	    $this->addRoute($path, new BaseRoute(HttpMethod::GET, $action, ...$params));
     }
 
     /**
      * Assign the route to the path
      * @param UriPath|string $path the path to access the route
-     * @param Route $route the route that should be executed when requested
+     * @param BaseRoute $route the route that should be executed when requested
      * @return void
      * @throws RouteExistsException if the routing path already exists
      * @throws RouteInUseException if the given route is already added to a routing path
      */
-	public function addRoute(UriPath|string $path, Route $route): void
+	public function addRoute(UriPath|string $path, BaseRoute $route): void
     {
 	    if (is_string($path)) $path = UriPath::parse($path);
 	    $this->routes->addRoute($path, $route);
@@ -169,7 +169,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function post(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-        $this->addRoute($path, new Route(HttpMethod::POST, $action, ...$params));
+	    $this->addRoute($path, new BaseRoute(HttpMethod::POST, $action, ...$params));
     }
 
     /**
@@ -178,7 +178,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function head(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-        $this->addRoute($path, new Route(HttpMethod::HEAD, $action, ...$params));
+	    $this->addRoute($path, new BaseRoute(HttpMethod::HEAD, $action, ...$params));
     }
 
     /**
@@ -187,7 +187,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function put(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-        $this->addRoute($path, new Route(HttpMethod::PUT, $action, ...$params));
+	    $this->addRoute($path, new BaseRoute(HttpMethod::PUT, $action, ...$params));
     }
 
     /**
@@ -196,7 +196,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function delete(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-        $this->addRoute($path, new Route(HttpMethod::DELETE, $action, ...$params));
+	    $this->addRoute($path, new BaseRoute(HttpMethod::DELETE, $action, ...$params));
     }
 
     /**
@@ -205,7 +205,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function all(UriPath|string $path, Closure $action, mixed ...$params): void
     {
-        $this->addRoute($path, new Route(HttpMethod::ALL, $action, ...$params));
+	    $this->addRoute($path, new BaseRoute(HttpMethod::ALL, $action, ...$params));
     }
 
     /**
@@ -224,11 +224,11 @@ class Router extends ThreadSafe implements RouterInterface
     /**
      * Add a route to the router that accepts every path staring with the given path
      * @param UriPath|string $path the path that should match
-     * @param Route $route the route that handles the request
+     * @param BaseRoute $route the route that handles the request
      * @return void
      * @throws RouteExistsException|RouteInUseException
      */
-	public function addAnyRoute(UriPath|string $path, Route $route): void
+	public function addAnyRoute(UriPath|string $path, BaseRoute $route): void
     {
 	    if (is_string($path)) $path = UriPath::parse($path);
 

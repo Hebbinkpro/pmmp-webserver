@@ -1,12 +1,13 @@
 # Routing
 
-Routes are used to let your web server be able to do things. By creating a `Route` you can make your webserver listen to
+Routes are used to let your web server be able to do things. By creating a `BaseRoute` you can make your webserver
+listen to
 different paths and respond to them.
 
 ## Router
 
 The router is used to register all your routes. the router will also handle all incoming requests and make sure they are
-handled by the correct `Route`.<br>
+handled by the correct `BaseRoute`.<br>
 You can access the router of your `WebServer` by calling:
 
 ```php
@@ -21,7 +22,7 @@ A route is used to perform an action on an incoming web request.
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\message\HttpRequest;
 use Hebbinkpro\WebServer\http\message\HttpResponse;
-use Hebbinkpro\WebServer\route\Route;
+use Hebbinkpro\WebServer\route\BaseRoute;
 {
     // the method can be any value in the HttpMethod class.
     // these methods represent HTTP request methods and makes the route listen to a specific type of request.
@@ -55,7 +56,7 @@ use Hebbinkpro\WebServer\route\Route;
     }
     
     // now we construct the Route with our given method, path and action.
-    $route = new Route($method, $path, $action);
+    $route = new BaseRoute($method, $path, $action);
 }
 ```
 
@@ -71,11 +72,10 @@ function (HttpRequest $request, HttpResponse $response, mixed ...$params) {
 
 - `$request` is the incoming request
 - `$response` is the response that will be returned to the client
-- `...$params` is an array with all given parameters.
-  The parameters are given at the end of a new `Route`.
+- `...$params` is an array with all given parameters. The parameters are given at the end of a new `BaseRoute`.
 
 ```php
-    $route = new \Hebbinkpro\WebServer\route\Route($method, $action, ...$params);
+    $route = new \Hebbinkpro\WebServer\route\BaseRoute($method, $action, ...$params);
 ```
 
 You can add as many params as you want, if you only want 1 param, you can use
@@ -92,8 +92,8 @@ function _**
 
 ## Router methods to create HTTP request routes
 
-For the most common methods there are functions inside the `Router` instance.
-These functions make it so that you don't have to input an HTTP method for every new `Route` you want to make<br>
+For the most common methods there are functions inside the `Router` instance. These functions make it so that you don't
+have to input an HTTP method for every new `BaseRoute` you want to make<br>
 The available method function in `Router` are:
 
 - GET, a route that only listens to GET requests - `Router->get($path, $action, ...$params)`
@@ -110,16 +110,17 @@ The path and action arguments inside the router functions are the same as the on
 
 ## Other Route types
 
-There are three types of routes you can use outside the default `Route` implementations in the `Router`:
+There are three types of routes you can use outside the default `BaseRoute` implementations in the `Router`:
 
-- `Route` - A basic route that makes you able to create your own responses for a path
+- `BaseRoute` - A basic route that makes you able to create your own responses for a path
 - `FileRoute` - A route that sends a file as response
 - `RouterRoute` - A route that functions as a `Router`, but only for the specified path
-- `StaticRoute` - A route that makes you able to share the content of complete folders without making a `Route` for each
+- `StaticRoute` - A route that makes you able to share the content of complete folders without making a `BaseRoute` for
+  each
   different path.
 - You are not restricted to those routes, but you can also create your own routes. The only requirement is that your
-  custom route has to extend (a child of) `\Hebbinkpro\WebServer\route\Route`.
-  You can add an instance of a `Route` to the `Router` using
+  custom route has to extend (a child of) `\Hebbinkpro\WebServer\route\Route`. You can add an instance of a `BaseRoute`
+  to the `Router` using
 
 ```php
 $router->addRoute($route)

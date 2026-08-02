@@ -37,7 +37,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
 /**
  * A GET route that sends a file to the client
  */
-class FileRoute extends Route
+class FileRoute extends BaseRoute
 {
     private string $file;
 

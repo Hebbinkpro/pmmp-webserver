@@ -36,7 +36,7 @@ use Hebbinkpro\WebServer\router\Router;
 /**
  * A Route that functions like a Router
  */
-class RouterRoute extends Route
+class RouterRoute extends BaseRoute
 {
     private Router $router;
 

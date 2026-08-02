@@ -46,7 +46,7 @@ use pmmp\thread\ThreadSafeArray;
 /**
  * A route that handles a client request for a specific path
  */
-class Route extends ThreadSafe
+class BaseRoute extends ThreadSafe
 {
     private HttpMethod $method;
     private ?string $action;

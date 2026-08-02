@@ -29,7 +29,7 @@ namespace Hebbinkpro\WebServer\router;
 
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\uri\UriPath;
-use Hebbinkpro\WebServer\route\Route;
+use Hebbinkpro\WebServer\route\BaseRoute;
 use PHPUnit\Framework\TestCase;
 
 class RoutingNodeTest extends TestCase
@@ -40,17 +40,17 @@ class RoutingNodeTest extends TestCase
 
 		$node = new RoutingNode();
 		$emptyPath = new UriPath();
-		$route0 = new Route(HttpMethod::GET, null);
+		$route0 = new BaseRoute(HttpMethod::GET, null);
 
 		$node->addRoute($emptyPath, $route0);
 		$this->assertEquals($route0, $node->getRoute($emptyPath, HttpMethod::GET));
 
 		$path = UriPath::parse("/test/example/route");
-		$route1 = new Route(HttpMethod::POST, null);
+		$route1 = new BaseRoute(HttpMethod::POST, null);
 		$node->addRoute($path, $route1);
 		$this->assertEquals($route1, $node->getRoute($path, HttpMethod::POST));
 
-		$route2 = new Route(HttpMethod::ALL, null);
+		$route2 = new BaseRoute(HttpMethod::ALL, null);
 		$node->addRoute($emptyPath, $route2);
 		$this->assertEquals($route0, $node->getRoute($emptyPath, HttpMethod::GET));
 		$this->assertEquals($route2, $node->getRoute($emptyPath, HttpMethod::POST));

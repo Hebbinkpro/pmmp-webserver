@@ -48,14 +48,14 @@ declare(strict_types=1);
 namespace Hebbinkpro\WebServer\http\message\request;
 
 use Hebbinkpro\WebServer\http\uri\UriPath;
-use Hebbinkpro\WebServer\route\Route;
+use Hebbinkpro\WebServer\route\BaseRoute;
 
 /**
  * Route information for a request, containing the route path, and various other useful details
  */
 class RequestRouteInfo
 {
-    private ?Route $route;
+	private ?BaseRoute $route;
     /** @var array<string, string> */
     private array $pathParams;
 	private ?UriPath $filePath;
@@ -68,10 +68,10 @@ class RequestRouteInfo
     }
 
     /**
-     * @param Route $route
+     * @param BaseRoute $route
      * @param UriPath $requestPath
      */
-    public function updateRouteInfo(Route $route, UriPath $requestPath): void
+	public function updateRouteInfo(BaseRoute $route, UriPath $requestPath): void
     {
         $this->route = $route;
 
@@ -83,9 +83,9 @@ class RequestRouteInfo
     }
 
     /**
-     * @return Route|null
+     * @return BaseRoute|null
      */
-    public function getRoute(): ?Route
+	public function getRoute(): ?BaseRoute
     {
         return $this->route;
     }

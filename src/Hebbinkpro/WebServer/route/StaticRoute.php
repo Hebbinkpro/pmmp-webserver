@@ -39,7 +39,7 @@ use Hebbinkpro\WebServer\http\status\HttpStatusCodes;
  *
  * Used for folders containing multiple static files (e.g. html/css/js files)
  */
-class StaticRoute extends Route
+class StaticRoute extends BaseRoute
 {
     private string $folder;
 

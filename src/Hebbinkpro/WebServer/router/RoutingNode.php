@@ -28,7 +28,7 @@ namespace Hebbinkpro\WebServer\router;
 use Hebbinkpro\WebServer\exception\RouteExistsException;
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\uri\UriPath;
-use Hebbinkpro\WebServer\route\Route;
+use Hebbinkpro\WebServer\route\BaseRoute;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 
@@ -38,7 +38,7 @@ class RoutingNode extends ThreadSafe
 	/** @var ThreadSafeArray<string, RoutingNode> */
 	protected ThreadSafeArray $leaves;
 
-	/** @var ThreadSafeArray<string, Route> HttpMethod->value => Route */
+	/** @var ThreadSafeArray<string, BaseRoute> HttpMethod->value => Route */
 	protected ThreadSafeArray $routes;
 
 	public function __construct()
@@ -51,9 +51,9 @@ class RoutingNode extends ThreadSafe
 	 * Get a route by its method
 	 * @param UriPath $path the requested path
 	 * @param HttpMethod $method the requested method
-	 * @return Route|null the route or null when it does not exist
+	 * @return BaseRoute|null the route or null when it does not exist
 	 */
-	public function getRoute(UriPath $path, HttpMethod $method): ?Route
+	public function getRoute(UriPath $path, HttpMethod $method): ?BaseRoute
 	{
 		// we got an exact match
 		if ($path->getLength() === 0) {
@@ -72,9 +72,9 @@ class RoutingNode extends ThreadSafe
 	 * Find a route within the leaves
 	 * @param UriPath $path
 	 * @param HttpMethod $method
-	 * @return Route|null
+	 * @return BaseRoute|null
 	 */
-	protected function findRoute(UriPath $path, HttpMethod $method): ?Route
+	protected function findRoute(UriPath $path, HttpMethod $method): ?BaseRoute
 	{
 		// find the route in one of the leave nodes
 		foreach ($this->leaves as $leafPart => $leafNode) {
@@ -90,10 +90,10 @@ class RoutingNode extends ThreadSafe
 	/**
 	 * Add a route to the given path
 	 * @param UriPath|string[] $path the path to the route
-	 * @param Route $route the route to add
+	 * @param BaseRoute $route the route to add
 	 * @return void
 	 */
-	public function addRoute(UriPath|array $path, Route $route): void
+	public function addRoute(UriPath|array $path, BaseRoute $route): void
 	{
 
 		// convert the URI path to an array
