@@ -69,17 +69,18 @@ class UriPath extends ThreadSafe implements UriElement
     }
 
     /**
-     * Get the subpath of a matched URI
+     * Get the file path of a matched URI
      *
      * This method returns the opposite of getMatchPath, as it returns the remaining part of the URI.
+     * Since this is always an empty array when `hasFilePathWildcard()` is true,
      * @param UriPath $matchPath the path to check
      * @param bool $strict if the paths should match exactly, if true wildcards will be ignored.
      * @param array<string,string> $params if strict is false, sets url parameters from the matchpath to
      *                                      their coresponding values in the base path.
-     * @returns UriPath|null
+     * @returns UriPath|null the sub path or null if the path did not match
      * @see getMatchingPath()
      */
-	public function getSubPath(UriPath $matchPath, bool $strict = false, array &$params = []): ?UriPath
+	public function getFilePath(UriPath $matchPath, bool $strict = false, array &$params = []): ?UriPath
     {
         // get the base path
         $matchingPath = $this->getMatchingPath($matchPath, $strict, $params);
@@ -102,11 +103,14 @@ class UriPath extends ThreadSafe implements UriElement
     /**
      * Append a new value to the path
      * @param string $value
-     * @return void
+     * @return UriPath a new UriPath with the appended value
      */
-    public function append(string $value): void
+	public function append(string $value): UriPath
     {
-        $this->path[] = $value;
+	    $newPath = $this->asArray();
+	    $newPath[] = $value;
+
+	    return new UriPath($newPath);
     }
 
     public function toString(): string
@@ -137,10 +141,10 @@ class UriPath extends ThreadSafe implements UriElement
      *
      * If the given path contains wildcards, they will be taken into account
      * @param UriPath $matchPath the path to check
-     * @param bool $strict if the paths should match exactly, if true wildcards will be ignored.
+     * @param bool $strict if the paths should match exactly, if false only the first part has to match
      * @return bool
      */
-    public function matches(UriPath $matchPath, bool $strict = false): bool
+	public function matches(UriPath $matchPath, bool $strict = true): bool
     {
         return $this->getMatchingPath($matchPath, $strict) !== null;
     }
@@ -150,19 +154,25 @@ class UriPath extends ThreadSafe implements UriElement
      *
      * If the given path contains wildcards, they will be taken into account
      * @param UriPath $matchPath the path to check
-     * @param bool $strict if the paths should match exactly, if true wildcards will be ignored.
-     * @param array<string,string> $params if strict is false, sets url parameters from the matchpath to
-     *                                     their coresponding values in the base path.
+     * @param bool $strict if the paths should match exactly, if false only the first part has to match
+     * @param array<string,string> $params sets url parameters from the matchpath to their values in the path.
      * @return UriPath|null
      */
-	public function getMatchingPath(UriPath $matchPath, bool $strict = false, array &$params = []): ?UriPath
+	public function getMatchingPath(UriPath $matchPath, bool $strict = true, array &$params = []): ?UriPath
     {
         $matchPattern = $matchPath->asArray();
         $pathLength = $this->getLength();
         $matchLength = $matchPath->getLength();
 
-        // path length can never be shorter then the path it should match
-        if ($pathLength < $matchLength) return null;
+	    // path length can never be shorter then the path it should match, but folder wildcards may be empty
+	    if ($pathLength < $matchLength && ($matchPath->hasFilePathWildcard() && $pathLength < $matchLength - 1)) {
+		    return null;
+	    }
+
+	    // if strict, the path can only match if the match path is of equal length, or is a file path
+	    if ($strict && $pathLength > $matchLength && !$matchPath->hasFilePathWildcard()) {
+		    return null;
+	    }
 
 	    /** @var array<string,string> $matchingPath */
         $matchingPath = [];
@@ -179,102 +189,29 @@ class UriPath extends ThreadSafe implements UriElement
             $toMatch = $matchPattern[$patternIdx++];
             $isFinalMatch = $patternIdx >= $matchLength;
 
-            // ** is a unique case as we need to recursively check the path until a new value arises
-            if (!$strict && str_starts_with($toMatch, "**")) {
-                // final match (since pathIdx is already incremented at $toMatch, we dont need a +1)
-                if ($isFinalMatch) break;
-
-	            $matchingFolderPath = $this->getMatchingFolderWildcardPath($matchPattern, $patternIdx, $strict, $matchingParams);
-	            if ($matchingFolderPath === null) return null;
-
-                // append the matching subpath to the already existing matching path
-	            $matchingPath = array_merge($matchingPath, $matchingFolderPath);
-                break;
-            }
-
-            if (!$this->pathPartMatches($toMatch, $value, $strict)) {
+	        if (!$this->pathPartMatches($toMatch, $value)) {
                 return null;
             }
 
-            if (!$strict) {
-                // if match ends on a *, do not include the value in the matching path
-                if ($isFinalMatch && $toMatch === "*") break;
+	        // if match ends on a *, do not include the value in the matching path
+	        if ($isFinalMatch && str_starts_with($toMatch, "*")) break;
 
-                // store path parameters when encountered
-                if (str_starts_with($toMatch, ":")) {
-                    $matchingParams[substr($toMatch, 1)] = $value;
-                }
+	        // store path parameters when encountered
+	        if (str_starts_with($toMatch, ":")) {
+		        $matchingParams[substr($toMatch, 1)] = $value;
             }
 
             $matchingPath[] = $value;
         }
 
         // only on success, add the matched parameters to the provided params array
-	    if (!$strict) {
-            foreach ($matchingParams as $key => $value) {
-                $params[$key] = $value;
-            }
+	    foreach ($matchingParams as $key => $value) {
+		    $params[$key] = $value;
         }
 
         // return the matching path
         return new UriPath($matchingPath);
     }
-
-	/**
-	 * Get a path matching the folder wildcard
-	 * @param string[] $matchPattern the pattern that needs to be matched
-	 * @param int $patternIdx the index in the pattern at which the wildcard occurs
-	 * @param bool $strict if a strict match should be applied
-	 * @param array<string,string> $matchingParams array to store encountered path params
-	 * @return string[]|null the folder wildcard path as array, or null if the path did not match
-	 */
-	private function getMatchingFolderWildcardPath(array $matchPattern, int $patternIdx, bool $strict, array &$matchingParams): ?array
-	{
-		$matchLength = count($matchPattern);
-		$pathLength = $this->getLength();
-
-		// check if current value matches the next one
-		// also take care of any other ** parts in the path, since that would be possible
-		$nextMatchIdx = $patternIdx;
-		do {
-			$nextMatch = $matchPattern[$nextMatchIdx++];
-		} while (str_starts_with($nextMatch, "**") && $nextMatchIdx < $matchLength);
-
-		$nextMatchIdx--; // decrement 1, to remove the last increment of the while loop
-
-		// we got multiple ** parts until the end of the path
-		if (str_starts_with($nextMatch, "**")) {
-			// it was a final match
-			return [];
-		}
-
-		$matchingPath = [];
-		$nextIdx = $patternIdx - 1; # -1 to account for "current" toMatch value
-		while ($nextIdx < $pathLength) {
-			/** @var string $nextValue */
-			$nextValue = $this->path[$nextIdx];
-
-			if ($this->pathPartMatches($nextMatch, $nextValue, false)) {
-				break;
-			}
-
-			$matchingPath[] = $nextValue;
-			$nextIdx++;
-		}
-
-		if ($nextIdx >= $pathLength) {
-			return null;
-		}
-
-		// get the matching path between our remaining path and matching path
-		$subPath = new UriPath(array_slice($this->asArray(), $nextIdx));
-		$matchSubPath = new UriPath(array_slice($matchPattern, $nextMatchIdx));
-
-		$matchingSubPath = $subPath->getMatchingPath($matchSubPath, $strict, $matchingParams);
-		if ($matchingSubPath === null) return null;
-
-		return array_merge($matchingPath, $matchingSubPath->asArray());
-	}
 
     /**
      * Check if a part of a path matches a value
@@ -283,13 +220,14 @@ class UriPath extends ThreadSafe implements UriElement
      * @param bool $strict wether the path part should match strictly. If false, wildcards are allowed matches.
      * @return bool
      */
-	private function pathPartMatches(string $toMatch, string $value, bool $strict): bool
+	private function pathPartMatches(string $toMatch, string $value, bool $strict = false): bool
     {
         if ($strict) return $toMatch === $value;
 
+	    $first = substr($toMatch, 0, 1);
 	    return $toMatch === $value
-		    || ($firstChar = substr($toMatch, 0, 1)) === "*"
-		    || $firstChar === ":";
+		    || $first === "*"
+		    || $first === ":";
     }
 
     /**
@@ -301,4 +239,34 @@ class UriPath extends ThreadSafe implements UriElement
     {
         return $this->asArray() === $path->asArray();
     }
+
+	/**
+	 * If the path ends with the filepath wildcard (*)
+	 * @return bool
+	 */
+	public function hasFilePathWildcard(): bool
+	{
+		$count = $this->path->count();
+		if ($this->path->count() === 0) return false;
+
+		$last = $this->path->offsetGet($count - 1);
+		return str_starts_with($last, "*");
+	}
+
+	/**
+	 * Check if the first path part matches the given value
+	 * @param string $value
+	 * @param bool $strict if the value should match exactly
+	 * @return bool
+	 */
+	public function startsWith(string $value, bool $strict = false): bool
+	{
+		if ($this->path->count() === 0) return false;
+		return $this->pathPartMatches($this->path->offsetGet(0), $value, $strict);
+	}
+
+	public function slice(int $offset, int $length = null): UriPath
+	{
+		return new UriPath(array_slice($this->asArray(), $offset, $length));
+	}
 }
