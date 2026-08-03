@@ -268,7 +268,13 @@ class UriPath extends ThreadSafe implements UriElement
 		return $this->pathPartMatches($match, $value, $strict);
 	}
 
-	public function slice(int $offset, int $length = null): UriPath
+	/**
+	 * Extract a slice of the path
+	 * @param int $offset the offset to start
+	 * @param int|null $length the length of the slice
+	 * @return UriPath the sliced uri path
+	 */
+	public function slice(int $offset, ?int $length = null): UriPath
 	{
 		return new UriPath(array_slice($this->asArray(), $offset, $length));
 	}
