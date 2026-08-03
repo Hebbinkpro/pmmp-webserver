@@ -46,6 +46,8 @@ use Hebbinkpro\WebServer\route\BaseRoute;
 use Hebbinkpro\WebServer\route\FileRoute;
 use Hebbinkpro\WebServer\route\RouterRoute;
 use Hebbinkpro\WebServer\route\StaticRoute;
+use Hebbinkpro\WebServer\router\middleware\ActionMiddleware;
+use Hebbinkpro\WebServer\router\middleware\BaseMiddleware;
 use pmmp\thread\ThreadSafe;
 
 /**
@@ -89,15 +91,15 @@ class Router extends ThreadSafe implements RouterInterface
 	 */
 	protected function handleOriginRequest(HttpClientInfo $client, HttpRequest $request, HttpOriginUrl $target, HttpResponseBuilder|null $response = null): HttpResponse
 	{
-
-		$route = $this->routes->getRoute($target->getPath(), $request->getMethod());
+		$routingPath = [];
+		$route = $this->routes->getRoute($target->getPath(), $request->getMethod(), $routingPath);
 
 		if ($route === null) {
 			return HttpResponseFactory::notFound()->build($client);
 		}
 
 		// add the route path in the request, used for path params and sub paths
-		$request->getRouteInfo()->updateRouteInfo($route, $target->getPath());
+		$request->getRouteInfo()->updateRouteInfo(new UriPath($routingPath), $target->getPath());
 
 		// handle the request
 		return $route->handleRequest($client, $request, $response);
@@ -150,6 +152,20 @@ class Router extends ThreadSafe implements RouterInterface
 	    if (is_string($path)) $path = UriPath::parse($path);
 	    $this->routes->addRoute($path, $route);
     }
+
+	/**
+	 * Assign the middleware to the path
+	 * @param UriPath|string $path the path to access the middleware
+	 * @param BaseMiddleware $middleware the middleware that should be executed when requested
+	 * @return void
+	 * @throws RouteExistsException if the routing path already exists
+	 * @throws RouteInUseException if the given route is already added to a routing path
+	 */
+	public function addMiddleware(UriPath|string $path, BaseMiddleware $middleware): void
+	{
+		if (is_string($path)) $path = UriPath::parse($path);
+		$this->routes->addMiddleware($path, $middleware);
+	}
 
     /**
      * Add a FileRoute to the router
@@ -220,7 +236,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function route(UriPath|string $path, Router $router): void
     {
-        $this->addAnyRoute($path, new RouterRoute($router));
+	    $this->addFilePathRoute($path, new RouterRoute($router));
     }
 
     /**
@@ -230,7 +246,7 @@ class Router extends ThreadSafe implements RouterInterface
      * @return void
      * @throws RouteExistsException|RouteInUseException
      */
-	public function addAnyRoute(UriPath|string $path, BaseRoute $route): void
+	public function addFilePathRoute(UriPath|string $path, BaseRoute $route): void
     {
 	    if (is_string($path)) $path = UriPath::parse($path);
 
@@ -250,7 +266,7 @@ class Router extends ThreadSafe implements RouterInterface
      */
 	public function getStatic(UriPath|string $path, string $folder): void
     {
-        $this->addAnyRoute($path, new StaticRoute($folder));
+	    $this->addFilePathRoute($path, new StaticRoute($folder));
 
     }
 
@@ -258,4 +274,9 @@ class Router extends ThreadSafe implements RouterInterface
     {
         return $this->routes;
     }
+
+	public function use(string $path, Closure $action, ...$params): void
+	{
+		$this->addMiddleware($path, new ActionMiddleware($action, ...$params));
+	}
 }

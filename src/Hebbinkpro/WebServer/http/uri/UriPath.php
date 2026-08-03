@@ -250,7 +250,7 @@ class UriPath extends ThreadSafe implements UriElement
 		if ($this->path->count() === 0) return false;
 
 		$last = $this->path->offsetGet($count - 1);
-		return str_starts_with($last, "*");
+		return is_string($last) && str_starts_with($last, "*");
 	}
 
 	/**
@@ -262,7 +262,10 @@ class UriPath extends ThreadSafe implements UriElement
 	public function startsWith(string $value, bool $strict = false): bool
 	{
 		if ($this->path->count() === 0) return false;
-		return $this->pathPartMatches($this->path->offsetGet(0), $value, $strict);
+		$match = $this->path->offsetGet(0);
+
+		if (!is_string($match)) return false;
+		return $this->pathPartMatches($match, $value, $strict);
 	}
 
 	public function slice(int $offset, int $length = null): UriPath

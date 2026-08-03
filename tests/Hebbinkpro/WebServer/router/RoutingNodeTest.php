@@ -29,28 +29,28 @@ namespace Hebbinkpro\WebServer\router;
 
 use Hebbinkpro\WebServer\http\HttpMethod;
 use Hebbinkpro\WebServer\http\uri\UriPath;
-use Hebbinkpro\WebServer\route\BaseRoute;
+use Hebbinkpro\WebServer\route\MiddlewareRoute;
 use PHPUnit\Framework\TestCase;
 
 class RoutingNodeTest extends TestCase
 {
 
-	public function testRoutingNode(): void
+	public function testRoutes(): void
 	{
 
 		$node = new RoutingNode();
 		$emptyPath = new UriPath();
-		$route0 = new BaseRoute(HttpMethod::GET, null);
+		$route0 = new TestRoute(HttpMethod::GET);
 
 		$node->addRoute($emptyPath, $route0);
 		$this->assertEquals($route0, $node->getRoute($emptyPath, HttpMethod::GET));
 
 		$path = UriPath::parse("/test/example/route");
-		$route1 = new BaseRoute(HttpMethod::POST, null);
+		$route1 = new TestRoute(HttpMethod::POST);
 		$node->addRoute($path, $route1);
 		$this->assertEquals($route1, $node->getRoute($path, HttpMethod::POST));
 
-		$route2 = new BaseRoute(HttpMethod::ALL, null);
+		$route2 = new TestRoute(HttpMethod::ALL);
 		$node->addRoute($emptyPath, $route2);
 		$this->assertEquals($route0, $node->getRoute($emptyPath, HttpMethod::GET));
 		$this->assertEquals($route2, $node->getRoute($emptyPath, HttpMethod::POST));
@@ -58,4 +58,21 @@ class RoutingNodeTest extends TestCase
 		$this->assertEquals($route2, $node->getRoute($emptyPath, HttpMethod::DELETE));
 	}
 
+	public function testMiddleware(): void
+	{
+		$node = new RoutingNode();
+		$emptyPath = new UriPath();
+		$route = new TestRoute(HttpMethod::GET);
+		$middleware = new TestMiddleware();
+
+		$node->addRoute($emptyPath, $route);
+		$node->addMiddleware($emptyPath, $middleware);
+
+		$requestRoute = $node->getRoute($emptyPath, HttpMethod::GET);
+		$this->assertTrue($requestRoute instanceof MiddlewareRoute);
+
+		$this->assertEquals($middleware, $requestRoute->getMiddleware());
+		$this->assertEquals($route, $requestRoute->getNext());
+
+	}
 }

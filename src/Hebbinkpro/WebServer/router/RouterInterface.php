@@ -32,6 +32,7 @@ use Hebbinkpro\WebServer\http\message\request\HttpRequest;
 use Hebbinkpro\WebServer\http\message\response\HttpResponse;
 use Hebbinkpro\WebServer\http\message\response\HttpResponseBuilder;
 use Hebbinkpro\WebServer\http\server\HttpClientInfo;
+use Hebbinkpro\WebServer\router\middleware\MiddlewareResponse;
 
 /**
  * Interface for a basic HTTP request router
@@ -102,4 +103,15 @@ interface RouterInterface
      * @return void
      */
     public function all(string $path, Closure $action, mixed ...$params): void;
+
+	/**
+	 * Add a middleware to a route path
+	 *
+	 * Middleware will be executed on any request target that contains the path to the middleware
+	 * @param string $path
+	 * @param Closure(HttpRequest $request, HttpResponseBuilder $response, mixed ...$params): MiddlewareResponse $action
+	 * @param mixed ...$params
+	 * @return void
+	 */
+	public function use(string $path, Closure $action, mixed ...$params): void;
 }
